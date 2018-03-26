@@ -1,0 +1,19 @@
+if ARCH_PENTAGRAM
+
+config SYS_VENDOR
+	string "Vendor name"
+	default "sunplus"
+
+choice
+	prompt "Board select"
+	optional
+
+config TARGET_PENTAGRAM_COMMON
+	bool "pentagram common board"
+
+endchoice
+
+source "board/sunplus/pentagram_board/Kconfig"
+
+endif
+

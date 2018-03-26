@@ -1,0 +1,18 @@
+if TARGET_PENTAGRAM_COMMON
+
+config SYS_CONFIG_NAME
+	default "pentagram_common"
+
+config SYS_SOC
+	default "pentagram"
+
+config SYS_BOARD
+	default "pentagram_board"
+
+config SYS_TEXT_BASE
+	default 0x200000
+
+config HUSH_PARSER
+	default y
+
+endif
