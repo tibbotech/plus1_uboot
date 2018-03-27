@@ -583,8 +583,6 @@ config ARCH_OMAP2PLUS
 
 config ARCH_PENTAGRAM
 	bool "Sunplus Pentagram"
-	select CPU_V7
-	select SYS_THUMB_BUILD
 	select OF_CONTROL
 	imply FIT
 	select DM

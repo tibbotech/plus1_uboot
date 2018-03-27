@@ -856,6 +856,15 @@ quiet_cmd_cfgcheck = CFGCHK  $2
 cmd_cfgcheck = $(srctree)/scripts/check-config.sh $2 \
 		$(srctree)/scripts/config_whitelist.txt $(srctree)
 
+# xboot uses name field of u-boot header to differeciate between A boot
+# image and B boot image. If name field has prefix "uboot_B", it boots from
+# B chip.
+ifeq ($(CONFIG_TARGET_PENTAGRAM_B_BOOT),y)
+img_name = "uboot_B_$(CONFIG_SYS_BOARD)"
+else
+img_name = "uboot_$(CONFIG_SYS_BOARD)"
+endif
+
 all:		$(ALL-y) cfg
 ifeq ($(CONFIG_DM_I2C_COMPAT)$(CONFIG_SANDBOX),y)
 	@echo "===================== WARNING ======================"
@@ -869,8 +878,7 @@ endif
 	@# options are whitelisted, so new ones should not be added.
 	@# create u-boot.img
 	@echo "Wrap u-boot image..."
-	@img_name="uboot_$(CONFIG_SYS_BOARD)" ; \
-	./tools/add_uhdr.sh $$img_name u-boot.bin u-boot.img 0x200040 0x200040
+	./tools/add_uhdr.sh $(img_name) u-boot.bin u-boot.img 0x200040 0x200040
 	@img_sz=`du -sb u-boot.img | cut -f1` ; \
 	printf "size: %d (hex %x)\n" $$img_sz $$img_sz
 	$(call cmd,cfgcheck,u-boot.cfg)

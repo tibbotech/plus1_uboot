@@ -13,9 +13,7 @@
 /* define board-specific options/flags here, e.g. memory size, ... */
 #if   defined(CONFIG_TARGET_PENTAGRAM_COMMON)
 /* ... */
-#elif defined(CONFIG_TARGET_PENTAGRAM_EVB01)
-/* ... */
-#elif defined(CONFIG_TARGET_PENTAGRAM_EVB02)
+#elif defined(CONFIG_TARGET_PENTAGRAM_B_BOOT)
 /* ... */
 #else
 #error "No board configuration is defined"
