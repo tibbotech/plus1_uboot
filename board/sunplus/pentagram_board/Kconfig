@@ -10,7 +10,7 @@ config SYS_BOARD
 	default "pentagram_board"
 
 config SYS_TEXT_BASE
-	default 0x200000
+	default 0x200040
 
 config HUSH_PARSER
 	default y
