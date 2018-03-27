@@ -867,6 +867,12 @@ endif
 	@# Check that this build does not use CONFIG options that we do not
 	@# know about unless they are in Kconfig. All the existing CONFIG
 	@# options are whitelisted, so new ones should not be added.
+	@# create u-boot.img
+	@echo "Wrap u-boot image..."
+	@img_name="uboot_$(CONFIG_SYS_BOARD)" ; \
+	./tools/add_uhdr.sh $$img_name u-boot.bin u-boot.img 0x200040 0x200040
+	@img_sz=`du -sb u-boot.img | cut -f1` ; \
+	printf "size: %d (hex %x)\n" $$img_sz $$img_sz
 	$(call cmd,cfgcheck,u-boot.cfg)
 
 PHONY += dtbs
@@ -1603,6 +1609,11 @@ help:
 	@echo  ''
 	@echo  'Execute "make" or "make all" to build all targets marked with [*] '
 	@echo  'For further info see the ./README file'
+
+config_list=$(subst configs/,,$(shell ls configs/pentagram_*))
+
+list:
+	@echo "$(config_list)"
 
 tests:
 	$(srctree)/test/run
