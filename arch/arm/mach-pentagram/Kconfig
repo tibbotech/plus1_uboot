@@ -19,6 +19,9 @@ config TARGET_PENTAGRAM_B_BOOT
 
 endchoice
 
+config SYS_ENV_ZEBU
+	bool "zebu environment"
+
 source "board/sunplus/pentagram_board/Kconfig"
 
 endif

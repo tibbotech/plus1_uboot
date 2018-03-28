@@ -24,7 +24,11 @@
 
 #define CONFIG_NR_DRAM_BANKS		1
 #define CONFIG_SYS_SDRAM_BASE		0
+#if defined(CONFIG_SYS_ENV_ZEBU)
+#define CONFIG_SYS_SDRAM_SIZE           (64 << 20)
+#else
 #define CONFIG_SYS_SDRAM_SIZE		(256 << 20)
+#endif
 #define CONFIG_SYS_MALLOC_LEN		(6 << 20)
 
 #ifndef CONFIG_SYS_TEXT_BASE		/* where U-Boot is loaded by xBoot */
