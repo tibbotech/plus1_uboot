@@ -26,13 +26,17 @@ struct uart_sunplus {
 	u32 uart_rx_threshold;
 };
 
+struct sunplus_uart_priv {
+        struct uart_sunplus *regs;
+};
+
 #define SP_UART_LSR_TXE		(1 << 6)  // 1: trasmit fifo is empty
 #define SP_UART_LSR_RX		(1 << 1)  // 1: receive fifo not empty
 #define SP_UART_LSR_TX		(1 << 0)  // 1: transmit fifo is not full
 
-static volatile struct uart_sunplus *regs = (volatile struct uart_sunplus *)(0x9C000900);
+//static volatile struct uart_sunplus *regs = (volatile struct uart_sunplus *)(0x9C000900);
 
-static int _uart_sunplus_serial_putc(const char c)
+static int _uart_sunplus_serial_putc(struct uart_sunplus *regs, const char c)
 {
 	if (!(readl(&regs->uart_lsr) & SP_UART_LSR_TX))
 		return -EAGAIN;
@@ -64,6 +68,9 @@ static int sunplus_serial_bind(struct udevice *dev)
 
 static int sunplus_serial_getc(struct udevice *dev)
 {
+	struct sunplus_uart_priv *priv = dev_get_priv(dev);
+	struct uart_sunplus *regs = priv->regs;
+
 	if (!(readl(&regs->uart_lsr) & SP_UART_LSR_RX))
 		return -EAGAIN;
 
@@ -72,15 +79,29 @@ static int sunplus_serial_getc(struct udevice *dev)
 
 static int sunplus_serial_putc(struct udevice *dev, const char ch)
 {
-	return _uart_sunplus_serial_putc(ch);
+	struct sunplus_uart_priv *priv = dev_get_priv(dev);
+
+	return _uart_sunplus_serial_putc(priv->regs, ch);
 }
 
 static int sunplus_serial_pending(struct udevice *dev, bool input)
 {
+	struct sunplus_uart_priv *priv = dev_get_priv(dev);
+	struct uart_sunplus *regs = priv->regs;
+
 	if (input)
 		return !!(readl(&regs->uart_lsr) & SP_UART_LSR_RX);
 	else
 		return !!(readl(&regs->uart_lsr) & SP_UART_LSR_TXE);
+}
+
+static int sunplus_serial_ofdata_to_platdata(struct udevice *dev)
+{
+        struct sunplus_uart_priv *priv = dev_get_priv(dev);
+
+        priv->regs = (struct uart_sunplus *)devfdt_get_addr(dev);
+
+        return 0;
 }
 
 static const struct dm_serial_ops sunplus_serial_ops = {
@@ -99,6 +120,8 @@ U_BOOT_DRIVER(serial_sunplus) = {
 	.name	= "serial_sunplus",
 	.id	= UCLASS_SERIAL,
 	.of_match = sunplus_serial_ids,
+	.ofdata_to_platdata = sunplus_serial_ofdata_to_platdata,
+	.priv_auto_alloc_size = sizeof(struct sunplus_uart_priv),
 #if defined(DEBUG)
 	.bind = sunplus_serial_bind,
 #endif
@@ -114,7 +137,9 @@ U_BOOT_DRIVER(serial_sunplus) = {
 
 static inline void _debug_uart_putc(int ch)
 {
-	while (_uart_sunplus_serial_putc(ch) == -EAGAIN) {
+	struct uart_sunplus *regs = (struct uart_sunplus *)CONFIG_DEBUG_UART_BASE;
+
+	while (_uart_sunplus_serial_putc(regs, ch) == -EAGAIN) {
 		// WATCHDOG_RESET();
 	}
 }
@@ -145,11 +170,22 @@ void _debug_uart_init(void)
 #endif
 }
 
+static inline void _printch(int ch)
+{
+	if (ch == '\n')
+		_debug_uart_putc('\r');
+	_debug_uart_putc(ch);
+}
+
 void printch(int ch)
 {
-	while (_uart_sunplus_serial_putc(ch) == -EAGAIN) {
-		// WATCHDOG_RESET();
-	}
+	_printch(ch);
+}
+
+void printascii(const char *str)
+{
+	while (*str)
+		_printch(*str++);
 }
 
 #endif /* CONFIG_DEBUG_UART_SUNPLUS */
