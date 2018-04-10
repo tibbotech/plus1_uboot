@@ -65,3 +65,5 @@ obj-$(CONFIG_MMC_SDHCI_ZYNQ)		+= zynq_sdhci.o
 
 obj-$(CONFIG_MMC_SUNXI)			+= sunxi_mmc.o
 obj-$(CONFIG_MMC_UNIPHIER)		+= uniphier-sd.o
+
+obj-$(CONFIG_MMC_SP_EMMC) += spsdv2.o
