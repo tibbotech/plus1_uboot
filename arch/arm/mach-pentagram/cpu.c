@@ -85,7 +85,7 @@ void reset_cpu(ulong ignored)
 {
 	puts("System is going to reboot ...\n");
 	while (1) {
-		 printf("%s, %s: TBD.\n", __FILE__, __func__);
+		/* do nothing */
 	}
 }
 
@@ -108,5 +108,13 @@ int arch_misc_init(void)
 {
 	printf("%s, %s: TBD.\n", __FILE__, __func__);
 	return 0;
+}
+#endif
+
+#ifndef CONFIG_SYS_DCACHE_OFF
+void enable_caches(void)
+{
+	/* Enable D-cache. I-cache is already enabled in start.S */
+	dcache_enable();
 }
 #endif
