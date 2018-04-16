@@ -63,7 +63,8 @@ struct moon2_regs {
 #define DUMMY_COCKS_AFTER_DATA     8
 #define MAX_SD_RW_RETRY_TIMES 1
 
-#if 1
+
+#if 0
 #define sp_sd_trace()	printf(KERN_ERR "[SD TRACe]: %s:%d\n", __FILE__, __LINE__)
 #define sp_sd_printf	printf
 #else
@@ -327,6 +328,8 @@ static void spsdv2_get_rsp_136(struct sp_mmc_host *host, struct mmc_cmd *cmd)
 static void spsdv2_get_rsp(struct sp_mmc_host *host, struct mmc_cmd *cmd)
 {
 	struct sp_mmc_hw_ops *ops = host->ops;
+
+	sp_sd_trace();
 	ops->get_response(host, cmd);
 
 	return;
@@ -794,6 +797,7 @@ sp_mmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
 				sp_sd_trace();
 			}
 
+				sp_sd_trace();
 			spsdv2_check_sdstatus_errors(host, data, &ret);
 		} else {
 			switch (cmd->cmdidx) {
@@ -1735,15 +1739,18 @@ static int sp_mmc_probe(struct udevice *dev)
 	}
 
 	if(SPMMC_DEVICE_TYPE_EMMC == host->dev_info.type) {
-		host->rddly = SPEMMC_READ_DELAY;
-		host->wrdly = SPEMMC_WRITE_DELAY;
+		host->rddly		= SPEMMC_READ_DELAY;
+		host->wrdly		= SPEMMC_WRITE_DELAY;
 		cfg->host_caps	=  MMC_MODE_8BIT | MMC_MODE_4BIT | MMC_MODE_HS_52MHz | MMC_MODE_HS;
 		cfg->voltages	= MMC_VDD_32_33 | MMC_VDD_33_34;
 		cfg->f_min		= SPEMMC_MIN_CLK;
 		cfg->f_max		= SPEMMC_MAX_CLK;
 		/* Limited by sdram_sector_#_size max value */
 		cfg->b_max		= CONFIG_SYS_MMC_MAX_BLK_COUNT;
-		ops = &emmc_hw_ops;
+		if (SP_MMC_VER_Q610 == host->dev_info.version)
+			ops = &sd_hw_ops;
+		else
+			ops = &emmc_hw_ops;
 	}
 	else {
 		cfg->host_caps	=  MMC_MODE_4BIT | MMC_MODE_HS_52MHz | MMC_MODE_HS;
@@ -1752,6 +1759,7 @@ static int sp_mmc_probe(struct udevice *dev)
 		cfg->f_max		= SPMMC_MAX_CLK;
 		/* Limited by sdram_sector_#_size max value */
 		cfg->b_max		= CONFIG_SYS_MMC_MAX_BLK_COUNT;
+		
 		ops = &sd_hw_ops;
 	}
 	
@@ -1772,6 +1780,7 @@ static sp_mmc_dev_info q610_dev_info[] = {
 	{
 		.id = 0,
 		.type = SPMMC_DEVICE_TYPE_EMMC,
+		.version = SP_MMC_VER_Q610,
 		.set_pinmux = sp_set_8388_mmc_pinmux,
 		.set_clock = sp_set_8388_mmc_clock,
 	},
@@ -1779,6 +1788,7 @@ static sp_mmc_dev_info q610_dev_info[] = {
 	{
 		.id = 0,
 		.type = SPMMC_DEVICE_TYPE_SD,
+		.version = SP_MMC_VER_Q610,
 		.set_pinmux = sp_set_8388_mmc_pinmux,
 		.set_clock = sp_set_8388_mmc_clock,
 	},
@@ -1786,6 +1796,7 @@ static sp_mmc_dev_info q610_dev_info[] = {
 	{
 		.id = 1,
 		.type = SPMMC_DEVICE_TYPE_SD,
+		.version = SP_MMC_VER_Q610,
 		.set_pinmux = sp_set_8388_mmc_pinmux,
 		.set_clock = sp_set_8388_mmc_clock,
 	}
@@ -1796,16 +1807,19 @@ static sp_mmc_dev_info q628_dev_info[] = {
 	{
 		.id = 0,
 		.type = SPMMC_DEVICE_TYPE_EMMC,
+		.version = SP_MMC_VER_Q628,
 	},
 
 	{
 		.id = 1,
 		.type = SPMMC_DEVICE_TYPE_SD,
+		.version = SP_MMC_VER_Q628,
 	},
 	
 	{
 		.id = 2,
 		.type = SPMMC_DEVICE_TYPE_SD,
+		.version = SP_MMC_VER_Q628,
 	}
 };
 
