@@ -115,6 +115,6 @@ int arch_misc_init(void)
 void enable_caches(void)
 {
 	/* Enable D-cache. I-cache is already enabled in start.S */
-	dcache_enable();
+//	dcache_enable();
 }
 #endif

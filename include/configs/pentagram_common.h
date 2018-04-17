@@ -75,6 +75,15 @@
 
 #define CONFIG_ARCH_MISC_INIT
 #define CONFIG_SYS_HZ			1000
-#define CONFIG_BOOTCOMMAND		"help"
+
+#if   defined(CONFIG_SYS_ENV_8388)
+#define CONFIG_BOOTCOMMAND      "echo bootcmd started ; sp_preboot dump ; sp_preboot ; printenv ; \
+echo [cmd] cp.b 0x98600000 0x307FC0 0x600000 ; \
+cp.b 0x98600000 0x307FC0 0x600000 ; \
+echo [cmd] cp.b 0x98020000 0x2FFFC0 0x800 ; \
+cp.b 0x98020000 0x2FFFC0 0x800"
+
+#else
+#endif
 
 #endif /* __CONFIG_PENTAGRAM_H */

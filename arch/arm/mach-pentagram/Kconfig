@@ -22,6 +22,9 @@ endchoice
 config SYS_ENV_ZEBU
 	bool "zebu environment"
 
+config SYS_ENV_8388
+	bool "8388 environment"
+
 source "board/sunplus/pentagram_board/Kconfig"
 
 endif
