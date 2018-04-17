@@ -1375,17 +1375,17 @@ int sp_emmc_hw_set_bus_width (sp_mmc_host *host, uint bus_width)
 {
 	/* Set the bus width */
 	if (bus_width == 4) {
-		host->base->sddatawd = 1;
-		host->base->mmc8_en = 0;
+		host->ebase->sddatawd = 1;
+		host->ebase->mmc8_en = 0;
 		/* printf("sd 4bit mode\n"); */
 	} else if(bus_width == 8) {
-		host->base->sddatawd = 0;
-		host->base->mmc8_en = 1;
+		host->ebase->sddatawd = 0;
+		host->ebase->mmc8_en = 1;
 		/* printf("sd 8bit mode\n"); */
 	} else {
 		/* printf("sd 1bit mode\n"); */
-		host->base->sddatawd = 0;
-		host->base->mmc8_en = 0;
+		host->ebase->sddatawd = 0;
+		host->ebase->mmc8_en = 0;
 	}
 
 	return 0;
@@ -1451,42 +1451,42 @@ int sp_emmc_hw_get_reseponse (sp_mmc_host *host, struct mmc_cmd *cmd)
 	int i;
 		
 	while (1) {
-		if (host->base->sdstatus & SP_SDSTATUS_RSP_BUF_FULL) {
+		if (host->ebase->sdstatus & SP_SDSTATUS_RSP_BUF_FULL) {
 			break;	/* Wait until response buffer full */
 		}
 
-		if (host->base->sdstate_new & SDSTATE_NEW_ERROR_TIMEOUT)
+		if (host->ebase->sdstate_new & SDSTATE_NEW_ERROR_TIMEOUT)
 			return -EIO;
 	}
 
-	(void)host->base->sdrspbuf0;
-	rspBuf[0] = host->base->sdrspbuf1;
-	rspBuf[1] = host->base->sdrspbuf2;
-	rspBuf[2] = host->base->sdrspbuf3;
-	rspBuf[3] = host->base->sdrspbuf4;
-	rspBuf[4] = host->base->sdrspbuf5;
+	(void)host->ebase->sd_rspbuf0;
+	rspBuf[0] = host->ebase->sd_rspbuf1;
+	rspBuf[1] = host->ebase->sd_rspbuf2;
+	rspBuf[2] = host->ebase->sd_rspbuf3;
+	rspBuf[3] = host->ebase->sd_rspbuf4;
+	rspBuf[4] = host->ebase->sd_rspbuf5;
 
 
 	if (cmd->resp_type & MMC_RSP_136) {
 		while (1) {
-			if (host->base->sdstatus & SP_SDSTATUS_RSP_BUF_FULL) {
+			if (host->ebase->sdstatus & SP_SDSTATUS_RSP_BUF_FULL) {
 				break;	/* Wait until response buffer full */
 			}
-			if (host->base->sdstate_new & SDSTATE_NEW_ERROR_TIMEOUT)
+			if (host->ebase->sdstate_new & SDSTATE_NEW_ERROR_TIMEOUT)
 				return -EIO;
 		}
 
-		rspBuf[5] = host->base->sdrspbuf0;
-		rspBuf[6] = host->base->sdrspbuf1;
-		rspBuf[7] = host->base->sdrspbuf2;
-		rspBuf[8] = host->base->sdrspbuf3;
-		rspBuf[9] = host->base->sdrspbuf4;
-		rspBuf[10] = host->base->sdrspbuf5;
-		rspBuf[11] = host->base->sdrspbuf0;
-		rspBuf[12] = host->base->sdrspbuf1;
-		rspBuf[13] = host->base->sdrspbuf2;
-		rspBuf[14] = host->base->sdrspbuf3;
-		rspBuf[15] = host->base->sdrspbuf4;	
+		rspBuf[5] = host->ebase->sd_rspbuf0;
+		rspBuf[6] = host->ebase->sd_rspbuf1;
+		rspBuf[7] = host->ebase->sd_rspbuf2;
+		rspBuf[8] = host->ebase->sd_rspbuf3;
+		rspBuf[9] = host->ebase->sd_rspbuf4;
+		rspBuf[10] = host->ebase->sd_rspbuf5;
+		rspBuf[11] = host->ebase->sd_rspbuf0;
+		rspBuf[12] = host->ebase->sd_rspbuf1;
+		rspBuf[13] = host->ebase->sd_rspbuf2;
+		rspBuf[14] = host->ebase->sd_rspbuf3;
+		rspBuf[15] = host->ebase->sd_rspbuf4;	
 		for (i = 0; i < SP_MMC_MAX_RSP_LEN/sizeof(cmd->response[0]); i++ ) {
 			cmd->response[i] = SP_MMC_SWAP32(cmd->response[i]);
 		}
@@ -1607,9 +1607,9 @@ int sp_emmc_hw_wait_data_timeout(sp_mmc_host *host, uint timeout)
 
 int sp_emmc_hw_check_finish (sp_mmc_host *host)
 {
-	if ((host->base->sdstate_new & SDSTATE_NEW_FINISH_IDLE) == 0x40)
+	if ((host->ebase->sdstate_new & SDSTATE_NEW_FINISH_IDLE) == 0x40)
 		return 1;
-	if ((host->base->sdstate_new & SDSTATE_NEW_ERROR_TIMEOUT) == 0x20)
+	if ((host->ebase->sdstate_new & SDSTATE_NEW_ERROR_TIMEOUT) == 0x20)
 		return 1;
 
 	return 0;
