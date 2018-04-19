@@ -35,7 +35,7 @@ enum Device_table {
 #define SDCARD_ISP              0x05 //new
 #define SPI_NAND_BOOT           0x09 //new
 #define UART_ISP                0x0D //new
-#define SPI_NOR_BOOT            0x11 //new, debug
+#define SPI_NOR_X2_BOOT         0x11 //new, debug
 #define SPI_NAND_X2_BOOT        0x15 //new, debug
 #define USB_ISP                 0x19
 #define TEST_BYPASS             0x1C
@@ -47,7 +47,7 @@ enum Device_table {
 #define CARD1_ISP               0xA6
 #define CARD2_ISP               0xA7
 #define CARD3_ISP               0xA8
-#define SPI_BOOT                0x1F
+#define SPI_NOR_BOOT            0x1F
 #define USB_MSDC_BOOT           0x2F
 #define NAND_BOOT               0x26
 #define SPINAND_BOOT            0x46
