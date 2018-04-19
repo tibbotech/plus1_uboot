@@ -2,7 +2,7 @@
 #define _INC_SP_BOOTINFO_SC7XXX_H
 
 /* copy from iboot "include/common.h" */
-struct bootinfo {
+struct sp_bootinfo {
 	u32     bootrom_ver;         // iboot version
 	u32     hw_bootmode;         // hw boot mode (latched: auto, nand, usb_isp, sd_isp, etc)
 	u32     gbootRom_boot_mode;  // sw boot mode (category: nand, sd, usb)
