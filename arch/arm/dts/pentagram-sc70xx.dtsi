@@ -26,9 +26,16 @@
 	};
 	
 	/* 8388 platform emmc host controller */
+	/*
 	sp_emmc: mmc@9C003B00 {
 		compatible = "sunplus,sunplus-q610-emmc";
 		reg = <0x9C003B00 0x280>;
+	};
+	*/
+
+	sp_emmc: mmc@9C003B00 {
+		compatible = "sunplus,sunplus-q628-emmc";
+		reg = <0x9C003B00 0x180>;
 	};
 
 	/* 8388 platform sd slot1 host controller */

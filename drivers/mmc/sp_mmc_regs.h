@@ -8,7 +8,7 @@ typedef volatile unchar dev_reg8;
 #define SP_SD_HW_DMA_ERROR				BIT(6)
 #define SP_SD_HW_DMA_DONE				BIT(7)
 
-	/* Controller send CMD timeout */
+/* Controller send CMD timeout */
 #define	HWSD_W_SM_CMD24_TIMEOUT	0x240
 #define	HWSD_W_SM_CMD25_TIMEOUT	0x241
 #define	HWSD_W_SM_CMD12_TIMEOUT	0x242
@@ -18,7 +18,7 @@ typedef volatile unchar dev_reg8;
 #define	HWSD_SM_CMD12_TIMEOUT	0x42
 #define	HWSD_SM_CMD13_TIMEOUT	0x4A
 
-	/* Controller receive response timeout */
+/* Controller receive response timeout */
 #define	HWSD_W_SM_CMD24_RSP_TIMEOUT	0x252
 #define	HWSD_W_SM_CMD25_RSP_TIMEOUT	0x253
 #define	HWSD_W_SM_CMD12_RSP_TIMEOUT	0x243
@@ -31,23 +31,23 @@ typedef volatile unchar dev_reg8;
 #define	HWSD_W_SM_RXCRC_ERR	0x255	/* Read card crc error */
 #define	HWSD_W_SM_RXCRC_TX_TIMEOUT	0x256	/* Timeout occurs after reading card crc */
 
-	/* Response of CMD12 command index error */
+/* Response of CMD12 command index error */
 #define	HWSD_W_SM_CMD12_CMD_ERR	0x246
 #define	HWSD_SM_CMD12_CMD_ERR	0x46
 
-	/* Response of CMD12 CRC error */
+/* Response of CMD12 CRC error */
 #define	HWSD_W_SM_CMD12_CRCERR	0x244
 #define	HWSD_SM_CMD12_CRCERR	0x44
 
-	/* Resposne of CMD13 CRC error */
+/* Resposne of CMD13 CRC error */
 #define	HWSD_W_SM_CMD13_CRCERR	0x24C
 #define	HWSD_SM_CMD13_CRCERR	0x4C
 
-	/* Response of CMD13 command index error */
+/* Response of CMD13 command index error */
 #define	HWSD_W_SM_CMD13_CMD_ERR	0x24E
 #define	HWSD_SM_CMD13_CMD_ERR	0x4E
 
-	/* Response of CMD13 indicates device is busy */
+/* Response of CMD13 indicates device is busy */
 #define	HWSD_W_SM_CMD13_BUSY_ERR	0x24F
 #define	HWSD_SM_CMD13_BUSY_ERR	0x4F
 
@@ -58,7 +58,7 @@ typedef volatile unchar dev_reg8;
 #define	HWSD_SM_DMA_TIMEOUT	0x47	/* RX data timeout */
 #define	HWSD_SM_CMD18_BUSY_TIMEOUT	0x52	/* RX next page data timeout during multi-block read */
 
-	/* Reset Pbus channel timeout */
+/* Reset Pbus channel timeout */
 #define	HWSD_W_SM_RST_CHAN_TIMEOUT	0x258
 #define	HWSD_SM_RST_CHAN_TIMEOUT	0x53
 
@@ -434,13 +434,17 @@ typedef struct spsd_general_regs {
 
 typedef struct  spemmc_general_regs{
 	/*g0.0*/
-	dev_reg32 mediatype:3;
-	dev_reg32 reserved0:1;
-	dev_reg32 dmasrc:3;
-	dev_reg32 reserved1:1;
-	dev_reg32 dmadst:3;
-	dev_reg32 reserved2:21;
-
+	union {
+		struct {
+			dev_reg32 mediatype:3;
+			dev_reg32 reserved0:1;
+			dev_reg32 dmasrc:3;
+			dev_reg32 reserved1:1;
+			dev_reg32 dmadst:3;
+			dev_reg32 reserved2:21;
+		};
+		dev_reg32 medatype_dma_src_dst;
+	};
 	/*g0.1*/
 	dev_reg32 card_ctl_page_cnt:16;
 	dev_reg32 reserved3:16;
@@ -473,18 +477,18 @@ typedef struct  spemmc_general_regs{
 	/* g0.5 */
 	union {
 		struct {
-			dev_reg32 reg_sd_ctl_free:1;				// 0
-			dev_reg32 reg_sd_free:1;					// 1
-			dev_reg32 reg_ms_ctl_free:1;				// 2
-			dev_reg32 reg_ms_free:1;					// 3
-			dev_reg32 reg_dma_fifo_free:1;			// 4
-			dev_reg32 reg_dma_ctl_free:1;			// 5
-			dev_reg32 reg_hwdma_page_free:1;			// 6
-			dev_reg32 reg_hw_dma_free:1;				// 7
-			dev_reg32 reg_sd_hwdma_free:1;			// 8
-			dev_reg32 reg_ms_hwdma_free:1;			// 9
-			dev_reg32 reg_dma_reg_free:1;			// 10
-			dev_reg32 reg_card_reg_free:1;			// 11
+			dev_reg32 reg_sd_ctl_free:1;			/*  0 */
+			dev_reg32 reg_sd_free:1;				/*  1 */
+			dev_reg32 reg_ms_ctl_free:1;			/*  2 */
+			dev_reg32 reg_ms_free:1;				/*  3 */
+			dev_reg32 reg_dma_fifo_free:1;			/*  4 */
+			dev_reg32 reg_dma_ctl_free:1;			/*  5 */
+			dev_reg32 reg_hwdma_page_free:1;		/*  6 */
+			dev_reg32 reg_hw_dma_free:1;			/*  7 */
+			dev_reg32 reg_sd_hwdma_free:1;			/*  8 */
+			dev_reg32 reg_ms_hwdma_free:1;			/*  9 */
+			dev_reg32 reg_dma_reg_free:1;			/*  10 */
+			dev_reg32 reg_card_reg_free:1;			/*  11 */
 			dev_reg32 reserved9:20;
 		};
 		dev_reg32 card_gclk_disable;
@@ -500,10 +504,10 @@ typedef struct  spemmc_general_regs{
 	/* g0.20 */
 	union {
 		struct {
-			dev_reg32 dram_sector_cnt:3;				// 2:00 ro
-			dev_reg32 hw_block_cnt:2;				// 04:03 ro
-			dev_reg32 reserved11:11;					// 15:05 ro
-			dev_reg32 hw_page_cnt:16;				// 31:16 ro 
+			dev_reg32 dram_sector_cnt:3;			/*  2:00 ro */
+			dev_reg32 hw_block_cnt:2;				/*  04:03 ro */
+			dev_reg32 reserved11:11;				/*  15:05 ro */
+			dev_reg32 hw_page_cnt:16;				/*  31:16 ro  */
 		};
 		dev_reg32 sdram_sector_block_cnt;
 	};
@@ -522,7 +526,7 @@ typedef struct  spemmc_general_regs{
 	union {
 		struct {
 			dev_reg32 incnt:11;
-			dev_reg32 outcnt:11;      
+			dev_reg32 outcnt:11;
 			dev_reg32 dma_sm:3;
 			dev_reg32 reserved13:7;
 		};
@@ -540,7 +544,7 @@ typedef struct  spemmc_general_regs{
 			dev_reg32 bootack:3;
 			dev_reg32 reserved14:24;
 		};
-		dev_reg32 boot_ctl;	
+		dev_reg32 boot_ctl;
 	};
 
 	/* g1.1 */
@@ -550,7 +554,7 @@ typedef struct  spemmc_general_regs{
 			dev_reg32 sw_set_vol:1;
 			dev_reg32 hw_set_vol:1;
 			dev_reg32 vol_result:2;
-			dev_reg32 reserved15:26;	   
+			dev_reg32 reserved15:26;
 		};
 		dev_reg32 sd_vol_ctrl;
 	};
@@ -558,18 +562,18 @@ typedef struct  spemmc_general_regs{
 	union {
 		struct {
 			dev_reg32 sdcmpen:1;
-			dev_reg32 sd_cmp:1;   //1
-			dev_reg32 sd_cmp_clr:1;   //2
-			dev_reg32 sdio_int_en:1;  //3
-			dev_reg32 sdio_int:1; //4
-			dev_reg32 sdio_int_clr:1; //5
-			dev_reg32 detect_int_en:1;    //6
-			dev_reg32 detect_int:1;   //7
-			dev_reg32 detect_int_clr:1;   //8
-			dev_reg32 hwdmacmpen:1;   //9
-			dev_reg32 hw_dma_cmp:1;   //10
-			dev_reg32 hwdmacmpclr:1;  //11
-			dev_reg32 reserved16:20; //31:12			
+			dev_reg32 sd_cmp:1;			/* 1 */
+			dev_reg32 sd_cmp_clr:1;		/* 2 */
+			dev_reg32 sdio_int_en:1;	/* 3 */
+			dev_reg32 sdio_int:1;		/* 4 */
+			dev_reg32 sdio_int_clr:1;	/* 5 */
+			dev_reg32 detect_int_en:1;  /* 6 */
+			dev_reg32 detect_int:1;		/* 7 */
+			dev_reg32 detect_int_clr:1; /* 8 */
+			dev_reg32 hwdmacmpen:1;		/* 9 */
+			dev_reg32 hw_dma_cmp:1;		/* 10 */
+			dev_reg32 hwdmacmpclr:1;	/* 11 */
+			dev_reg32 reserved16:20;	/* 31:12 */
 		};
 		dev_reg32 sd_int;
 	};
@@ -579,7 +583,7 @@ typedef struct  spemmc_general_regs{
 	dev_reg32 reserved17:16;
 	/* g1.4 */
 	union {
-		struct {	
+		struct {
 			dev_reg32 sdpiomode:1;
 			dev_reg32 sdddrmode:1;
 			dev_reg32 sd_len_mode:1;
@@ -613,7 +617,7 @@ typedef struct  spemmc_general_regs{
 			dev_reg32 con_req:1;
 			dev_reg32 sus_data_flag:1;
 			dev_reg32 int_multi_trig:1;
-			dev_reg32 reserved18:25; 
+			dev_reg32 reserved18:25;
 		};
 		dev_reg32 sdio_ctrl;
 	};
@@ -624,7 +628,7 @@ typedef struct  spemmc_general_regs{
 			dev_reg32 sdrst:1;
 			dev_reg32 sdcrcrst:1;
 			dev_reg32 sdiorst:1;
-			dev_reg32 reserved19:29; 
+			dev_reg32 reserved19:29;
 		};
 		dev_reg32 sd_rst;
 	};
@@ -636,7 +640,7 @@ typedef struct  spemmc_general_regs{
 			dev_reg32 sdctrl1:1;
 			dev_reg32 sdioctrl:1;
 			dev_reg32 emmcctrl:1;
-			dev_reg32 reserved20:28;	 
+			dev_reg32 reserved20:28;
 		} ;
 		dev_reg32 sd_ctrl;
 	};
@@ -644,7 +648,7 @@ typedef struct  spemmc_general_regs{
 	union {
 		struct {
 			dev_reg32 sdstatus:19;
-			dev_reg32 reserved21:13;	 
+			dev_reg32 reserved21:13;
 		};
 		dev_reg32 sd_status;
 	};
@@ -652,11 +656,11 @@ typedef struct  spemmc_general_regs{
 	union {
 		struct {
 			dev_reg32 sdstate:3;
-			dev_reg32 reserved22:1; 
-			dev_reg32 sdcrdcrc:3; 
-			dev_reg32 reserved23:1; 
-			dev_reg32 sdstate_new:7; 
-			dev_reg32 reserved24:17; 
+			dev_reg32 reserved22:1;
+			dev_reg32 sdcrdcrc:3;
+			dev_reg32 reserved23:1;
+			dev_reg32 sdstate_new:7;
+			dev_reg32 reserved24:17;
 		};
 		dev_reg32 sd_state;
 	};
@@ -664,21 +668,21 @@ typedef struct  spemmc_general_regs{
 	/* g1.10 */
 	union {
 		struct {
-			dev_reg32 hwsd_sm:10;	
-			dev_reg32 reserved25:22; 
-		}; 
+			dev_reg32 hwsd_sm:10;
+			dev_reg32 reserved25:22;
+		};
 		dev_reg32 sd_hw_state;
 	};
 
 	/* g1.11 */
 	union {
 		struct {
-			dev_reg32 sddatalen:11;	
-			dev_reg32 reserved26:21; 
-		}; 
+			dev_reg32 sddatalen:11;
+			dev_reg32 reserved26:21;
+		};
 		dev_reg32 sd_blocksize;
 	};
-	
+
 	/* g1.12 */
 	union {
 		struct {
@@ -686,7 +690,7 @@ typedef struct  spemmc_general_regs{
 			dev_reg32 sdcrctmr:11;
 			dev_reg32 sdrsptmr:11;
 			dev_reg32 sd_high_speed_en:1;
-		}; 
+		};
 		dev_reg32 sd_config1;
 	};
 
@@ -696,21 +700,20 @@ typedef struct  spemmc_general_regs{
 			dev_reg32 sd_clk_dly_sel:3;
 			dev_reg32 reserved27:1;
 			dev_reg32 sd_wr_dly_sel:3;
-			dev_reg32 reserved28:1;    
+			dev_reg32 reserved28:1;
 			dev_reg32 sd_rd_dly_sel:3;
 			dev_reg32 reserved29:21;
-		}; 
+		};
 		dev_reg32 sd_timing_config;
 	};
 
 	/* g1.14 */
-	dev_reg32 sd_rxdattmr:29; 
+	dev_reg32 sd_rxdattmr:29;
 #define SP_EMMC_RXDATTMR_MAX	((1 << 29) - 1)
 	dev_reg32 reserved30:3;
-	
+
 	/* g1.15 */
-	dev_reg32 sd_piodatatx:16;
-	dev_reg32 reserved31:16;
+	dev_reg32 sd_piodatatx;
 
 	/* g1.16 */
 	dev_reg32 sd_piodatarx;
@@ -719,17 +722,24 @@ typedef struct  spemmc_general_regs{
 	/* g1.18 */
 	dev_reg8 sd_cmdbuf[5];
 	dev_reg8 reserved32[3];
-	/* g1.19 - g1.20 */	
-	dev_reg8 sd_rspbuf3;
-	dev_reg8 sd_rspbuf2;
-	dev_reg8 sd_rspbuf1;
-	dev_reg8 sd_rspbuf0;
-	dev_reg8 sd_rspbuf5;
-	dev_reg8 sd_rspbuf4;
-	dev_reg8 sd_rspbuf_reserved[2];
+	/* g1.19 - g1.20 */
+	union {
+		struct  {
+			dev_reg8 sd_rspbuf3;
+			dev_reg8 sd_rspbuf2;
+			dev_reg8 sd_rspbuf1;
+			dev_reg8 sd_rspbuf0;
+			dev_reg8 sd_rspbuf5;
+			dev_reg8 sd_rspbuf4;
+			dev_reg8 sd_rspbuf_reserved[2];
+		};
+		struct {
+			dev_reg32 sd_rspbuf[2];
+		};
+	};
 	/*  unused sd control regs */
 	dev_reg32 reserved34[11];
-	/* ms card related regs */	
+	/* ms card related regs */
 	dev_reg32 ms_regs[32];
 } EMMCREG;
 

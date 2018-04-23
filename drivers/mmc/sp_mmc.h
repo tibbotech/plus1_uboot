@@ -41,17 +41,18 @@
 #define CLOCK_50M	50000000
 
 #define CLOCK_180M  180000000
+#define CLOCK_202M  202500000
 #define CLOCK_240M  240000000
 #define CLOCK_270M  270000000
 
 typedef struct sp_mmc_dev_info {
 	uint	id;
-	uint	type;	
+	uint	type;
 	uint	version;
 #define SP_MMC_VER_Q610	 1
 #define SP_MMC_VER_Q628	 2
 
-	int (*set_clock)(struct sp_mmc_dev_info *dev); 
+	int (*set_clock)(struct sp_mmc_dev_info *dev);
 	int (*set_pinmux)(struct sp_mmc_dev_info *info);
 } sp_mmc_dev_info;
 
@@ -66,6 +67,9 @@ typedef struct sp_mmc_host {
 	uint				rddly;
 	uint				wrdly;
 	sp_mmc_dev_info		dev_info;
+	uint				dmapio_mode;
+#define SP_MMC_DMA_MODE		0
+#define SP_MMC_PIO_MODE		1
 } sp_mmc_host;
 
 typedef struct sp_mmc_hw_ops {
@@ -99,6 +103,7 @@ struct sp_mmc_plat {
 
 #define DMASIZE_SET(base, x)			(base->dmasize = ((x)-1))
 #define SDDATALEN_SET(base, x)			(base->sddatalen = ((x)-1))
+#define SP_MMC_SECTOR_NUM_SET(val, x)		(val) = (x) - 1
 
 #define SET_HW_DMA_BASE_ADDR(base, addr)  do{ \
 	base->dma_base_addr_low = ((u32)(addr) & 0xffff); \
