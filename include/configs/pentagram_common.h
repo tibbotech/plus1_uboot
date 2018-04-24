@@ -88,6 +88,6 @@ sp_go 0x308000 0x300000"
 #endif
 /* MMC related configs */
 #define CONFIG_SUPPORT_EMMC_BOOT 
-//#define CONFIG_MMC_TRACE
+/* #define CONFIG_MMC_TRACE */
 
 #endif /* __CONFIG_PENTAGRAM_H */
