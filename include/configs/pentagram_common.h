@@ -84,8 +84,15 @@ echo [cmd] cp.b 0x98020000 0x2FFFC0 0x1000 ; \
 cp.b 0x98020000 0x2FFFC0 0x1000 ; \
 sp_go 0x308000 0x300000"
 
-#else
+#elif defined(CONFIG_SYS_ENV_ZEBU)
+#if defined (CONFIG_SD_BOOT)
+#elif defined (CONFIG_NAND_BOOT)
+#else /* zmem */
+#define CONFIG_BOOTCOMMAND      "echo [scr] zmem boot started ; sp_go 0x308000 0x300040"
 #endif
+
+#endif /* CONFIG_SYS_ENV_ */
+
 /* MMC related configs */
 #define CONFIG_SUPPORT_EMMC_BOOT 
 /* #define CONFIG_MMC_TRACE */
