@@ -78,10 +78,10 @@
 
 #if   defined(CONFIG_SYS_ENV_8388)
 #define CONFIG_BOOTCOMMAND      "echo bootcmd started ; sp_preboot dump ; sp_preboot ; printenv ; \
-echo [cmd] cp.b 0x98600000 0x307FC0 0xa00000 ; \
-cp.b 0x98600000 0x307FC0 0xa00000 ; \
-echo [cmd] cp.b 0x98020000 0x2FFFC0 0x1000 ; \
-cp.b 0x98020000 0x2FFFC0 0x1000 ; \
+echo [cmd] cp.l 0x98600000 0x307FC0 0x280000 ; \
+cp.l 0x98600000 0x307FC0 0x280000 ; \
+echo [cmd] cp.l 0x98020000 0x2FFFC0 0x400 ; \
+cp.l 0x98020000 0x2FFFC0 0x400 ; \
 sp_go 0x308000 0x300000"
 
 #elif defined(CONFIG_SYS_ENV_ZEBU)
