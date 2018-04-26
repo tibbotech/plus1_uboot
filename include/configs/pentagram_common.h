@@ -77,12 +77,29 @@
 #define CONFIG_SYS_HZ			1000
 
 #if   defined(CONFIG_SYS_ENV_8388)
+
+#if 1
+#define CONFIG_BOOTCOMMAND      "echo bootcmd started; \
+setenv sram_base " CONFIG_BOOTSCRIPT_SRAMBASE " && \
+setexpr bootmode_addr ${sram_base} + 0x8; \
+md.l ${bootmode_addr} 1; \
+if itest.l *${bootmode_addr} == 0x1f; then \
+echo romter boot; \
+cp.b " CONFIG_BOOTSCRIPT_SRCADDR " " CONFIG_BOOTSCRIPT_RAMADDR " " CONFIG_BOOTSCRIPT_SIZE "; \
+source " CONFIG_BOOTSCRIPT_RAMADDR "; \
+elif itest.l *${bootmode_addr} == 0xa3; then \
+echo emmc boot; \
+elif itest.l *${bootmode_addr} == 0x26; then \
+echo nand boot; \
+fi"
+#else
 #define CONFIG_BOOTCOMMAND      "echo bootcmd started ; sp_preboot dump ; sp_preboot ; printenv ; \
 echo [cmd] cp.l 0x98600000 0x307FC0 0x280000 ; \
 cp.l 0x98600000 0x307FC0 0x280000 ; \
 echo [cmd] cp.l 0x98020000 0x2FFFC0 0x400 ; \
 cp.l 0x98020000 0x2FFFC0 0x400 ; \
 sp_go 0x308000 0x300000"
+#endif
 
 #elif defined(CONFIG_SYS_ENV_ZEBU)
 #if defined (CONFIG_SD_BOOT)

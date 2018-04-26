@@ -12,6 +12,42 @@ config SYS_BOARD
 config SYS_TEXT_BASE
 	default 0x200040
 
+config BOOTSCRIPT_SRAMBASE
+        string "sram base"
+        default 0x9e80fc00 if SYS_ENV_8388
+        help
+          sram base for querying boot mode
+
+config BOOTSCRIPT_SRCADDR
+        string "script source address"
+        default 0x0 if SD_BOOT
+        default 0x0 if NAND_BOOT
+        default 0x98100000
+        help
+          boot script source address
+          boot script image is stored in this
+          address. bootcmd needs this address to
+          load the image of boot script.
+
+config BOOTSCRIPT_RAMADDR
+        string "script ram address"
+        default 0x0 if SD_BOOT
+        default 0x0 if NAND_BOOT
+        default 0x2C0000
+        help
+          boot script destination address
+          boot script image will be loaded to
+          this address. bootcmd uses "source"
+          to execute boot script with this address.
+
+config BOOTSCRIPT_SIZE
+        string "script default size"
+        default 0x400
+        help
+          boot script size
+          bootcmd needs this value as size parameter
+          to load image.
+
 config HUSH_PARSER
 	default y
 
