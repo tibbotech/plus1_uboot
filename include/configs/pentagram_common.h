@@ -78,7 +78,7 @@
 
 #if   defined(CONFIG_SYS_ENV_8388)
 
-#if 1
+#if 0
 #define CONFIG_BOOTCOMMAND      "echo bootcmd started; \
 setenv sram_base " CONFIG_BOOTSCRIPT_SRAMBASE " && \
 setexpr bootmode_addr ${sram_base} + 0x8; \
