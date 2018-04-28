@@ -59,7 +59,7 @@ struct moon2_regs {
 
 #define SPEMMC_READ_DELAY  0		/* delay for sampling data */
 #define SPEMMC_WRITE_DELAY 1		/* delay for output data   */
-#define MAX_EMMC_RW_RETRY_TIMES 	1
+#define MAX_EMMC_RW_RETRY_TIMES 	7
 #define EMMC_WRITE_TIMEOUT_MULT     10
 
 #define DUMMY_COCKS_AFTER_DATA     8
@@ -413,7 +413,7 @@ static void sp_mmc_wait_sdstate_new(struct sp_mmc_host *host)
 	sp_sd_trace();
 	while (1) {
 		sp_sd_trace();
-		if( ops->check_finish(host)) {
+		if(ops->check_finish(host)) {
 			break;
 		}
 	}
@@ -505,15 +505,27 @@ sp_mmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
 		}
 
 		if ((SPMMC_DEVICE_TYPE_EMMC == host->dev_info.type) && data) {
+			if (ret && ((MMC_CMD_READ_MULTIPLE_BLOCK == cmd->cmdidx) || (MMC_CMD_WRITE_MULTIPLE_BLOCK == cmd->cmdidx)))
+				send_stop_cmd(host);
+
 			if (ret == -EILSEQ ) {
 				sp_sd_trace();
-				send_stop_cmd(host);
-				host->rddly++;
-				host->rddly &= MAX_DLY_CLK_MASK;
-				ops->tunel_read_dly(host, host->rddly);
+				if (mmc->ddr_mode) {
+					/* in ddr mode host drive data at falling edge to ensure device sample right data at rising edge
+					 * but device not  sample data at rising edge,
+					 * so we need to adjust write delay to ensure copatibility with these device
+					 */
+					host->wrdly++;
+					host->wrdly &= MAX_DLY_CLK_MASK;
+					ops->tunel_write_dly(host, host->wrdly);
+				}
+				else {
+					host->rddly++;
+					host->rddly &= MAX_DLY_CLK_MASK;
+					ops->tunel_read_dly(host, host->rddly);
+				}
 			} else if (ret == -ETIMEDOUT){
 				sp_sd_trace();
-				send_stop_cmd(host);
 				host->wrdly++;
 				host->wrdly &= MAX_DLY_CLK_MASK;
 				ops->tunel_write_dly(host, host->wrdly);
@@ -551,6 +563,7 @@ static int sp_mmc_set_ios(struct mmc *mmc)
 		sp_mmc_set_clock(mmc, mmc->clock);
 
 	ops->set_bus_width(host, mmc->bus_width);
+	ops->set_sdddr_mode(host, mmc->ddr_mode);
 
 	return 0;
 }
@@ -741,7 +754,7 @@ int sp_sd_hw_set_bus_width (sp_mmc_host *host, uint bus_width)
 	return 0;
 }
 
-int sp_sd_hw_set_bus_timing (sp_mmc_host *host, uint timing)
+int sp_sd_hw_set_sdddr_mode (sp_mmc_host *host, int timing)
 {
 	return 0;
 }
@@ -973,7 +986,7 @@ static int sp_emmc_hw_init(sp_mmc_host *host)
 	base->sdddrmode = 0;
 	base->sdiomode = 0;
 
-	base->sdrsptmr = 0x7ff;
+	base->sdrsptmr = 0xff;
 	base->sdcrctmr = 0x7ff;
 	base->sdcrctmren = 1;
 	base->sdrsptmren = 1;
@@ -1053,9 +1066,14 @@ int sp_emmc_hw_set_bus_width (sp_mmc_host *host, uint bus_width)
 	return 0;
 }
 
-int sp_emmc_hw_set_bus_timing (sp_mmc_host *host, uint timing)
+int sp_emmc_hw_set_sdddr_mode (sp_mmc_host *host, int ddrmode)
 {
 	sp_sd_trace();
+	if (ddrmode)
+		host->ebase->sdddrmode = 1;
+	else
+		host->ebase->sdddrmode = 0;
+
 	return 0;
 }
 
@@ -1421,7 +1439,7 @@ sp_mmc_hw_ops sd_hw_ops = {
 	.tunel_write_dly	= sp_sd_hw_tunel_write_dly,
 	.tunel_clock_dly	= sp_sd_hw_tunel_clock_dly,
 	.set_bus_width		= sp_sd_hw_set_bus_width,
-	.set_bus_timing		= sp_sd_hw_set_bus_timing,
+	.set_sdddr_mode		= sp_sd_hw_set_sdddr_mode,
 	.set_cmd			= sp_sd_hw_set_cmd,
 	.get_response		= sp_sd_hw_get_reseponse,
 	.set_data_info		= sp_sd_hw_set_data_info,
@@ -1443,7 +1461,7 @@ sp_mmc_hw_ops emmc_hw_ops = {
 	.tunel_write_dly	= sp_emmc_hw_tunel_write_dly,
 	.tunel_clock_dly	= sp_emmc_hw_tunel_clock_dly,
 	.set_bus_width		= sp_emmc_hw_set_bus_width,
-	.set_bus_timing		= sp_emmc_hw_set_bus_timing,
+	.set_sdddr_mode		= sp_emmc_hw_set_sdddr_mode,
 	.set_cmd			= sp_emmc_hw_set_cmd,
 	.get_response		= sp_emmc_hw_get_reseponse,
 	.set_data_info		= sp_emmc_hw_set_data_info,
@@ -1500,10 +1518,14 @@ static int sp_mmc_probe(struct udevice *dev)
 		cfg->f_max		= SPEMMC_MAX_CLK;
 		/* Limited by sdram_sector_#_size max value */
 		cfg->b_max		= CONFIG_SYS_MMC_MAX_BLK_COUNT;
-		if (SP_MMC_VER_Q610 == host->dev_info.version)
+		if (SP_MMC_VER_Q610 == host->dev_info.version) {
 			ops = &sd_hw_ops;
-		else
+			host->dmapio_mode = SP_MMC_DMA_MODE;
+		} else {
 			ops = &emmc_hw_ops;
+			// cfg->host_caps |= MMC_MODE_DDR_52MHz;
+			host->dmapio_mode = SP_MMC_PIO_MODE;
+		}
 	}
 	else {
 		cfg->host_caps	=  MMC_MODE_4BIT | MMC_MODE_HS_52MHz | MMC_MODE_HS;
@@ -1514,12 +1536,11 @@ static int sp_mmc_probe(struct udevice *dev)
 		cfg->b_max		= CONFIG_SYS_MMC_MAX_BLK_COUNT;
 
 		ops = &sd_hw_ops;
+		host->dmapio_mode = SP_MMC_DMA_MODE;
 	}
-	host->dmapio_mode = SP_MMC_DMA_MODE;
 	host->ops = ops;
 	sp_sd_trace();
 
-	printf("base addr:%p\n", host->base);
 	sp_sd_trace();
 #ifdef CONFIG_DM_MMC
 	if (ops && ops->hw_init)

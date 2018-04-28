@@ -80,7 +80,7 @@ typedef struct sp_mmc_hw_ops {
 	int (*tunel_write_dly) 	(sp_mmc_host *host, uint dly);
 	int (*tunel_clock_dly) 	(sp_mmc_host *host, uint dly);
 	int (*set_bus_width)	(sp_mmc_host *host, uint bus_width);
-	int (*set_bus_timing)	(sp_mmc_host *host, uint timing);
+	int (*set_sdddr_mode)	(sp_mmc_host *host, int ddrmode);
 	int (*set_cmd)			(sp_mmc_host *host, struct mmc_cmd *cmd);
 	int (*get_response)		(sp_mmc_host *host, struct mmc_cmd *cmd);
 	int (*set_data_info)	(sp_mmc_host *host, struct mmc_cmd *cmd, struct mmc_data *data);
