@@ -31,10 +31,10 @@ enum Device_table {
 #define AUTO_SCAN_ACHIP         0x15
 #define SPI_NOR_BOOT            0x11
 #define SPINAND_BOOT            0x09
-#define EMMC_BOOT               0x1D
-#define SDCARD_ISP              0x05
-#define UART_ISP                0x0D
-#define USB_ISP                 0x19
+#define EMMC_BOOT               0x1F
+#define SDCARD_ISP              0x07
+#define UART_ISP                0x0F
+#define USB_ISP                 0x17
 #define NAND_LARGE_BOOT         0xff // Q628: no PARA_NAND
 
 /* where to get boot info */
