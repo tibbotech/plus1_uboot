@@ -14,6 +14,13 @@
 #include <malloc.h>
 #include "sp_mmc.h"
 
+
+#define SP_MMC_ZEBU_SUPPORT_DEVICE_DDR_MODE
+#ifdef SP_MMC_ZEBU_SUPPORT_DEVICE_DDR_MODE
+#define SP_MMC_DDR_ZEBU_WRITE_CRC_STATUS_DLY 2
+#define SP_MMC_ZEBU_DDR_WRITE_DLY			 0
+#endif
+
 #define PLATFROM_8388
 
 #ifdef PLATFROM_8388
@@ -491,6 +498,13 @@ sp_mmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
 		} else {
 			sp_sd_trace();
 			sp_mmc_prep_data_info(host, cmd, data);
+
+#ifdef SP_MMC_ZEBU_SUPPORT_DEVICE_DDR_MODE
+			if (mmc->ddr_mode && (data->flags & MMC_DATA_WRITE)) {
+					ops->tunel_read_dly(host, SP_MMC_DDR_ZEBU_WRITE_CRC_STATUS_DLY);
+					ops->tunel_write_dly(host, SP_MMC_ZEBU_DDR_WRITE_DLY);
+			}
+#endif
 			sp_mmc_trigger_sdstate(host);
 			/* Host's "read data start bit timeout counter" is broken, use
 			 * use software to set "the whole transaction's timeout" instead
@@ -502,6 +516,13 @@ sp_mmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
 
 			sp_mmc_get_rsp(host, cmd); /* Makes sure host returns to a idle or error state */
 			sp_mmc_check_sdstatus_errors(host, data, &ret);
+
+#ifdef SP_MMC_ZEBU_SUPPORT_DEVICE_DDR_MODE
+			if (mmc->ddr_mode && (data->flags & MMC_DATA_WRITE)) {
+					ops->tunel_read_dly(host, host->rddly);
+					ops->tunel_write_dly(host, host->wrdly);
+			}
+#endif
 		}
 
 		if ((SPMMC_DEVICE_TYPE_EMMC == host->dev_info.type) && data) {
@@ -510,21 +531,10 @@ sp_mmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
 
 			if (ret == -EILSEQ ) {
 				sp_sd_trace();
-				if (mmc->ddr_mode) {
-					/* in ddr mode host drive data at falling edge to ensure device sample right data at rising edge
-					 * but device not  sample data at rising edge,
-					 * so we need to adjust write delay to ensure copatibility with these device
-					 */
-					host->wrdly++;
-					host->wrdly &= MAX_DLY_CLK_MASK;
-					ops->tunel_write_dly(host, host->wrdly);
-				}
-				else {
-					host->rddly++;
-					host->rddly &= MAX_DLY_CLK_MASK;
-					ops->tunel_read_dly(host, host->rddly);
-				}
-			} else if (ret == -ETIMEDOUT){
+				host->rddly++;
+				host->rddly &= MAX_DLY_CLK_MASK;
+				ops->tunel_read_dly(host, host->rddly);
+			} else if (ret == -ETIMEDOUT) {
 				sp_sd_trace();
 				host->wrdly++;
 				host->wrdly &= MAX_DLY_CLK_MASK;
@@ -542,6 +552,7 @@ sp_mmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
 		host->rddly = rddly;
 		ops->tunel_read_dly(host, host->rddly);
 	}
+
 	return ret;
 }
 
@@ -1518,13 +1529,14 @@ static int sp_mmc_probe(struct udevice *dev)
 		cfg->f_max		= SPEMMC_MAX_CLK;
 		/* Limited by sdram_sector_#_size max value */
 		cfg->b_max		= CONFIG_SYS_MMC_MAX_BLK_COUNT;
+		cfg->name		= "emmc";
 		if (SP_MMC_VER_Q610 == host->dev_info.version) {
 			ops = &sd_hw_ops;
 			host->dmapio_mode = SP_MMC_DMA_MODE;
 		} else {
 			ops = &emmc_hw_ops;
-			// cfg->host_caps |= MMC_MODE_DDR_52MHz;
-			host->dmapio_mode = SP_MMC_PIO_MODE;
+			cfg->host_caps |= MMC_MODE_DDR_52MHz;
+			host->dmapio_mode = SP_MMC_DMA_MODE;
 		}
 	}
 	else {
@@ -1534,6 +1546,7 @@ static int sp_mmc_probe(struct udevice *dev)
 		cfg->f_max		= SPMMC_MAX_CLK;
 		/* Limited by sdram_sector_#_size max value */
 		cfg->b_max		= CONFIG_SYS_MMC_MAX_BLK_COUNT;
+		cfg->name		= "sd";
 
 		ops = &sd_hw_ops;
 		host->dmapio_mode = SP_MMC_DMA_MODE;
