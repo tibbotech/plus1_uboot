@@ -32,7 +32,7 @@ endchoice
 config SYS_ZMEM_SKIP_RELOC
 	bool "zmem skip reloc"
 	default y
-	depends on SYS_ENV_ZEBU
+	depends on SYS_ENV_ZEBU && !SD_BOOT && !NAND_BOOT
 
 config SP_ZMEM_RELOC_ADDR
 	hex "zmem reloc address"

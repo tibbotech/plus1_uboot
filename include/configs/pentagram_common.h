@@ -103,9 +103,14 @@ sp_go 0x308000 0x300000"
 
 #elif defined(CONFIG_SYS_ENV_ZEBU)
 #if defined (CONFIG_SD_BOOT)
+#define CONFIG_BOOTCOMMAND      "echo [scr] emmc bootcmd started ; \
+mmc rescan ; mmc part ; \
+mmc read 0x2fffc0 0x1422 0x1 ; md 0x2fffc0 0x60 ; \
+mmc read 0x307fc0 0x1822 0x1 ; md 0x307fc0 0x60 ; \
+mmc read 0x2fffc0 0x1422 0xa ; mmc read 0x307fc0 0x1822 0x30f0 ; sp_go 0x308000 0x300000"
 #elif defined (CONFIG_NAND_BOOT)
 #else /* zmem */
-#define CONFIG_BOOTCOMMAND      "echo [scr] zmem boot started ; sp_go 0x308000 0x300040"
+#define CONFIG_BOOTCOMMAND      "echo [scr] zmem bootcmd started ; sp_go 0x308000 0x300040"
 #endif
 
 #endif /* CONFIG_SYS_ENV_ */
