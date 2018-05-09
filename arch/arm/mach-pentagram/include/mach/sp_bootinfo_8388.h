@@ -1,5 +1,7 @@
-#ifndef _INC_SP_BOOTINFO_H
-#define _INC_SP_BOOTINFO_H
+#ifndef __SP_BOOTINFO_8388_H
+#define __SP_BOOTINFO_8388_H
+
+#include <asm/arch/sp_bootmode_bitmap_8388.h>
 
 struct sp_bootinfo {
 	u32     bootrom_ver;         // iboot version
@@ -30,34 +32,11 @@ enum Device_table {
 	DEVICE_MAX
 };
 
-#define PLL_BYPASS              0x00
-#define AUTO_SCAN               0x01
-#define SDCARD_ISP              0x05 //new
-#define SPI_NAND_BOOT           0x09 //new
-#define UART_ISP                0x0D //new
-#define SPI_NOR_X2_BOOT         0x11 //new, debug
-#define SPI_NAND_X2_BOOT        0x15 //new, debug
-#define USB_ISP                 0x19
-#define TEST_BYPASS             0x1C
-#define NAND_LARGE_BOOT         0x1D
-
-// sw boot mode only
-#define EMMC_BOOT               0xA3
-#define CARD0_ISP               0xA5
-#define CARD1_ISP               0xA6
-#define CARD2_ISP               0xA7
-#define CARD3_ISP               0xA8
-#define SPI_NOR_BOOT            0x1F
-#define USB_MSDC_BOOT           0x2F
-#define NAND_BOOT               0x26
-#define SPINAND_BOOT            0x46
-
-// Get boot info
-#define CONFIG_SRAM_BASE        0x9e800000
-#define SP_GET_BOOTINFO()      ((struct sp_bootinfo *)(CONFIG_SRAM_BASE + 63*1024))
+#define SP_GET_BOOTINFO()      ((struct sp_bootinfo *)SP_BOOTINFO_BASE)
 
 #define SP_IS_ISPBOOT()       (SP_GET_BOOTINFO()->gbootRom_boot_mode == USB_ISP || \
 			       SP_GET_BOOTINFO()->gbootRom_boot_mode == SDCARD_ISP || \
 			       SP_GET_BOOTINFO()->gbootRom_boot_mode == UART_ISP || \
 			       SP_GET_BOOTINFO()->gbootRom_boot_mode == USB_MSDC_BOOT)
-#endif
+
+#endif /* __SP_BOOTINFO_8388_H */

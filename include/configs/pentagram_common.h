@@ -76,22 +76,76 @@
 #define CONFIG_ARCH_MISC_INIT
 #define CONFIG_SYS_HZ			1000
 
-#if   defined(CONFIG_SYS_ENV_8388)
+#if defined(CONFIG_SYS_ENV_8388)
+#include <asm/arch/sp_bootmode_bitmap_8388.h>
+#else
+#include <asm/arch/sp_bootmode_bitmap_sc7xxx.h>
+#endif
 
-#if 0
-#define CONFIG_BOOTCOMMAND      "echo bootcmd started; \
-setenv sram_base " CONFIG_BOOTSCRIPT_SRAMBASE " && \
-setexpr bootmode_addr ${sram_base} + 0x8; \
-md.l ${bootmode_addr} 1; \
-if itest.l *${bootmode_addr} == 0x1f; then \
-echo romter boot; \
-cp.b " CONFIG_BOOTSCRIPT_SRCADDR " " CONFIG_BOOTSCRIPT_RAMADDR " " CONFIG_BOOTSCRIPT_SIZE "; \
-source " CONFIG_BOOTSCRIPT_RAMADDR "; \
-elif itest.l *${bootmode_addr} == 0xa3; then \
-echo emmc boot; \
-elif itest.l *${bootmode_addr} == 0x26; then \
-echo nand boot; \
-fi"
+#if defined(CONFIG_SYS_ENV_8388)
+
+#if 0 /* if open this, need to mark VMLINUX in ipack/update_all.sh */
+
+#define CONFIG_BOOTCOMMAND \
+"echo [scr] bootcmd started; " \
+"md.l ${bootinfo_base} 1; " \
+"if itest.l *${bootinfo_base} == " __stringify(SPI_NOR_BOOT) "; then " \
+	"echo [scr] romter boot; " \
+	"run romter_boot; " \
+"elif itest.l *${bootinfo_base} == " __stringify(EMMC_BOOT) "; then " \
+	"echo [scr] emmc boot; " \
+	"run emmc_boot; " \
+"elif itest.l *${bootinfo_base} == " __stringify(NAND_BOOT) "; then " \
+	"echo [scr] nand boot; " \
+	"run nand_boot; " \
+"fi"
+
+#define DSTADDR_KERNEL		0x307FC0 /* if stext is on 0x308000 */
+#define DSTADDR_DTB		0x2FFFC0
+#define TMPADDR_HEADER		0x800000
+
+#define CONFIG_EXTRA_ENV_SETTINGS \
+"bootinfo_base="		__stringify(SP_BOOTINFO_BASE) "\0" \
+"addr_src_kernel="		__stringify(CONFIG_SRCADDR_KERNEL) "\0" \
+"addr_src_dtb="			__stringify(CONFIG_SRCADDR_DTB) "\0" \
+"addr_dst_kernel="		__stringify(DSTADDR_KERNEL) "\0" \
+"addr_dst_dtb="			__stringify(DSTADDR_DTB) "\0" \
+"addr_tmp_header="		__stringify(TMPADDR_HEADER) "\0" \
+"be2le=md ${tmpaddr} 1; " \
+	"setexpr byte *${tmpaddr} '&' 0x000000ff; " \
+	"setexpr tmpval $tmpval + $byte; " \
+	"setexpr tmpval $tmpval * 0x100; " \
+	"setexpr byte *${tmpaddr} '&' 0x0000ff00; " \
+	"setexpr byte ${byte} / 0x100; " \
+	"setexpr tmpval $tmpval + $byte; " \
+	"setexpr tmpval $tmpval * 0x100; " \
+	"setexpr byte *${tmpaddr} '&' 0x00ff0000; " \
+	"setexpr byte ${byte} / 0x10000; " \
+	"setexpr tmpval $tmpval + $byte; " \
+	"setexpr tmpval $tmpval * 0x100; " \
+	"setexpr byte *${tmpaddr} '&' 0xff000000; " \
+	"setexpr byte ${byte} / 0x1000000; " \
+	"setexpr tmpval $tmpval + $byte;\0" \
+"romter_boot=cp.b ${addr_src_dtb} ${addr_tmp_header} 0x28; " \
+	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x4; run be2le; " \
+	"setexpr sz_dtb ${tmpval} + 0x28; setexpr sz_dtb ${sz_dtb} / 4; " \
+	"cp.l ${addr_src_dtb} ${addr_dst_dtb} ${sz_dtb}; " \
+	"cp.b ${addr_src_kernel} ${addr_tmp_header} 0x40; " \
+	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
+	"setexpr sz_kernel ${tmpval} + 0x40; setexpr sz_kernel ${sz_kernel} / 4; " \
+	"cp.l ${addr_src_kernel} ${addr_dst_kernel} ${sz_kernel}; " \
+	"bootm ${addr_dst_kernel} - ${addr_dst_dtb}\0" \
+"emmc_boot=mmc read ${addr_tmp_header} ${addr_src_dtb} 0x1; " \
+	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x4; run be2le; " \
+	"setexpr sz_dtb ${tmpval} + 0x28; " \
+	"setexpr sz_dtb ${sz_dtb} + 0x200; setexpr sz_dtb ${sz_dtb} / 0x200; " \
+	"mmc read ${addr_dst_dtb} ${addr_src_dtb} ${sz_dtb}; " \
+	"mmc read ${addr_tmp_header} ${addr_src_kernel} 0x1; " \
+	"setenv tmpval 0; setexpre tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
+	"setexpr sz_kernel ${tmpval} + 0x40; " \
+	"setexpr sz_kernel ${sz_kernel} + 0x200; setexpr sz_kernel ${sz_kernel} / 0x200; " \
+	"mmc read ${addr_dst_kernel} ${addr_src_kernel} ${sz_kernel}; " \
+	"bootm ${addr_dst_kernel} - ${addr_dst_dtb}\0"
 #else
 #define CONFIG_BOOTCOMMAND      "echo bootcmd started ; sp_preboot dump ; sp_preboot ; printenv ; \
 echo [cmd] cp.l 0x98600000 0x307FC0 0x280000 ; \
@@ -99,7 +153,7 @@ cp.l 0x98600000 0x307FC0 0x280000 ; \
 echo [cmd] cp.l 0x98020000 0x2FFFC0 0x400 ; \
 cp.l 0x98020000 0x2FFFC0 0x400 ; \
 sp_go 0x308000 0x300000"
-#endif
+#endif /* if 0 */
 
 #elif defined(CONFIG_SYS_ENV_ZEBU)
 #if defined (CONFIG_SD_BOOT)

@@ -1,5 +1,7 @@
-#ifndef _INC_SP_BOOTINFO_SC7XXX_H
-#define _INC_SP_BOOTINFO_SC7XXX_H
+#ifndef __SP_BOOTINFO_SC7XXX_H
+#define __SP_BOOTINFO_SC7XXX_H
+
+#include <asm/arch/sp_bootmode_bitmap_sc7xxx.h>
 
 /* copy from iboot "include/common.h" */
 struct sp_bootinfo {
@@ -26,19 +28,11 @@ enum Device_table {
 	DEVICE_MAX
 };
 
-/* copy from iboot "include/config.h" */
-#define AUTO_SCAN               0x01
-#define AUTO_SCAN_ACHIP         0x15
-#define SPI_NOR_BOOT            0x11
-#define SPINAND_BOOT            0x09
-#define EMMC_BOOT               0x1F
-#define SDCARD_ISP              0x07
-#define UART_ISP                0x0F
-#define USB_ISP                 0x17
-#define NAND_LARGE_BOOT         0xff // Q628: no PARA_NAND
+#define SP_GET_BOOTINFO()      ((struct sp_bootinfo *)SP_BOOTINFO_BASE)
 
-/* where to get boot info */
-#define CONFIG_SRAM_BASE        0x9e800000
-#define SP_GET_BOOTINFO()       ((struct sp_bootinfo *)(CONFIG_SRAM_BASE + 0x9400))
+#define SP_IS_ISPBOOT()       (SP_GET_BOOTINFO()->gbootRom_boot_mode == USB_ISP || \
+                               SP_GET_BOOTINFO()->gbootRom_boot_mode == SDCARD_ISP || \
+                               SP_GET_BOOTINFO()->gbootRom_boot_mode == UART_ISP || \
+                               SP_GET_BOOTINFO()->gbootRom_boot_mode == USB_MSDC_BOOT)
 
-#endif /* _INC_SP_BOOTINFO_SC7XXX_H */
+#endif /* __SP_BOOTINFO_SC7XXX_H */
