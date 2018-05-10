@@ -12,6 +12,19 @@ config SYS_BOARD
 config SYS_TEXT_BASE
 	default 0x200040
 
+config SYS_USE_QKBOOT_HEADER
+	bool "use Sunpls quick boot header"
+	default y
+	help
+	  Enable Sunplus quick boot header
+	  Sunplus quick boot header is the same
+	  as mkimage header. It also has 64 bytes
+	  size with the same fields. We only change
+	  crc and type in generic mkimage header.
+	  It can speed up boot time. If enabled, we
+	  replace mkimage header of kernel image and
+	  also add sunplus-mkimage header on dtb image.
+
 config SRCADDR_KERNEL
 	hex "Linux kernel source address"
 	default 0x0 if SD_BOOT
