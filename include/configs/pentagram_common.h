@@ -82,6 +82,13 @@
 #include <asm/arch/sp_bootmode_bitmap_sc7xxx.h>
 #endif
 
+#undef DBG_SCR
+#ifdef DBG_SCR
+#define dbg_scr(s) s
+#else
+#define dbg_scr(s) ""
+#endif
+
 /*
  * In the beginning, bootcmd will check bootmode in SRAM and the flag
  * if_zebu to choose different boot flow :
@@ -111,24 +118,28 @@
 "echo [scr] bootcmd started; " \
 "md.l ${bootinfo_base} 1; " \
 "if itest.l *${bootinfo_base} == " __stringify(SPI_NOR_BOOT) "; then " \
-	"echo [scr] romter boot; " \
 	"if itest ${if_zebu} == 1; then " \
+		"echo [scr] zmem boot; " \
 		"run zmem_boot; " \
 	"else " \
 		"if itest ${if_qkboot} == 1; then " \
+			"echo [scr] qk romter boot; " \
 			"run qk_romter_boot; " \
 		"else " \
+			"echo [scr] romter boot; " \
 			"run romter_boot; " \
 		"fi; " \
 	"fi; " \
 "elif itest.l *${bootinfo_base} == " __stringify(EMMC_BOOT) "; then " \
-	"echo [scr] emmc boot; " \
 	"if itest ${if_zebu} == 1; then " \
+		"echo [scr] zebu emmc boot; " \
 		"run zebu_emmc_boot; " \
 	"else " \
 		"if itest ${if_qkboot} == 1; then " \
+			"echo [scr] qk emmc boot; " \
 			"run qk_emmc_boot; " \
 		"else " \
+			"echo [scr] emmc boot; " \
 			"run emmc_boot; " \
 		"fi; " \
 	"fi; " \
@@ -150,8 +161,7 @@
 "addr_tmp_header="		__stringify(TMPADDR_HEADER) "\0" \
 "if_zebu="			__stringify(CONFIG_SYS_ENV_ZEBU) "\0" \
 "if_qkboot="			__stringify(CONFIG_SYS_USE_QKBOOT_HEADER) "\0" \
-"be2le=md ${tmpaddr} 1; " \
-	"setexpr byte *${tmpaddr} '&' 0x000000ff; " \
+"be2le=setexpr byte *${tmpaddr} '&' 0x000000ff; " \
 	"setexpr tmpval $tmpval + $byte; " \
 	"setexpr tmpval $tmpval * 0x100; " \
 	"setexpr byte *${tmpaddr} '&' 0x0000ff00; " \
@@ -167,23 +177,37 @@
 	"setexpr tmpval $tmpval + $byte;\0" \
 "romter_boot=cp.b ${addr_src_dtb} ${addr_tmp_header} 0x28; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x4; run be2le; " \
-	"setexpr sz_dtb ${tmpval} + 0x28; setexpr sz_dtb ${sz_dtb} / 4; " \
+	dbg_scr("md ${addr_tmp_header} 0x10; printenv tmpval; ") \
+	"setexpr sz_dtb ${tmpval} + 0x28; " \
+	"setexpr sz_dtb ${sz_dtb} + 4; setexpr sz_dtb ${sz_dtb} / 4; " \
+	dbg_scr("echo dtb from ${addr_src_dtb} to ${addr_dst_dtb} sz ${sz_dtb}; ") \
 	"cp.l ${addr_src_dtb} ${addr_dst_dtb} ${sz_dtb}; " \
 	"cp.b ${addr_src_kernel} ${addr_tmp_header} 0x40; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
-	"setexpr sz_kernel ${tmpval} + 0x40; setexpr sz_kernel ${sz_kernel} / 4; " \
+	dbg_scr("md ${addr_tmp_header} 0x10; printenv tmpval; ") \
+	"setexpr sz_kernel ${tmpval} + 0x40; " \
+	"setexpr sz_kernel ${sz_kernel} + 4; setexpr sz_kernel ${sz_kernel} / 4; " \
+	dbg_scr("echo kernel from ${addr_src_kernel} to ${addr_dst_kernel} sz ${sz_kernel}; ") \
 	"cp.l ${addr_src_kernel} ${addr_dst_kernel} ${sz_kernel}; " \
+	dbg_scr("echo bootm ${addr_dst_kernel} - ${addr_dst_dtb}; ") \
 	"bootm ${addr_dst_kernel} - ${addr_dst_dtb}\0" \
 "qk_romter_boot=cp.b ${addr_src_dtb} ${addr_tmp_header} 0x40; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
-	"setexpr sz_dtb ${tmpval} + 0x40; setexpr sz_dtb ${sz_dtb} / 4; " \
+	dbg_scr("md ${addr_tmp_header} 0x10; printenv tmpval; ") \
+	"setexpr sz_dtb ${tmpval} + 0x40; " \
+	"setexpr sz_dtb ${sz_dtb} + 4; setexpr sz_dtb ${sz_dtb} / 4; " \
+	dbg_scr("echo dtb from ${addr_src_dtb} to ${addr_dst_dtb} sz ${sz_dtb}; ") \
 	"cp.l ${addr_src_dtb} ${addr_dst_dtb} ${sz_dtb}; " \
 	"cp.b ${addr_src_kernel} ${addr_tmp_header} 0x40; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
-	"setexpr sz_kernel ${tmpval} + 0x40; setexpr sz_kernel ${sz_kernel} / 4; " \
+	dbg_scr("md ${addr_tmp_header} 0x10; printenv tmpval; ") \
+	"setexpr sz_kernel ${tmpval} + 0x40; " \
+	"setexpr sz_kernel  ${sz_kernel} + 4; setexpr sz_kernel ${sz_kernel} / 4; " \
+	dbg_scr("echo kernel from ${addr_src_kernel} to ${addr_dst_kernel} sz ${sz_kernel}; ") \
 	"cp.l ${addr_src_kernel} ${addr_dst_kernel} ${sz_kernel}; " \
 	"setexpr addr_dst_kernel ${addr_dst_kernel} + 0x40; " \
 	"setexpr addr_dst_dtb ${addr_dst_dtb} + 0x40; " \
+	dbg_scr("sp_go ${addr_dst_kernel} ${addr_dst_dtb}; ") \
 	"sp_go ${addr_dst_kernel} ${addr_dst_dtb}\0" \
 "emmc_boot=mmc read ${addr_tmp_header} ${addr_src_dtb} 0x1; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x4; run be2le; " \
@@ -215,7 +239,7 @@
 "zebu_emmc_boot=mmc rescan; mmc part; " \
 	"mmc read ${addr_tmp_header} ${addr_src_dtb} 0x1; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x4; run be2le; " \
-	"setexpr sz_dtb ${tmpval} + 0x28; " \
+	"setexpr sz_dtb ${tmpval} + 0x40; " \
 	"setexpr sz_dtb ${sz_dtb} + 0x200; setexpr sz_dtb ${sz_dtb} / 0x200; " \
 	"mmc read ${addr_dst_dtb} ${addr_src_dtb} ${sz_dtb}; " \
 	"mmc read ${addr_tmp_header} ${addr_src_kernel} 0x1; " \
