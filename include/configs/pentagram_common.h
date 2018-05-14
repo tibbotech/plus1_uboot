@@ -54,16 +54,14 @@
 #define CONFIG_SYS_BAUDRATE_TABLE	{ 57600, 115200 }
 /* #define CONFIG_SUNPLUS_SERIAL */
 
-/*
- * TODO: for code development only, should be changed to NAND/eMMC.
- */
-/*
-#define CONFIG_ENV_IS_NOWHERE		1
-#define CONFIG_ENV_SIZE			(64 << 10)
-*/
-#define CONFIG_ENV_IS_IN_NVRAM
-#define CONFIG_ENV_ADDR			CONFIG_SYS_INIT_SP_ADDR
-#define CONFIG_ENV_SIZE			(64 << 10)
+/* u-boot env parameter */
+#define CONFIG_SYS_MMC_ENV_DEV	0
+#define CONFIG_ENV_SIZE		0x2000
+#if defined(CONFIG_SYS_ENV_8388)
+#define CONFIG_ENV_OFFSET	0x00043f22
+#else
+#define CONFIG_ENV_OFFSET	0x00005822
+#endif
 
 #define CONFIG_CMDLINE_EDITING
 #define CONFIG_AUTO_COMPLETE
