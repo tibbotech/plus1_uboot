@@ -10,6 +10,8 @@ unsigned long do_sp_go_exec(ulong (*entry)(int, char * const [], unsigned int), 
 	dtb_addr = simple_strtoul(argv[1], NULL, 16);
 	printf("[u-boot] dtb address %08x\n", dtb_addr);
 
+	cleanup_before_linux();
+
 	return entry (0, 0, dtb_addr);
 }
 
