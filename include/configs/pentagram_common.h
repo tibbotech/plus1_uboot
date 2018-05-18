@@ -236,12 +236,12 @@
 	"sp_go ${addr_dst_kernel} ${addr_dst_dtb}\0" \
 "zebu_emmc_boot=mmc rescan; mmc part; " \
 	"mmc read ${addr_tmp_header} ${addr_src_dtb} 0x1; " \
-	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x4; run be2le; " \
+	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
 	"setexpr sz_dtb ${tmpval} + 0x40; " \
 	"setexpr sz_dtb ${sz_dtb} + 0x200; setexpr sz_dtb ${sz_dtb} / 0x200; " \
 	"mmc read ${addr_dst_dtb} ${addr_src_dtb} ${sz_dtb}; " \
 	"mmc read ${addr_tmp_header} ${addr_src_kernel} 0x1; " \
-	"setenv tmpval 0; setexpre tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
+	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
 	"setexpr sz_kernel ${tmpval} + 0x40; " \
 	"setexpr sz_kernel ${sz_kernel} + 0x200; setexpr sz_kernel ${sz_kernel} / 0x200; " \
 	"mmc read ${addr_dst_kernel} ${addr_src_kernel} ${sz_kernel}; " \
