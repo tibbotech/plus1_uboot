@@ -7,3 +7,6 @@ obj-y	+= cpu.o
 ifndef CONFIG_SKIP_LOWLEVEL_INIT
 obj-y	+= lowlevel_init.o
 endif
+
+# IP test
+# obj-y	+= rtc_tst.o
