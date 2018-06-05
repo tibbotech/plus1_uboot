@@ -49,4 +49,12 @@ config SRCADDR_DTB
 config HUSH_PARSER
 	default y
 
+config SP_UTIL_MON
+	bool "enable Sunplus mon util"
+	default y
+	help
+	  Enable Sunplys mon util
+	  It is useful to read/write Sunplus register
+	  group.
+
 endif
