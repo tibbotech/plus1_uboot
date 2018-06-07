@@ -25,24 +25,13 @@
 		reg = <0x9c000900 0x80>;
 	};
 	
-	/* 8388 platform emmc host controller */
-	/*
-	sp_emmc: mmc@9C003B00 {
-		compatible = "sunplus,sunplus-q610-emmc";
-		reg = <0x9C003B00 0x280>;
-	};
-	*/
-
 	sp_emmc: mmc@9C003B00 {
 		compatible = "sunplus,sunplus-q628-emmc";
 		reg = <0x9C003B00 0x180>;
 	};
 
-	/* 8388 platform sd slot1 host controller */
-	/* can't work, please don't use it
-	sp_emmc: mmc@9C003B00 {
-		compatible = "sunplus,sunplus-sd1";
+	sp_sdcard: mmc@9C003E80 {
+		compatible = "sunplus,sunplus-q628-sd";
 		reg = <0x9C003E80 0x280>;
 	};
-	*/
 };

@@ -152,7 +152,7 @@ typedef struct spsd_general_regs {
 	dev_reg32 sdiorst:1;
 	dev_reg32 reserved_sd_rst:29;
 
-	dev_reg32 sdfqsel:10;				/* 17. */
+	dev_reg32 sdfqsel:12;				/* 17. */
 	dev_reg32 sddatawd:1;				/* bus width:0:1bit   1:4bit */
 	dev_reg32 sdrsptype:1;
 #define SP_SD_RSP_TYPE_LEN_48_BITS		0
@@ -164,7 +164,7 @@ typedef struct spsd_general_regs {
 	dev_reg32 mmc8_en:1;
 	dev_reg32 rx4b_en:1;
 	dev_reg32 sdiomode:1;
-	dev_reg32 reserved_sd_config:13;
+	dev_reg32 reserved_sd_config:11;
 
 	dev_reg32 sdctrl_trigger_cmd:1;	/* 18. */
 	dev_reg32 sdctrl_trigger_dummy:1;
@@ -217,7 +217,7 @@ typedef struct spsd_general_regs {
 	dev_reg32 reserved_sd_timing_config0:17;
 
 	dev_reg32 sdcrctmr:11;				/* 24. */
-	dev_reg32 sdfreq:2;				/* high 2 bits of sd frequency */
+	dev_reg32 reserved_sdcrctmr:2;
 	dev_reg32 sd_rd_dly_sel:3;
 	dev_reg32 reserved_sd_timing_config1:16;
 
@@ -228,14 +228,19 @@ typedef struct spsd_general_regs {
 	/* total 5 bytes, and the controller will append the crc7. Overall 6 bytes (48 bits) for the command */
 
 	/*  group 2 */
-	dev_reg32 sdrspbuf3:8;				/* 0. */
-	dev_reg32 sdrspbuf2:8;
-	dev_reg32 sdrspbuf1:8;
-	dev_reg32 sdrspbuf0:8;
+	union {
+		struct {
+			dev_reg32 sdrspbuf3:8;				/* 0. */
+			dev_reg32 sdrspbuf2:8;
+			dev_reg32 sdrspbuf1:8;
+			dev_reg32 sdrspbuf0:8;
 
-	dev_reg32 sdrspbuf5:8;				/* 1. */
-	dev_reg32 sdrspbuf4:8;
-	dev_reg32 reserved_sd_rspbuf:16;
+			dev_reg32 sdrspbuf5:8;				/* 1. */
+			dev_reg32 sdrspbuf4:8;
+			dev_reg32 reserved_sd_rspbuf:16;
+		};
+		dev_reg32 sd_rspbuf[2];
+	};
 
 	dev_reg32 sdcrc16evenbuf0:16;		/* 2. */
 	dev_reg32 sdcrc16evenbuf4:16;
@@ -274,9 +279,9 @@ typedef struct spsd_general_regs {
 	dev_reg32 sdcrc16buf3:16;			/* 13. */
 	dev_reg32 sdcrc16buf7:16;
 
-	dev_reg32 sdrxdattmr_sel:2;		/* 14. */
-	dev_reg32 sd_clk_dly_sel:3;
-	dev_reg32 reserved_sd_clk_dly:27;
+	dev_reg32 sd_clk_dly_sel:3;			/* 14. */
+#define SP_SD_RXDATTMR_MAX	((1 << 29) - 1)
+	dev_reg32 sdrxdattmr_sel:29;
 
 	dev_reg32 reserved_reserved_2_15;		/* 15. */
 

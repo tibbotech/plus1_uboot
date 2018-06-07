@@ -21,24 +21,6 @@
 #define SP_MMC_ZEBU_DDR_WRITE_DLY			 0
 #endif
 
-#define PLATFROM_8388
-
-#ifdef PLATFROM_8388
-#define REG_BASE           0x9c000000
-#define RF_GRP(_grp, _reg) ((((_grp) * 32 + (_reg)) * 4) + REG_BASE)
-
-struct moon1_regs {
-	unsigned int sft_cfg[32];
-};
-#define MOON1_REG ((volatile struct moon1_regs *)RF_GRP(1, 0))
-
-struct moon2_regs {
-	unsigned int sft_cfg[32];
-};
-#define MOON2_REG ((volatile struct moon2_regs *)RF_GRP(2, 0)
-
-#endif
-
 
 #define MAX_SDDEVICES   2
 
@@ -71,6 +53,14 @@ struct moon2_regs {
 
 #define DUMMY_COCKS_AFTER_DATA     8
 #define MAX_SD_RW_RETRY_TIMES 1
+
+#define SP_MMC_MAX_RSP_LEN 16
+#define SP_MMC_SWAP32(x)		((((x) & 0x000000ff) << 24) | \
+				 (((x) & 0x0000ff00) <<  8) | \
+				 (((x) & 0x00ff0000) >>  8) | \
+				 (((x) & 0xff000000) >> 24)   \
+				)
+
 
 
 // #define sp_sd_trace()	printf(KERN_ERR "[SD TRACe]: %s:%d\n", __FILE__, __LINE__)
@@ -204,6 +194,17 @@ static void sp_mmc_get_rsp_48(struct sp_mmc_host *host, struct mmc_cmd *cmd)
 	return;
 }
 
+
+#define SD_WAIT_REPONSE_BUFFER_FULL(host) \
+do { \
+	while (1) { \
+		if (host->base->sdstatus & SP_SDSTATUS_RSP_BUF_FULL) \
+			break;	 \
+		if (host->base->sdstate_new & SDSTATE_NEW_ERROR_TIMEOUT) \
+			return;  \
+	} \
+} while (0)
+
 /*
  * Receive 136 bits response, and pass it back to U-Boot
  * Used for cmd+rsp and normal dma requests
@@ -212,40 +213,40 @@ static void sp_mmc_get_rsp_48(struct sp_mmc_host *host, struct mmc_cmd *cmd)
  */
 static void sp_mmc_get_rsp_136(struct sp_mmc_host *host, struct mmc_cmd *cmd)
 {
-	unsigned int rspNum;
-	unsigned char rspBuf[17] = {0}; /* Used to store 17 bytes(136 bits) or 6 bytes(48 bits) response */
+	unchar *rspBuf = (unchar *)cmd->response;
+	uint val[2];
+	uint i;
+	SD_WAIT_REPONSE_BUFFER_FULL(host);
 
-	/* Receive Response */
-	while (1) {
-		if (host->base->sdstatus & SP_SDSTATUS_RSP_BUF_FULL)
-			break;	/* Response buffers are full, break */
+	val[0] = host->base->sd_rspbuf[0];
+	val[1] = host->base->sd_rspbuf[1];
+	rspBuf[0] = (val[0] >> 16) & 0xff;
+	rspBuf[1] = (val[0] >> 8) & 0xff;
+	rspBuf[2] = (val[0] >> 0) & 0xff;
+	rspBuf[3] = (val[1] >> 8) & 0xff;
+	rspBuf[4] = (val[1] >> 0) & 0xff;
 
-		if (host->base->sdstate_new & SDSTATE_NEW_ERROR_TIMEOUT)
-			return; /* Return if error occurs */
-	}
+	SD_WAIT_REPONSE_BUFFER_FULL(host);
+	val[0] = host->base->sd_rspbuf[0];
+	val[1] = host->base->sd_rspbuf[1];
+	rspBuf[5] = (val[0] >> 24) & 0xff;
+	rspBuf[6] = (val[0] >> 16) & 0xff;
+	rspBuf[7] = (val[0] >> 8) & 0xff;
+	rspBuf[8] = (val[0] >> 0) & 0xff;
+	rspBuf[9] = (val[1] >> 8) & 0xff;
+	rspBuf[10] = (val[1] >> 0) & 0xff;
 
-	/*
-	 * Store received response buffer data
-	 * Function runs to here only if no error occurs
-	 */
-	rspBuf[0] = host->base->sdrspbuf0;
-	rspBuf[1] = host->base->sdrspbuf1;
-	rspBuf[2] = host->base->sdrspbuf2;
-	rspBuf[3] = host->base->sdrspbuf3;
-	rspBuf[4] = host->base->sdrspbuf4;
-	rspBuf[5] = host->base->sdrspbuf5;
+	SD_WAIT_REPONSE_BUFFER_FULL(host);
+	val[0] = host->base->sd_rspbuf[0];
+	val[1] = host->base->sd_rspbuf[1];
+	rspBuf[11] = (val[0] >> 24) & 0xff;
+	rspBuf[12] = (val[0] >> 16) & 0xff;
+	rspBuf[13] = (val[0] >> 8) & 0xff;
+	rspBuf[14] = (val[0] >> 0) & 0xff;
+	rspBuf[15] = (val[1] >> 8) & 0xff;
 
-	/* Response R2 is 136 bits long, keep receiving response by reading from rspBuf[5] */
-	for (rspNum = 6; rspNum < 17; rspNum++) {
-		while (1) {
-
-			if (host->base->sdstatus & SP_SDSTATUS_RSP_BUF_FULL) {
-				break;	/* Wait until response buffer full */
-			}
-			if (host->base->sdstate_new & SDSTATE_NEW_ERROR_TIMEOUT)
-				return;
-		}
-		rspBuf[rspNum] = host->base->sdrspbuf5;
+	for (i = 0; i < SP_MMC_MAX_RSP_LEN/sizeof(cmd->response[0]); i++ ) {
+		cmd->response[i] = SP_MMC_SWAP32(cmd->response[i]);
 	}
 
 	/*
@@ -258,17 +259,6 @@ static void sp_mmc_get_rsp_136(struct sp_mmc_host *host, struct mmc_cmd *cmd)
 		if (host->base->sdstate_new & SDSTATE_NEW_ERROR_TIMEOUT)
 			return;
 	}
-
-	/*
-	 * Pass response back to U-Boot
-	 * Function runs to here only if no error occurs
-	 */
-	cmd->response[0] = (rspBuf[1] << 24) | (rspBuf[2] << 16) | (rspBuf[3] << 8) | rspBuf[4];
-	cmd->response[1] = (rspBuf[5] << 24) | (rspBuf[6] << 16) | (rspBuf[7] << 8) | rspBuf[8];
-	cmd->response[2] = (rspBuf[9] << 24) | (rspBuf[10] << 16) | (rspBuf[11] << 8) | rspBuf[12];
-	cmd->response[3] = (rspBuf[13] << 24) | (rspBuf[14] << 16) | (rspBuf[15] << 8) | rspBuf[16];
-
-	return;
 }
 
 /*
@@ -579,43 +569,6 @@ static int sp_mmc_set_ios(struct mmc *mmc)
 	return 0;
 }
 
-#ifdef PLATFROM_8388
-static int sp_set_8388_mmc_clock(sp_mmc_dev_info *dev)
-{
-	/* set DPLL clock to 270Mhz  */
-	*(volatile unsigned int *)0x9C000010 |= 1 << 16;
-	return 0;
-}
-
-static int sp_set_8388_mmc_pinmux(sp_mmc_dev_info *info)
-{
-	sp_sd_trace();
-	uint pin_x = 1;
-	/* set 8388 sd/emmc pinmux on */
-	switch (info->id) {
-		case 0:
-			MOON1_REG->sft_cfg[4] = (MOON1_REG->sft_cfg[4] & ~(0x3 << 13)) | ((pin_x&0x3)<<13);
-			MOON1_REG->sft_cfg[4] = (MOON1_REG->sft_cfg[4] & ~(0x3 << 15)) | ((pin_x&0x3)<<15);
-			break;
-		case 1:
-			MOON1_REG->sft_cfg[4] = (MOON1_REG->sft_cfg[4] & ~(0x3 << 13)) | ((pin_x&0x3)<<13);
-			MOON1_REG->sft_cfg[4] = (MOON1_REG->sft_cfg[4] & ~(0x3 << 15)) | ((pin_x&0x3)<<15);
-			break;
-		case 2:
-			MOON1_REG->sft_cfg[4] = (MOON1_REG->sft_cfg[4] & ~(0x3 << 23)) | ((pin_x&0x3)<<23);
-			MOON1_REG->sft_cfg[4] = (MOON1_REG->sft_cfg[4] & ~(0x3 << 25)) | ((pin_x&0x3)<<25);
-			break;
-		default:
-			break;
-	}
-	sp_sd_trace();
-
-	return 0;
-}
-#endif
-
-
-
 /*
  * Card detection, return 1 to indicate card is plugged in
  *                 return 0 to indicate card in not plugged in
@@ -692,7 +645,7 @@ static int sp_sd_hw_init(sp_mmc_host *host)
 	} else {
 		host->base->sdmmcmode = 0;
 	}
-	host->base->sdrxdattmr_sel = 3;
+	host->base->sdrxdattmr_sel = SP_SD_RXDATTMR_MAX;
 	host->base->mediatype = 6;
 
 	return 0;
@@ -700,16 +653,7 @@ static int sp_sd_hw_init(sp_mmc_host *host)
 
 static int sp_sd_hw_set_clock(struct sp_mmc_host *host, uint div)
 {
-	/*
-	 * Switch to the requested frequency
-	 * freq_divisor[11:10] = sdfreq[1:0]
-	 * freq_divisor[9:0] = sdfqsel[9:0]
-	 */
-	host->base->sdfreq = (div & 0xC00) >> 10;
-	host->base->sdfqsel = div & 0x3FF;
-	/* printf("clkrt %u, act_clock %u\n", clkrt, act_clock); */
-	/* printf("sdfreq 0x%x, sdfqsel 0x%x\n", host->base->sdfreq, host->base->sdfqsel); */
-
+	host->base->sdfqsel = div & 0xFFF;
 	/* Delay 4 msecs for now (wait till clk stabilizes?) */
 	mdelay(4);
 
@@ -1131,13 +1075,6 @@ int sp_emmc_hw_set_cmd (sp_mmc_host *host, struct mmc_cmd *cmd)
 }
 
 
-#define SP_MMC_MAX_RSP_LEN 16
-#define SP_MMC_SWAP32(x)		((((x) & 0x000000ff) << 24) | \
-				 (((x) & 0x0000ff00) <<  8) | \
-				 (((x) & 0x00ff0000) >>  8) | \
-				 (((x) & 0xff000000) >> 24)   \
-				)
-
 int sp_emmc_hw_get_reseponse (sp_mmc_host *host, struct mmc_cmd *cmd)
 {
 	sp_sd_trace();
@@ -1530,14 +1467,9 @@ static int sp_mmc_probe(struct udevice *dev)
 		/* Limited by sdram_sector_#_size max value */
 		cfg->b_max		= CONFIG_SYS_MMC_MAX_BLK_COUNT;
 		cfg->name		= "emmc";
-		if (SP_MMC_VER_Q610 == host->dev_info.version) {
-			ops = &sd_hw_ops;
-			host->dmapio_mode = SP_MMC_DMA_MODE;
-		} else {
-			ops = &emmc_hw_ops;
-			cfg->host_caps |= MMC_MODE_DDR_52MHz;
-			host->dmapio_mode = SP_MMC_DMA_MODE;
-		}
+		ops = &emmc_hw_ops;
+		cfg->host_caps |= MMC_MODE_DDR_52MHz;
+		host->dmapio_mode = SP_MMC_DMA_MODE;
 	}
 	else {
 		cfg->host_caps	=  MMC_MODE_4BIT | MMC_MODE_HS_52MHz | MMC_MODE_HS;
@@ -1555,6 +1487,7 @@ static int sp_mmc_probe(struct udevice *dev)
 	sp_sd_trace();
 
 	sp_sd_trace();
+
 #ifdef CONFIG_DM_MMC
 	if (ops && ops->hw_init)
 		return ops->hw_init(mmc_get_mmc_dev(dev)->priv);
@@ -1580,80 +1513,64 @@ int sp_mmc_set_dmapio(struct mmc *mmc, uint val)
 	return 0;
 }
 
-static sp_mmc_dev_info q610_dev_info[] = {
-	{
-		.id = 0,
-		.type = SPMMC_DEVICE_TYPE_EMMC,
-		.version = SP_MMC_VER_Q610,
-		.set_pinmux = sp_set_8388_mmc_pinmux,
-		.set_clock = sp_set_8388_mmc_clock,
-	},
 
-	{
-		.id = 0,
-		.type = SPMMC_DEVICE_TYPE_SD,
-		.version = SP_MMC_VER_Q610,
-		.set_pinmux = sp_set_8388_mmc_pinmux,
-		.set_clock = sp_set_8388_mmc_clock,
-	},
+#define REG_BASE           0x9c000000
+#define RF_GRP(_grp, _reg) ((((_grp) * 32 + (_reg)) * 4) + REG_BASE)
+#define RF_MASK_V(_mask, _val)       (((_mask) << 16) | (_val))
+#define RF_MASK_V_SET(_mask)         (((_mask) << 16) | (_mask))
+#define RF_MASK_V_CLR(_mask)         (((_mask) << 16) | 0)
 
-	{
-		.id = 1,
-		.type = SPMMC_DEVICE_TYPE_SD,
-		.version = SP_MMC_VER_Q610,
-		.set_pinmux = sp_set_8388_mmc_pinmux,
-		.set_clock = sp_set_8388_mmc_clock,
-	}
+
+struct moon1_regs {
+    unsigned int sft_cfg[32];
 };
+#define MOON1_REG ((volatile struct moon1_regs *)RF_GRP(1, 0))
 
+
+int sd_set_pinmux(struct sp_mmc_dev_info *info)
+{
+	MOON1_REG->sft_cfg[1] = RF_MASK_V(1 << 6, 1 << 6);
+	return 0;
+}
+
+int emmc_set_pinmux(struct sp_mmc_dev_info *info)
+{
+	/* disable spi nor pimux   */
+	MOON1_REG->sft_cfg[1] = RF_MASK_V_CLR(0xf);
+	/* disable spi nand pinmux  */
+	MOON1_REG->sft_cfg[1] = RF_MASK_V_CLR(1 << 4);
+	/* enable emmc pinmux */
+	MOON1_REG->sft_cfg[1] = RF_MASK_V(1 << 5, 1 << 5);
+	return 0;
+}
 
 static sp_mmc_dev_info q628_dev_info[] = {
 	{
 		.id = 0,
 		.type = SPMMC_DEVICE_TYPE_EMMC,
 		.version = SP_MMC_VER_Q628,
+		.set_pinmux = emmc_set_pinmux,
 	},
 
 	{
 		.id = 1,
 		.type = SPMMC_DEVICE_TYPE_SD,
 		.version = SP_MMC_VER_Q628,
+		.set_pinmux = sd_set_pinmux,
 	},
-
-	{
-		.id = 2,
-		.type = SPMMC_DEVICE_TYPE_SD,
-		.version = SP_MMC_VER_Q628,
-	}
 };
-
 
 
 static const struct udevice_id sunplus_mmc_ids[] = {
 	{
-		.compatible	= "sunplus,sunplus-q610-emmc",
-		.data		= (ulong)&q610_dev_info[0],
-	},
-
-	{
-		.compatible	= "sunplus,sunplus-q610-sd0",
-		.data		= (ulong)&q610_dev_info[1],
-	},
-
-	{
-		.compatible	= "sunplus,sunplus-q610-sd1",
-		.data		= (ulong)&q610_dev_info[2],
-	},
-
-	{
-		.compatible	= "sunplus,sunplus-q628-sd0",
+		.compatible	= "sunplus,sunplus-q628-sd",
 		.data		= (ulong)&q628_dev_info[1],
 	},
+
 	{
 		.compatible	= "sunplus,sunplus-q628-emmc",
 		.data		= (ulong)&q628_dev_info[0],
 	},
-
 
 	{
 	}
@@ -1671,5 +1588,4 @@ U_BOOT_DRIVER(sd_sunplus) ={
 	.probe						= sp_mmc_probe,
 	.ops						= &sp_mmc_ops,
 };
-
 
