@@ -34,4 +34,14 @@
 		compatible = "sunplus,sunplus-q628-sd";
 		reg = <0x9C003E80 0x280>;
 	};
+
+	sp_usb0: usb@9C102100 {
+		compatible = "sunplus,sunplus-q628-usb-ehci0";
+		reg = <0x9C102100 0x68>;
+	};
+
+	sp_usb1: usb@9C103100 {
+		compatible = "sunplus,sunplus-q628-usb-ehci1";
+		reg = <0x9C103100 0x68>;
+	};
 };
