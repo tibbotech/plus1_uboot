@@ -408,6 +408,14 @@ config MMC_SP_SD
 	  If you have a controller with this interface, say Y here.
 	  If unsure, say N.
 
+config MMC_SP_8388
+	bool "Sunplus 8388 SD/emmc Host Controller Interface support"
+	depends on DM_MMC && BLK
+	help
+	  This selects the Sunplus SD/emmc Host Controller Interface.
+	  If you have a controller with this interface, say Y here.
+	  If unsure, say N.
+
 endif
 
 config TEGRA124_MMC_DISABLE_EXT_LOOPBACK

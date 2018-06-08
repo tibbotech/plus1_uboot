@@ -67,3 +67,5 @@ obj-$(CONFIG_MMC_SUNXI)			+= sunxi_mmc.o
 obj-$(CONFIG_MMC_UNIPHIER)		+= uniphier-sd.o
 
 obj-$(CONFIG_MMC_SP_EMMC) += sp_mmc.o
+obj-$(CONFIG_MMC_SP_8388) += sp_mmc_8388.o
+

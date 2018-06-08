@@ -24,7 +24,7 @@
 		compatible = "sunplus,sunplus-uart";
 		reg = <0x9c000900 0x80>;
 	};
-	
+
 	sp_emmc: mmc@9C003B00 {
 		compatible = "sunplus,sunplus-q628-emmc";
 		reg = <0x9C003B00 0x180>;
@@ -34,4 +34,26 @@
 		compatible = "sunplus,sunplus-q628-sd";
 		reg = <0x9C003E80 0x280>;
 	};
+
+/* 8388 sp_emmc and sp_sd0 use same pinmux, so don't enable them at the same time */
+/*
+    sp_emmc: mmc@9C003B00 {
+        compatible = "sunplus,sunplus-q610-emmc";
+        reg = <0x9C003B00 0x280>;
+    };
+	
+*/
+/*
+	sp_sd0: mmc@9C003B00 {
+        compatible = "sunplus,sunplus-q610-sd0";
+        reg = <0x9C003B00 0x280>;
+    };
+
+*/
+/*
+	sp_sd1: mmc@9C003E80 {
+        compatible = "sunplus,sunplus-q610-sd1";
+        reg = <0x9C003E80 0x280>;
+    };
+*/
 };
