@@ -16,8 +16,8 @@ typedef struct {
 	volatile unsigned int timer0_cnt;
 	volatile unsigned int timer1_ctrl;
 	volatile unsigned int timer1_cnt;
-	volatile unsigned int rsv_12;
-	volatile unsigned int rsv_13;
+	volatile unsigned int timerw_ctrl;	/* Only STCs @ 0x9C000600 and 0x9C003000 */
+	volatile unsigned int timerw_cnt;	/* Only STCs @ 0x9C000600 and 0x9C003000 */
 	volatile unsigned int stc_47_32;
 	volatile unsigned int stc_63_48;
 	volatile unsigned int timer2_ctrl;
@@ -34,17 +34,28 @@ typedef struct {
 	volatile unsigned int atc_0;
 	volatile unsigned int atc_1;
 	volatile unsigned int atc_2;
-	volatile unsigned int rsv_30;
-	volatile unsigned int rsv_31;
+	volatile unsigned int timer0_reload;
+	volatile unsigned int timer1_reload;
 } stc_avReg_t;
 
-#define GEMINI_TIMER_ADDR	(0x9C003180)	/* SPHE8388's STC_AV2 */
+#define PENTAGRAM_BASE_ADDR	(0x9C000000)
+#define PENTAGRAM_MOON4		(PENTAGRAM_BASE_ADDR + (4 << 7))
+#define PENTAGRAM_WDTMR_ADDR	(PENTAGRAM_BASE_ADDR + (12 << 7))	/* Either Group 12 or 96 */
+#define PENTAGRAM_TIMER_ADDR	(PENTAGRAM_BASE_ADDR + (99 << 7))
+#define PENTAGRAM_RTC_ADDR	(PENTAGRAM_BASE_ADDR + (116 << 7))
+
+#define WATCHDOG_CMD_CNT_WR_UNLOCK	0xAB00
+#define WATCHDOG_CMD_CNT_WR_LOCK	0xAB01
+#define WATCHDOG_CMD_CNT_WR_MAX		0xDEAF
+#define WATCHDOG_CMD_PAUSE		0x3877
+#define WATCHDOG_CMD_RESUME		0x4A4B
+#define WATCHDOG_CMD_INTR_CLR		0x7482
 
 void s_init(void)
 {
 	/* Init watchdog timer, ... */
 	/* TODO: Setup timer used by U-Boot, required to change on I-139 */
-	stc_avReg_t *pstc_avReg = (stc_avReg_t *)(GEMINI_TIMER_ADDR);
+	stc_avReg_t *pstc_avReg = (stc_avReg_t *)(PENTAGRAM_TIMER_ADDR);
 
 #if (CONFIG_SYS_HZ != 1000)
 #error "CONFIG_SYS_HZ != 1000"
@@ -60,7 +71,7 @@ void s_init(void)
 unsigned long notrace timer_read_counter(void)
 {
 	unsigned long value;
-	stc_avReg_t *pstc_avReg = (stc_avReg_t *)(GEMINI_TIMER_ADDR);
+	stc_avReg_t *pstc_avReg = (stc_avReg_t *)(PENTAGRAM_TIMER_ADDR);
 
 	pstc_avReg->stcl_2 = 0; /* latch */
 	value  = (unsigned long)(pstc_avReg->stcl_2);
@@ -83,10 +94,35 @@ unsigned long get_tbclk(void)
 
 void reset_cpu(ulong ignored)
 {
+	volatile unsigned int *ptr;
+	stc_avReg_t *pstc_avReg;
+
 	puts("System is going to reboot ...\n");
+
+	/*
+	 * Watchdog timer:
+	 * Need to enable bit 2/4 of G(4, 29) to cause chip reset:
+	 */
+	ptr = (volatile unsigned int *)(PENTAGRAM_WDTMR_ADDR + (29 << 2));
+	*ptr |= (0x0014 << 16) | 0x0014;
+
+	pstc_avReg = (stc_avReg_t *)(PENTAGRAM_WDTMR_ADDR);
+	pstc_avReg->stc_divisor = (0x0100 - 1);
+	pstc_avReg->stc_64 = 0;		/* reset STC */
+	pstc_avReg->timerw_ctrl = WATCHDOG_CMD_CNT_WR_UNLOCK;
+	pstc_avReg->timerw_ctrl = WATCHDOG_CMD_PAUSE;
+	pstc_avReg->timerw_cnt = 0x10 - 1;
+	pstc_avReg->timerw_ctrl = WATCHDOG_CMD_RESUME;
+	pstc_avReg->timerw_ctrl = WATCHDOG_CMD_CNT_WR_LOCK;
+
 	while (1) {
-		/* do nothing */
+		/* wait for reset */
 	}
+
+	/*
+	 * Note: When using Zebu's zmem, chip can't be reset correctly because part of the loaded memory is destroyed.
+	 * 	 => Use eMMC for this test.
+	 */
 }
 
 int dram_init(void)
@@ -106,6 +142,11 @@ int print_cpuinfo(void)
 #ifdef CONFIG_ARCH_MISC_INIT
 int arch_misc_init(void)
 {
+	volatile unsigned int *ptr;
+
+	ptr = (volatile unsigned int *)(PENTAGRAM_RTC_ADDR + (22 << 2));
+	printf("\nReason(s) of reset: REG(116, 22): 0x04%x\n\n", *ptr);
+
 	printf("%s, %s: TBD.\n", __FILE__, __func__);
 	return 0;
 }
