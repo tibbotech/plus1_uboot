@@ -153,9 +153,9 @@ int arch_misc_init(void)
 	volatile unsigned int *ptr;
 
 	ptr = (volatile unsigned int *)(PENTAGRAM_RTC_ADDR + (22 << 2));
-	printf("\nReason(s) of reset: REG(116, 22): 0x04%x\n", *ptr);
+	printf("\nReason(s) of reset: REG(116, 22): 0x%04x\n", *ptr);
 	*ptr = 0xFFFF0000;
-	printf("\nAfter cleaning  REG(116, 22): 0x04%x\n\n", *ptr);
+	printf("\nAfter cleaning  REG(116, 22): 0x%04x\n\n", *ptr);
 
 	printf("%s, %s: TBD.\n", __FILE__, __func__);
 	return 0;
