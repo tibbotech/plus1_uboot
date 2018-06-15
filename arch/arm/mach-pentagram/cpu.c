@@ -39,6 +39,7 @@ typedef struct {
 } stc_avReg_t;
 
 #define PENTAGRAM_BASE_ADDR	(0x9C000000)
+#define PENTAGRAM_MOON0		(PENTAGRAM_BASE_ADDR + (0 << 7))
 #define PENTAGRAM_MOON4		(PENTAGRAM_BASE_ADDR + (4 << 7))
 #define PENTAGRAM_WDTMR_ADDR	(PENTAGRAM_BASE_ADDR + (12 << 7))	/* Either Group 12 or 96 */
 #define PENTAGRAM_TIMER_ADDR	(PENTAGRAM_BASE_ADDR + (99 << 7))
@@ -100,12 +101,14 @@ void reset_cpu(ulong ignored)
 	puts("System is going to reboot ...\n");
 
 	/*
-	 * Watchdog timer:
-	 * Need to enable bit 2/4 of G(4, 29) to cause chip reset:
+	 * Enable all methods (in Grp(4, 29)) to cause chip reset:
+	 * Bit [4:1]
 	 */
-	ptr = (volatile unsigned int *)(PENTAGRAM_WDTMR_ADDR + (29 << 2));
-	*ptr |= (0x0014 << 16) | 0x0014;
+	ptr = (volatile unsigned int *)(PENTAGRAM_MOON4 + (29 << 2));
+	*ptr = (0x001E << 16) | 0x001E;
 
+#if 0
+	/* Watchdogs used by RISC */
 	pstc_avReg = (stc_avReg_t *)(PENTAGRAM_WDTMR_ADDR);
 	pstc_avReg->stc_divisor = (0x0100 - 1);
 	pstc_avReg->stc_64 = 0;		/* reset STC */
@@ -114,6 +117,11 @@ void reset_cpu(ulong ignored)
 	pstc_avReg->timerw_cnt = 0x10 - 1;
 	pstc_avReg->timerw_ctrl = WATCHDOG_CMD_RESUME;
 	pstc_avReg->timerw_ctrl = WATCHDOG_CMD_CNT_WR_LOCK;
+#else
+	/* System reset */
+	ptr = (volatile unsigned int *)(PENTAGRAM_MOON0 + (21 << 2));
+	*ptr = (0x0001 << 16) | 0x0001;
+#endif
 
 	while (1) {
 		/* wait for reset */
@@ -145,7 +153,9 @@ int arch_misc_init(void)
 	volatile unsigned int *ptr;
 
 	ptr = (volatile unsigned int *)(PENTAGRAM_RTC_ADDR + (22 << 2));
-	printf("\nReason(s) of reset: REG(116, 22): 0x04%x\n\n", *ptr);
+	printf("\nReason(s) of reset: REG(116, 22): 0x04%x\n", *ptr);
+	*ptr = 0xFFFF0000;
+	printf("\nAfter cleaning  REG(116, 22): 0x04%x\n\n", *ptr);
 
 	printf("%s, %s: TBD.\n", __FILE__, __func__);
 	return 0;
