@@ -12,6 +12,7 @@
 
 	aliases {
 		serial0 = &sp_uart0;
+		spi0 = &sp_spinor0;
 	};
 
 	chosen {
