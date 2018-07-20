@@ -34,6 +34,12 @@
 		compatible = "sunplus,sunplus-q628-sd";
 		reg = <0x9C003E80 0x280>;
 	};
+	
+	sp_spinand: spinand@9c000AE0 {
+		compatible = "sunplus,sunplus-q628-spinand";
+		reg-names = "spinand_reg";
+		reg = <0x9c000AE0 0x50>;
+	};
 
 /* 8388 sp_emmc and sp_sd0 use same pinmux, so don't enable them at the same time */
 /*

@@ -3,6 +3,10 @@
  */
 #include <common.h>
 
+#ifdef CONFIG_SP_SPINAND
+extern void board_spinand_init(void);
+#endif
+
 DECLARE_GLOBAL_DATA_PTR;
 
 int board_init(void)
@@ -19,3 +23,11 @@ int misc_init_r(void)
 {
 	return 0;
 }
+
+void board_nand_init(void)
+{
+#ifdef CONFIG_SP_SPINAND
+	board_spinand_init();
+#endif
+}
+

@@ -87,6 +87,10 @@
 #define dbg_scr(s) ""
 #endif
 
+#define CONFIG_SYS_MAX_NAND_DEVICE   1
+#define CONFIG_SYS_NAND_SELF_INIT
+#define CONFIG_SYS_NAND_BASE    0x9c000ae0
+
 /*
  * In the beginning, bootcmd will check bootmode in SRAM and the flag
  * if_zebu to choose different boot flow :

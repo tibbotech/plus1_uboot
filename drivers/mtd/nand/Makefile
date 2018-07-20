@@ -37,7 +37,7 @@ obj-y += nand_timings.o
 endif # not spl
 
 ifdef NORMAL_DRIVERS
-
+obj-$(CONFIG_SP_SPINAND) += sp_spinand.o
 obj-$(CONFIG_NAND_ECC_BCH) += nand_bch.o
 
 obj-$(CONFIG_NAND_ATMEL) += atmel_nand.o
