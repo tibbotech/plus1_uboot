@@ -813,8 +813,8 @@ static const struct udevice_id sunplus_spinand[] = {
 };
 
 
-U_BOOT_DRIVER(sp_spinand) ={
-	.name						= "sp_spinand",	
+U_BOOT_DRIVER(pentagram_spi_nand) ={
+	.name						= "pentagram_spi_nand",	
 	.id							= UCLASS_MTD,	
 	.of_match					= sunplus_spinand,	
 	.priv_auto_alloc_size = sizeof(struct sp_spinand_info),
@@ -826,8 +826,8 @@ void board_spinand_init(void)
 	struct udevice *dev;
 	int ret;
 
-	ret = uclass_get_device_by_driver(UCLASS_MISC,
-					  DM_GET_DRIVER(sp_spinand),
+	ret = uclass_get_device_by_driver(UCLASS_MTD,
+					  DM_GET_DRIVER(pentagram_spi_nand),
 					  &dev);
 
 	if (ret && ret != -ENODEV)
