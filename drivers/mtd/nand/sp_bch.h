@@ -18,22 +18,22 @@ struct sp_bch_regs {
 	uint32_t esr;		/* error status register */
 
 	uint32_t fsr;		/* failure status register */
-	uint32_t lwa;		/* address of last write operation */
-	uint32_t lwd;		/* data of last write operation */
+	uint32_t res[2];	/* reserved*/
 	uint32_t cr1;		/* control register */
-
-	uint32_t revr;		/* revision register */
 };
 
 #define CR0_START			BIT(0)
 #define CR0_ENCODE			0
 #define CR0_DECODE			BIT(4)
+
+/* Correct mode */
 #define CR0_CMODE_1024x60	(0 << 8)
 #define CR0_CMODE_1024x40	(1 << 8)
 #define CR0_CMODE_1024x24	(2 << 8)
 #define CR0_CMODE_1024x16	(3 << 8)
 #define CR0_CMODE_512x8		(4 << 8)
 #define CR0_CMODE_512x4		(5 << 8)
+
 #define CR0_CMODE(n)		(((n) & 7) << 8)
 #define CR0_DMODE(n)		((n) ?  BIT(11) : 0)
 #define CR0_NBLKS(n)		((((n) - 1) & 0x1f) << 16)
@@ -61,21 +61,6 @@ struct sp_bch_regs {
 #define SR_ERR_BITS(x)		(((x) >> 8) & 0x7ff)
 /* (((x) >> 17) & 0x3f) */
 #define SR_ERR_MAX(x)		(((x) >> 20) & 0x7f)
-/* BIT(30) */
-/* data are all 0x00 */
-#define SR_BLANK_00			BIT(28)
-/* BIT(31) */
-/* data are all 0xff */
-#define SR_BLANK_FF			BIT(29)
-
-struct sp_bch_info {
-	struct mtd_info *mtd;
-	void __iomem *regs;
-	uint32_t cr0;
-#ifdef CONFIG_SP_BCH_REPORT
-	uint32_t ecc_sts;	/* To report ECC status */
-#endif
-};
 
 struct sp_bch_req {
 	uint8_t buf[1024];

@@ -8,7 +8,7 @@
 #include <linux/bitops.h>
 #include <asm/io.h>
 #include <nand.h>
-#include <asm/arch/regmap.h>
+#include "sp_spinand.h"
 #include "sp_bch.h"
 
 #define CFG_CMD_TIMEOUT_MS	50
@@ -26,12 +26,6 @@ uint32_t ispsp_chk4badblock_max_err_bit_in_page;
 uint32_t ispsp_chk4badblock_err_bit_in_page;
 uint32_t ispsp_chk4badblock_ecc_size;
 uint32_t ispsp_chk4badblock_ecc_strength;
-
-extern void prefetch_next_page(void);
-
-static struct sp_bch_info our_bch = {
-	.regs = (void __iomem *)CONFIG_SP_BCH_BASE,
-};
 
 static int get_setbits(uint32_t n)
 {
@@ -67,11 +61,7 @@ int sp_bch_blank(void *ecc, int len)
 	return ret;
 }
 
-#if defined(CONFIG_SP_PNG_DECODER)
-int sp_png_dec_run(void);
-#endif
-
-static int sp_bch_wait(struct sp_bch_info *info)
+static int sp_bch_wait(struct sp_spinand_info *info)
 {
 	struct sp_bch_regs *regs;
 	unsigned long now = get_timer(0);
@@ -79,15 +69,11 @@ static int sp_bch_wait(struct sp_bch_info *info)
 
 	if (!info)
 		BUG();
-	if (!info->regs)
+	if (!info->bch_regs)
 		BUG();
-	regs = info->regs;
+	regs = info->bch_regs;
 
 	while (get_timer(now) < CFG_CMD_TIMEOUT_MS) {
-#if defined(CONFIG_SP_PNG_DECODER)
-		sp_png_dec_run();
-#endif
-
 		if (!(readl(&regs->isr) & ISR_BUSY)) {
 			ret = 0;
 			break;
@@ -100,7 +86,7 @@ static int sp_bch_wait(struct sp_bch_info *info)
 	return ret;
 }
 
-static int sp_bch_reset(struct sp_bch_info *info)
+static int sp_bch_reset(struct sp_spinand_info *info)
 {
 	struct sp_bch_regs *regs;
 	unsigned long now = get_timer(0);
@@ -108,11 +94,9 @@ static int sp_bch_reset(struct sp_bch_info *info)
 
 	if (!info)
 		BUG();
-	if (!info->regs)
+	if (!info->bch_regs)
 		BUG();
-	regs = info->regs;
-
-	writel(32 << 4, &regs->cr1);
+	regs = info->bch_regs;
 
 	/* reset controller */
 	writel(SRR_RESET, &regs->srr);
@@ -129,6 +113,8 @@ static int sp_bch_reset(struct sp_bch_info *info)
 
 	/* reset interrupts */
 	writel(IER_DONE | IER_FAIL, &regs->ier);
+
+	/* bch interrupts flag*/
 	writel(ISR_BCH, &regs->isr);
 
 	return 0;
@@ -136,8 +122,8 @@ static int sp_bch_reset(struct sp_bch_info *info)
 
 int sp_bch_init(struct mtd_info *mtd)
 {
-	struct sp_bch_info *info = &our_bch;
-	struct nand_chip *nand;;
+	struct sp_spinand_info *info = get_spinand_info();
+	struct nand_chip *nand;
 	struct nand_oobfree *oobfree;
 
 	int i;
@@ -324,7 +310,7 @@ ecc_detected:
 
 #if defined(CONFIG_SP_NFTL) || defined(CONFIG_SP_BCH_REPORT)
 	sp_bch_ftl_info = (unsigned int *)info;
-	struct sp_bch_regs *regs = info->regs;
+	struct sp_bch_regs *regs = info->bch_regs;
 	regs->cr0 = info->cr0;
 #endif
 	return 0;
@@ -335,15 +321,15 @@ ecc_detected:
  */
 int sp_bch_encode(struct mtd_info *mtd, void *buf, void *ecc)
 {
-	struct sp_bch_info *info = &our_bch;
+	struct sp_spinand_info *info = get_spinand_info();
 	struct sp_bch_regs *regs;
 	int ret;
 
 	if (!mtd || !info || !buf || !ecc)
 		BUG();
-	if (!info->regs)
+	if (!info->bch_regs)
 		BUG();
-	regs = info->regs;
+	regs = info->bch_regs;
 
 	if (info->mtd != mtd)
 		sp_bch_init(mtd);
@@ -362,15 +348,15 @@ int sp_bch_encode(struct mtd_info *mtd, void *buf, void *ecc)
 
 int sp_bch_encode_1024x60(void *buf, void *ecc)
 {
-	struct sp_bch_info *info = &our_bch;
+	struct sp_spinand_info *info = get_spinand_info();
 	struct sp_bch_regs *regs;
 	int ret;
 
 	if (!ecc || !info || !buf)
 		BUG();
-	if (!info->regs)
+	if (!info->bch_regs)
 		BUG();
-	regs = info->regs;
+	regs = info->bch_regs;
 
 	flush_dcache_range((ulong) buf, (ulong) buf + 1024);
 	flush_dcache_range((ulong) ecc, (ulong) ecc + 128);
@@ -386,15 +372,15 @@ int sp_bch_encode_1024x60(void *buf, void *ecc)
 
 int sp_bch_decode_1024x60(void *buf, void *ecc)
 {
-	struct sp_bch_info *info = &our_bch;
+	struct sp_spinand_info *info = get_spinand_info();
 	struct sp_bch_regs *regs;
 	int ret;
 
 	if (!ecc || !info || !buf)
 		BUG();
-	if (!info->regs)
+	if (!info->bch_regs)
 		BUG();
-	regs = info->regs;
+	regs = info->bch_regs;
 
 	flush_dcache_range((ulong) buf, (ulong) buf + 1024);
 	flush_dcache_range((ulong) ecc, (ulong) ecc + 128);
@@ -413,7 +399,7 @@ int sp_bch_decode_1024x60(void *buf, void *ecc)
  */
 int sp_bch_decode(struct mtd_info *mtd, void *buf, void *ecc)
 {
-	struct sp_bch_info *info = &our_bch;
+	struct sp_spinand_info *info = get_spinand_info();
 	struct sp_bch_regs *regs;
 	uint32_t status;
 	int ret;
@@ -423,9 +409,9 @@ int sp_bch_decode(struct mtd_info *mtd, void *buf, void *ecc)
 #endif
 	if (!mtd || !buf || !ecc || !info)
 		BUG();
-	if (!info->regs)
+	if (!info->bch_regs)
 		BUG();
-	regs = info->regs;
+	regs = info->bch_regs;
 
 	if (info->mtd != mtd)
 		sp_bch_init(mtd);
@@ -466,20 +452,13 @@ int sp_bch_decode(struct mtd_info *mtd, void *buf, void *ecc)
 
 	writel(CR0_START | CR0_DECODE | info->cr0, &regs->cr0);
 
-#ifdef CONFIG_SP_NAND_SCRAMBLER
-	prefetch_next_page();
-#endif
 	ret = sp_bch_wait(info);
 	status = readl(&regs->sr);
 
 	if (ret) {
 		printf("sp_bch: decode timeout\n");
 	} else if (status & SR_FAIL) {
-#if 0
-		if ((status & SR_BLANK_FF) || (status & SR_BLANK_00)) {
-#else
 		if (sp_bch_blank(ecc, mtd->oobsize)) {
-#endif
 #ifdef CONFIG_SP_BCH_REPORT
 			info->ecc_sts |= (SR_ERR_MAX(status) << 16);
 #endif

@@ -148,7 +148,13 @@ config  SP_SPINAND
 	  This selects the Sunplus SPI NAND Controller Interface.
 	  If you have a controller with this interface, say Y here.
 	  If unsure, say N.	  
-  
+
+config  USE_SP_BCH
+	bool "Sunplus SPI NAND BCH Interface support"
+	depends on SP_SPINAND
+	default y	
+	help
+	  This selects the Sunplus SPI NAND Controller Interface.
 	  
 config NAND_MXC
 	bool "MXC NAND support"

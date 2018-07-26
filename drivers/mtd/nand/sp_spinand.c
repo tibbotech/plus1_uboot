@@ -23,15 +23,12 @@
 
 /* SRAM */
 /* #define CFG_BBT_USE_FLASH */
-#define CFG_NAND_HZ			304000000	/* 304 MHz */
 #define CFG_BUFF_MAX		(18 << 10)
 #define CFG_DESC_MAX		4
 #define CFG_CMD_TIMEOUT_MS	10
 
 #define USE_DESCRIPTOR_MODE	0
 /* 1:Using S+ BCH, 0:using Device internal ECC */
-#define USE_SP_BCH			1
-
 #define CONFIG_SRAM_BASE                0x9e800000
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -48,10 +45,8 @@ static struct sp_spinand_info *our_spinfc = NULL;
 /**************************************************************************
  *                 E X T E R N A L   R E F E R E N C E S                  *
  **************************************************************************/
-
-/**************************************************************************
- *               F U N C T I O N   D E C L A R A T I O N S                *
- **************************************************************************/
+ 
+/**************************************************************************/
 /* check SPI NAND Device status by ctrl_status_registers, */
 void wait_spi_idle(struct sp_spinand_info *info)
 {
@@ -621,7 +616,7 @@ static int sp_spinand_read_page(struct mtd_info *mtd,
 				struct nand_chip *chip,
 				uint8_t *buf, int oob_required, int page)
 {
-#if 0
+#ifdef CONFIG_USE_SP_BCH
 	struct sp_spinand_info *info = our_spinfc;
 	int ret;
 
@@ -644,14 +639,14 @@ static int sp_spinand_read_page(struct mtd_info *mtd,
 static int sp_spinand_write_page(struct mtd_info *mtd, struct nand_chip *chip,
 				 const uint8_t *buf, int oob_required, int page)
 {
-#if 0
+#ifdef CONFIG_USE_SP_BCH
 	struct sp_spinand_info *info = our_spinfc;
 #endif
 
 	chip->write_buf(mtd, buf, mtd->writesize);
 	chip->write_buf(mtd, chip->oob_poi, mtd->oobsize);
 
-#if 0
+#ifdef CONFIG_USE_SP_BCH
 	sp_bch_encode(mtd, info->buff.virt, info->buff.virt + mtd->writesize);
 #endif
 
@@ -768,7 +763,7 @@ static int sp_spinand_init(struct sp_spinand_info *info)
 	printf("%s\n", __FUNCTION__);
 	spi_nand_setfeatures(info, DEVICE_PROTECTION_ADDR, 0x0);
 
-	ret = nand_scan_ident(mtd, 1, nand_flash_ids);
+	ret = nand_scan_ident(mtd, 1, (struct nand_flash_dev *)sp_nand_ids);
 	if (ret < 0)
 		return ret;
 
@@ -776,11 +771,11 @@ static int sp_spinand_init(struct sp_spinand_info *info)
 	if (ret < 0)
 		return ret;
 
-#if 0
-	if (sp_bch_init(mtd))
-		return;
+#ifdef CONFIG_USE_SP_BCH
+	ret = sp_bch_init(mtd);
+	if (ret < 0 )
+		return ret;
 #endif
-
 	ret = nand_scan_tail(mtd);
 	if (ret < 0)
 		return ret;
@@ -803,8 +798,22 @@ static int sp_spinand_probe(struct udevice *dev)
 
 	our_spinfc->regs = devm_ioremap(dev, res.start, resource_size(&res));	
 
+	/* get bch reg */
+#ifdef CONFIG_USE_SP_BCH	
+	ret = dev_read_resource_byname(dev, "bch_reg", &res);
+	if (ret)
+		return ret;
+
+	our_spinfc->bch_regs = devm_ioremap(dev, res.start, resource_size(&res));	
+#endif
 	return sp_spinand_init(our_spinfc);
 }
+
+struct sp_spinand_info* get_spinand_info(void)
+{
+	return our_spinfc;
+}
+
 
 static const struct udevice_id sunplus_spinand[] = {
 	{
