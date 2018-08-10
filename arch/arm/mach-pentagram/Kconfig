@@ -46,6 +46,12 @@ config SP_ZMEM_RELOC_ADDR
 	  first word of this address will be first 4 bytes
 	  of header not the ENTRY() of text code.
 
+config SP_TIMER
+	bool "Sunplus timer"
+	default y
+	help
+	  Support Sunplus STC timer
+
 source "board/sunplus/pentagram_board/Kconfig"
 
 endif
