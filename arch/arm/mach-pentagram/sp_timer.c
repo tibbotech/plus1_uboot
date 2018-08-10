@@ -5,7 +5,6 @@
  * SPDX-License-Identifier:     GPL-2.0+
  */
 #include <common.h>
-#include <mach/hardware.h>
 #include <asm/io.h>
 
 struct stc_regs {
@@ -40,6 +39,10 @@ struct stc_regs {
         unsigned int atc_1;          // 12.28
         unsigned int atc_2;          // 12.29
 };
+
+#define SPHE_DEVICE_BASE       0x9C000000
+#define RF_GRP(_grp, _reg)     ((((_grp)*32 + (_reg))*4) + SPHE_DEVICE_BASE)
+
 #define STC_REG     ((volatile struct stc_regs *)RF_GRP(12, 0))
 #define STC_AV0_REG ((volatile struct stc_regs *)RF_GRP(96, 0))
 #define STC_AV2_REG ((volatile struct stc_regs *)RF_GRP(99, 0))
