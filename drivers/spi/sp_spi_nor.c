@@ -315,6 +315,7 @@ static int spi_flash_xfer_write(UINT8 *cmd, size_t cmd_len, void *data, size_t d
 		spi_reg->spi_buf_addr = DATA64_READ_ADDR(0) | DATA64_WRITE_ADDR(0);
 		if (cmd_len > 1)
 		{
+			addr_temp = (cmd[1] << 16) | (cmd[2] << 8) | cmd[3];
 			spi_reg->spi_page_addr = addr_temp;
 			ctrl = ctrl | ADDR_3B ;
 			msg_printf("addr 0x%x\n", spi_reg->spi_page_addr);
