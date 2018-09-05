@@ -206,9 +206,8 @@ static int ehci_sunplus_probe(struct udevice *dev)
 	struct ehci_hccr *hccr;
 	struct ehci_hcor *hcor;
 
-	hccr = (struct ehci_hccr *)((uint32_t)&priv->ehci->caplength);
-	hcor = (struct ehci_hcor *)((uint32_t) hccr +
-			HC_LENGTH(ehci_readl(&hccr->cr_capbase)));
+	hccr = (struct ehci_hccr *)((uint32_t)&priv->ehci->ehci_len_rev);
+	hcor = (struct ehci_hcor *)((uint32_t)&priv->ehci->ehci_usbcmd);
 
 	uphy_init();
 	usb_power_init(1);
