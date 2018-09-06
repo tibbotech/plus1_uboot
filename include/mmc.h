@@ -15,7 +15,7 @@
 #include <linux/compiler.h>
 #include <part.h>
 
-#define CONFIG_MMC_TRACE
+// #define CONFIG_MMC_TRACE
 /* SD/MMC version bits; 8 flags, 8 major, 8 minor, 8 change */
 #define SD_VERSION_SD	(1U << 31)
 #define MMC_VERSION_MMC	(1U << 30)
