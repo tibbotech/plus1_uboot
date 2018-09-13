@@ -84,15 +84,6 @@ unsigned long notrace timer_read_counter(void)
 	return value;
 }
 
-/*
- * This function is derived from PowerPC code (timebase clock frequency).
- * On ARM it returns the number of timer ticks per second.
- */
-unsigned long get_tbclk(void)
-{
-	return CONFIG_SYS_HZ;
-}
-
 void reset_cpu(ulong ignored)
 {
 	volatile unsigned int *ptr;
