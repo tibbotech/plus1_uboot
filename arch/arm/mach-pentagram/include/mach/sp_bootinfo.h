@@ -3,7 +3,7 @@
 
 #ifdef CONFIG_SYS_ENV_8388
 #include <asm/arch/sp_bootinfo_8388.h>
-#else
+#else /* CONFIG_SYS_ENV_SC7021_EVB (and CONFIG_SYS_ENV_ZEBU) */
 #include <asm/arch/sp_bootinfo_sc7xxx.h>
 #endif
 
