@@ -27,7 +27,7 @@
 #if defined(CONFIG_SYS_ENV_ZEBU)
 #define CONFIG_SYS_SDRAM_SIZE           (64 << 20)
 #else /* normal sc7021 evb environment can have larger DRAM size */
-#define CONFIG_SYS_SDRAM_SIZE		(256 << 20)
+#define CONFIG_SYS_SDRAM_SIZE		(512 << 20)
 #endif
 #define CONFIG_SYS_MALLOC_LEN		(6 << 20)
 
