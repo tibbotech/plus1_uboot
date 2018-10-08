@@ -99,23 +99,33 @@
  *      kernel is in SPI nor offset 6M, and dtb is in offset 128K.
  *      kernel will be loaded to 0x307FC0 and dtb will be loaded to 0x2FFFC0.
  *      Then bootm 0x307FC0 - 0x2FFFC0.
- * zmem_boot 
- *      kernel is preloaded to 0x307FC0 and dtb is preloaded to 0x2FFFC0.
- *      Then sp_go 0x308000 0x300000.
- *      sp_go do not handle header so use 0x300080 to skip header and dtb have
- *      additional header so real dtb is on 0x300000.
+ * qk_romter_boot
+ *      kernel is in SPI nor offset 6M, and dtb is in offset 128K(0x20000).
+ *      kernel will be loaded to 0x307FC0 and dtb will be loaded to 0x2FFFC0.
+ *      Then sp_go 0x307FC0 0x2FFFC0.
  * emmc_boot
  *      kernel is stored in emmc LBA CONFIG_SRCADDR_KERNEL and dtb is
  *      stored in emmc LBA CONFIG_SRCADDR_DTB. 
  *      kernel will be loaded to 0x307FC0 and dtb will be loaded to 0x2FFFC0.
  *      Then bootm 0x307FC0 - 0x2FFFC0. 
+ * qk_emmc_boot
+ *      kernel is stored in emmc LBA CONFIG_SRCADDR_KERNEL and dtb is
+ *      stored in emmc LBA CONFIG_SRCADDR_DTB.
+ *      kernel will be loaded to 0x307FC0 and dtb will be loaded to 0x2FFFC0.
+ *      Then sp_go 0x307FC0 - 0x2FFFC0.
+ * zmem_boot
+ *      kernel is preloaded to 0x307FC0 and dtb is preloaded to 0x2FFFC0.
+ *      Then sp_go 0x307FC0 0x2FFFC0.
  * zebu_emmc_boot
  *      kernel is stored in emmc LBA CONFIG_SRCADDR_KERNEL and dtb is
  *      stored in emmc LBA CONFIG_SRCADDR_DTB.
- *	kernel will be loaded to 0x307FC0 and dtb will be loaded to 0x2FFFC0.
- *	Then sp_go 0x308000 0x300000.
- *	sp_go do not handle header so use 0x300080 to skip header and dtb have
- *      additional header so real dtb is on 0x300000.
+ *      kernel will be loaded to 0x307FC0 and dtb will be loaded to 0x2FFFC0.
+ *      Then sp_go 0x307FC0 0x2FFFC0.
+ *
+ * About "sp_go"
+ * Earlier, sp_go do not handle header so you should pass addr w/o header.
+ * But now sp_go DO verify magic/hcrc/dcrc in the quick sunplus uIamge header.
+ * So the address passed for sp_go must have header in it. 
  */
 #define CONFIG_BOOTCOMMAND \
 "echo [scr] bootcmd started; " \
@@ -208,9 +218,7 @@
 	"setexpr sz_kernel  ${sz_kernel} + 4; setexpr sz_kernel ${sz_kernel} / 4; " \
 	dbg_scr("echo kernel from ${addr_src_kernel} to ${addr_dst_kernel} sz ${sz_kernel}; ") \
 	"cp.l ${addr_src_kernel} ${addr_dst_kernel} ${sz_kernel}; " \
-	"setexpr addr_dst_kernel ${addr_dst_kernel} + 0x40; " \
-	"setexpr addr_dst_dtb ${addr_dst_dtb} + 0x40; " \
-	dbg_scr("sp_go ${addr_dst_kernel} ${addr_dst_dtb}; ") \
+	dbg_scr("echo sp_go ${addr_dst_kernel} ${addr_dst_dtb}; ") \
 	"sp_go ${addr_dst_kernel} ${addr_dst_dtb}\0" \
 "emmc_boot=mmc read ${addr_tmp_header} ${addr_src_dtb} 0x1; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x4; run be2le; " \
@@ -233,12 +241,8 @@
 	"setexpr sz_kernel ${tmpval} + 0x40; " \
 	"setexpr sz_kernel ${sz_kernel} + 0x200; setexpr sz_kernel ${sz_kernel} / 0x200; " \
 	"mmc read ${addr_dst_kernel} ${addr_src_kernel} ${sz_kernel}; " \
-	"setexpr addr_dst_kernel ${addr_dst_kernel} + 0x40; " \
-	"setexpr addr_dst_dtb ${addr_dst_dtb} + 0x40; " \
 	"sp_go ${addr_dst_kernel} ${addr_dst_dtb}\0" \
-"zmem_boot=setexpr addr_dst_kernel ${addr_dst_kernel} + 0x40; " \
-	"setexpr addr_dst_dtb ${addr_dst_dtb} + 0x40; " \
-	"sp_go ${addr_dst_kernel} ${addr_dst_dtb}\0" \
+"zmem_boot=sp_go ${addr_dst_kernel} ${addr_dst_dtb}\0" \
 "zebu_emmc_boot=mmc rescan; mmc part; " \
 	"mmc read ${addr_tmp_header} ${addr_src_dtb} 0x1; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
@@ -250,8 +254,6 @@
 	"setexpr sz_kernel ${tmpval} + 0x40; " \
 	"setexpr sz_kernel ${sz_kernel} + 0x200; setexpr sz_kernel ${sz_kernel} / 0x200; " \
 	"mmc read ${addr_dst_kernel} ${addr_src_kernel} ${sz_kernel}; " \
-	"setexpr addr_dst_kernel ${addr_dst_kernel} + 0x40; " \
-	"setexpr addr_dst_dtb ${addr_dst_dtb} + 0x40; " \
 	"sp_go ${addr_dst_kernel} ${addr_dst_dtb}\0"
 #if 0
 /* romter test booting command */
