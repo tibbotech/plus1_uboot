@@ -57,4 +57,15 @@ config SP_UTIL_MON
 	  It is useful to read/write Sunplus register
 	  group.
 
+config SP_JTAG
+	bool "enable JTAG"
+	default y
+	help
+	  Setup JTAG setting
+	  For CA7, setup SWD config and pinmux.
+	  For arm926, setup JTAG config and pinmux.
+	  Notice that it is necessary to pull IV_MX[6]
+	  for releasing reset pin. IV_MX[6] may be tied
+	  on PCB board.
+
 endif
