@@ -78,7 +78,7 @@ static int dram_tst_simple_rw(cmd_tbl_t *cmdtp, int flag, int argc, char *const 
 		for (addr = 0; addr < SIZE_TEST;) {
 			data = (loop_cnt & 0x00000001) ? (~addr) : addr;
 			if (*ptr != data) {
-				printf("Error @ 0x%x\n", addr);
+				printf("Error @ 0x%x, 0x%x != 0x%x (expected)\n", addr, *ptr, data);
 				return -1;
 			}
 			ptr++;
@@ -94,15 +94,18 @@ static int dram_tst_simple_rw(cmd_tbl_t *cmdtp, int flag, int argc, char *const 
 }
 
 #define MAX_SIZE_CBDMA		((1 << 25) - 1)		/* max. 25 bits */
-#define ADDR_DST		(MAX_SIZE_CBDMA + 1)
+#define ADDR_DST		(SIZE_TEST - (MAX_SIZE_CBDMA + 1))
+#define ALIGN_1M_ROUND_DOWN(X)	((X >> 20) << 20)
+#define LOOP_CNT		100
 static int dram_tst_cbdma(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 {
 	volatile struct cbdma_reg *cbdma_ptr = (volatile struct cbdma_reg *)(CBDMA0_REG_BASE);
-	const unsigned int test_length = MAX_SIZE_CBDMA;
+	const unsigned int test_length = ALIGN_1M_ROUND_DOWN(MAX_SIZE_CBDMA);
 	ulong exe_time;
-	int i;
+	int i, j;
 	uint64_t bw;
 	char cmd[256];
+	int ret;
 
 	for (i = 0; i < 10; i++) {
 		invalidate_dcache_range(0, (MAX_SIZE_CBDMA + 1));
@@ -114,19 +117,21 @@ static int dram_tst_cbdma(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv
 		cbdma_ptr->memset_val = PATTERN4TEST(i);
 		wmb();
 		exe_time = get_timer(0);
-		cbdma_ptr->config = CBDMA_CONFIG_DEFAULT | CBDMA_CONFIG_GO | CBDMA_CONFIG_MEMSET;
-		wmb();
-		while (1) {
-			if (cbdma_ptr->config & CBDMA_CONFIG_GO) {
-				/* Still running */
-				continue;
+		for (j = 0; j < LOOP_CNT; j++) {
+			cbdma_ptr->config = CBDMA_CONFIG_DEFAULT | CBDMA_CONFIG_GO | CBDMA_CONFIG_MEMSET;
+			wmb();
+			while (1) {
+				if (cbdma_ptr->config & CBDMA_CONFIG_GO) {
+					/* Still running */
+					continue;
+				}
+				break;
 			}
-			break;
 		}
 		exe_time = get_timer(exe_time);
 		bw = ((uint64_t)(test_length)) / ((uint64_t)(exe_time));
-		bw *= 1000;
-		printf("CBDMA MEMSET, size: %u bytes in %u msec, => %u bytes/sec\n", test_length, (unsigned int)(exe_time), (unsigned int)(bw));
+		bw *= 1000 * LOOP_CNT;
+		printf("CBDMA MEMSET, size: %u bytes, %d times, in %u msec, => %u bytes/sec\n", test_length, LOOP_CNT, (unsigned int)(exe_time), (unsigned int)(bw));
 		run_command("md.b 0x0000 0x20", 0);
 		printf("\n");
 
@@ -138,21 +143,28 @@ static int dram_tst_cbdma(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv
 		cbdma_ptr->des_adr = ADDR_DST;
 		wmb();
 		exe_time = get_timer(0);
-		cbdma_ptr->config = CBDMA_CONFIG_DEFAULT | CBDMA_CONFIG_GO | CBDMA_CONFIG_CP;
-		wmb();
-		while (1) {
-			if (cbdma_ptr->config & CBDMA_CONFIG_GO) {
-				/* Still running */
-				continue;
+		for (j = 0; j < LOOP_CNT; j++) {
+			cbdma_ptr->config = CBDMA_CONFIG_DEFAULT | CBDMA_CONFIG_GO | CBDMA_CONFIG_CP;
+			wmb();
+			while (1) {
+				if (cbdma_ptr->config & CBDMA_CONFIG_GO) {
+					/* Still running */
+					continue;
+				}
+				break;
 			}
-			break;
 		}
 		exe_time = get_timer(exe_time);
 		bw = ((uint64_t)(test_length)) / ((uint64_t)(exe_time));
-		bw *= 1000;
-		printf("CBDMA MEMCPY, size: %u bytes in %u msec, => %u bytes/sec\n", test_length, (unsigned int)(exe_time), (unsigned int)(bw));
+		bw *= 1000 * LOOP_CNT;
+		printf("CBDMA MEMCPY, size: %u bytes, %d times, in %u msec, => %u bytes/sec\n", test_length, LOOP_CNT, (unsigned int)(exe_time), (unsigned int)(bw));
 		sprintf(cmd, "md.b 0x%x 0x20", ADDR_DST);
 		run_command(cmd, 0);
+		sprintf(cmd, "cmp.l 0x00000000 0x%x 0x%x", ADDR_DST, (test_length >> 2));
+		ret = run_command(cmd, 0);
+		if (ret) {
+			return ret;
+		}
 		printf("\n");
 	}
 
