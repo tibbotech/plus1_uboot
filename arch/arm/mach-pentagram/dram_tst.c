@@ -5,6 +5,8 @@
 #include <common.h>
 #include <command.h>
 
+// #define FOR_ZEBU_CSIM
+
 #define SIZE_SKIP_TEST		(16 << 20)
 #define SIZE_TEST		(CONFIG_SYS_SDRAM_SIZE - SIZE_SKIP_TEST)
 
@@ -93,10 +95,24 @@ static int dram_tst_simple_rw(cmd_tbl_t *cmdtp, int flag, int argc, char *const 
 	return 0;
 }
 
+#ifdef FOR_ZEBU_CSIM
+#define MAX_SIZE_CBDMA		((8 << 20) - 1)		/* Zebu has only 64 MB memory */
+#else
 #define MAX_SIZE_CBDMA		((1 << 25) - 1)		/* max. 25 bits */
+#endif
+
 #define ADDR_DST		(SIZE_TEST - (MAX_SIZE_CBDMA + 1))
 #define ALIGN_1M_ROUND_DOWN(X)	((X >> 20) << 20)
+
+#ifdef FOR_ZEBU_CSIM
+#define LOOP_CNT		1
+#else
 #define LOOP_CNT		100
+#endif
+
+#ifdef FOR_ZEBU_CSIM
+extern unsigned long long get_ticks(void);	/* sp_timer.c */
+#endif
 static int dram_tst_cbdma(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 {
 	volatile struct cbdma_reg *cbdma_ptr = (volatile struct cbdma_reg *)(CBDMA0_REG_BASE);
@@ -106,6 +122,10 @@ static int dram_tst_cbdma(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv
 	uint64_t bw;
 	char cmd[256];
 	int ret;
+#ifdef FOR_ZEBU_CSIM
+	unsigned long long tick[2];
+	unsigned long long exe_usec;
+#endif
 
 	for (i = 0; i < 10; i++) {
 		invalidate_dcache_range(0, (MAX_SIZE_CBDMA + 1));
@@ -116,7 +136,11 @@ static int dram_tst_cbdma(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv
 		cbdma_ptr->des_adr = 0;
 		cbdma_ptr->memset_val = PATTERN4TEST(i);
 		wmb();
+#ifdef FOR_ZEBU_CSIM
+		tick[0] = get_ticks();
+#else
 		exe_time = get_timer(0);
+#endif
 		for (j = 0; j < LOOP_CNT; j++) {
 			cbdma_ptr->config = CBDMA_CONFIG_DEFAULT | CBDMA_CONFIG_GO | CBDMA_CONFIG_MEMSET;
 			wmb();
@@ -128,10 +152,19 @@ static int dram_tst_cbdma(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv
 				break;
 			}
 		}
+#ifdef FOR_ZEBU_CSIM
+		tick[1] = get_ticks();
+		exe_usec = tick[1] - tick[0];
+		bw = ((uint64_t)(test_length)) / ((uint64_t)(exe_usec));
+		bw *= 1000 * 1000 * LOOP_CNT;
+		printf("CBDMA MEMSET, size: %u bytes, %d times, in %u usec, => %u bytes/sec\n", test_length, LOOP_CNT, (unsigned int)(exe_usec), (unsigned int)(bw));
+#else
 		exe_time = get_timer(exe_time);
 		bw = ((uint64_t)(test_length)) / ((uint64_t)(exe_time));
 		bw *= 1000 * LOOP_CNT;
 		printf("CBDMA MEMSET, size: %u bytes, %d times, in %u msec, => %u bytes/sec\n", test_length, LOOP_CNT, (unsigned int)(exe_time), (unsigned int)(bw));
+#endif
+
 		run_command("md.b 0x0000 0x20", 0);
 		printf("\n");
 
@@ -142,7 +175,11 @@ static int dram_tst_cbdma(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv
 		cbdma_ptr->src_adr = 0;
 		cbdma_ptr->des_adr = ADDR_DST;
 		wmb();
+#ifdef FOR_ZEBU_CSIM
+		tick[0] = get_ticks();
+#else
 		exe_time = get_timer(0);
+#endif
 		for (j = 0; j < LOOP_CNT; j++) {
 			cbdma_ptr->config = CBDMA_CONFIG_DEFAULT | CBDMA_CONFIG_GO | CBDMA_CONFIG_CP;
 			wmb();
@@ -154,18 +191,33 @@ static int dram_tst_cbdma(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv
 				break;
 			}
 		}
+#ifdef FOR_ZEBU_CSIM
+		tick[1] = get_ticks();
+		exe_usec = tick[1] - tick[0];
+		bw = ((uint64_t)(test_length)) / ((uint64_t)(exe_usec));
+		bw *= 1000 * 1000 * LOOP_CNT;
+		printf("CBDMA MEMCPY, size: %u bytes, %d times, in %u usec, => %u bytes/sec\n", test_length, LOOP_CNT, (unsigned int)(exe_usec), (unsigned int)(bw));
+#else
 		exe_time = get_timer(exe_time);
 		bw = ((uint64_t)(test_length)) / ((uint64_t)(exe_time));
 		bw *= 1000 * LOOP_CNT;
 		printf("CBDMA MEMCPY, size: %u bytes, %d times, in %u msec, => %u bytes/sec\n", test_length, LOOP_CNT, (unsigned int)(exe_time), (unsigned int)(bw));
+#endif
+
 		sprintf(cmd, "md.b 0x%x 0x20", ADDR_DST);
 		run_command(cmd, 0);
+
+#ifndef FOR_ZEBU_CSIM
 		sprintf(cmd, "cmp.l 0x00000000 0x%x 0x%x", ADDR_DST, (test_length >> 2));
 		ret = run_command(cmd, 0);
 		if (ret) {
 			return ret;
 		}
+#endif
 		printf("\n");
+#ifdef FOR_ZEBU_CSIM
+		break;
+#endif
 	}
 
 	return 0;
@@ -181,7 +233,9 @@ static int do_dram_tst(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 	if (ret) {
 		return ret;
 	}
-
+#ifdef FOR_ZEBU_CSIM
+	return 0;
+#endif
 	ret = dram_tst_simple_rw(cmdtp, flag, argc, argv);
 	if (ret) {
 		return ret;
