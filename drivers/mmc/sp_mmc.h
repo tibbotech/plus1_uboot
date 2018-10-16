@@ -70,6 +70,7 @@ typedef struct sp_mmc_host {
 	uint				dmapio_mode;
 #define SP_MMC_DMA_MODE		0
 #define SP_MMC_PIO_MODE		1
+	struct mmc_cmd *current_cmd;
 } sp_mmc_host;
 
 typedef struct sp_mmc_hw_ops {

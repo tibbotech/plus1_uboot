@@ -15,10 +15,10 @@
 #include "sp_mmc.h"
 
 
-#define SP_MMC_ZEBU_SUPPORT_DEVICE_DDR_MODE
-#ifdef SP_MMC_ZEBU_SUPPORT_DEVICE_DDR_MODE
-#define SP_MMC_DDR_ZEBU_WRITE_CRC_STATUS_DLY 2
-#define SP_MMC_ZEBU_DDR_WRITE_DLY			 0
+#define SP_MMC_SUPPORT_DDR_MODE
+#ifdef SP_MMC_SUPPORT_DDR_MODE
+#define SP_MMC_DDR_READ_CRC_STATUS_DLY 0
+#define SP_MMC_DDR_WRITE_DLY 0
 #endif
 
 
@@ -67,7 +67,7 @@
 #define sp_sd_trace()	do {}  while (0)
 
 /* Disabled fatal error messages temporarily */
-static u32 loglevel = 0x000;
+static u32 loglevel = 0x003;
 /* static u32 loglevel = 0x001; */
 /* static u32 loglevel = 0x033; */
 /* static u32 loglevel = 0xefff; */
@@ -126,6 +126,22 @@ static int sp_mmc_read_data_pio(sp_mmc_host *host,  struct mmc_data *data);
 
 #if defined(CONFIG_SP_PNG_DECODER)
 int sp_png_dec_run(void);
+#endif
+
+#ifdef SP_EMMC_DEBUG
+void dump_emmc_all_regs(sp_mmc_host *host)
+{
+	volatile unsigned int *reg = (volatile unsigned int *)host->ebase;
+	int i, j;
+	printf("### dump emmc controller registers start ###");
+	for (i =  0; i < 3; i++){
+		for (j =  0; j < 32; j++){
+			printf("g%d.%d = 0x%08x\n", i, j, *reg);
+			reg++;
+		}
+	}
+	printf("### dump emmc controller registers end ###");
+}
 #endif
 
 static void sp_mmc_dcache_flush_invalidate(struct mmc_data *data, unsigned int phys_start, unsigned int data_len)
@@ -366,9 +382,10 @@ static void sp_mmc_prep_cmd_rsp(struct sp_mmc_host *host, struct mmc_cmd *cmd)
 static void sp_mmc_check_sdstatus_errors(struct sp_mmc_host *host, struct mmc_data *data, int *ret)
 {
 	sp_mmc_hw_ops *ops = host->ops;
-
-	*ret = ops->check_error(host, data ? true : false);
-
+	int val;
+	val = ops->check_error(host, data ? true : false);
+	if (ret)
+		*ret = val;
 	return;
 }
 
@@ -388,7 +405,7 @@ static void sp_mmc_prep_data_info(struct sp_mmc_host *host, struct mmc_cmd *cmd,
 		hw_address = (unsigned int) data->dest;
 
 	hw_len = data->blocksize * data->blocks;
-	/* printf("hw_len %u\n", hw_len); */
+	DPRINTK("block size = %d, blks = %d, hw_len %u\n", data->blocksize, data->blocks, hw_len);
 	ops->set_data_info(host, cmd, data);
 	sp_mmc_dcache_flush_invalidate(data, hw_address, hw_len);
 
@@ -401,6 +418,12 @@ static void sp_mmc_trigger_sdstate(struct sp_mmc_host *host)
 	sp_mmc_hw_ops *ops = host->ops;
 
 	ops->trigger(host);
+}
+
+static inline void sp_mmc_txdummy(struct sp_mmc_host *host)
+{
+	sp_mmc_hw_ops *ops = host->ops;
+	ops->tx_dummy(host);
 }
 
 static void sp_mmc_wait_sdstate_new(struct sp_mmc_host *host)
@@ -428,6 +451,7 @@ void send_stop_cmd(struct sp_mmc_host *host)
 	sp_mmc_prep_cmd_rsp(host, &stop);
 	sp_mmc_trigger_sdstate(host);
 	sp_mmc_get_rsp(host, &stop); /* Makes sure host returns to a idle or error state */
+	sp_mmc_check_sdstatus_errors(host, NULL, NULL);
 }
 
 /*
@@ -454,11 +478,13 @@ sp_mmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
 	struct sp_mmc_host *host = mmc->priv;
 	sp_mmc_hw_ops *ops = host->ops;
 
-	int ret = 0; /* Returning 1 means success, returning other stuff means error */
+	int ret = 0; /* Return 0 means success, returning other stuff means error */
 	int loop;
 	int i = 0;
 	uint rddly = host->rddly;
 
+	DPRINTK("cmd %d with data %p\n", cmd->cmdidx, data);
+	host->current_cmd = cmd;
 	/* hw dma auto send cmd12  */
 	if (MMC_CMD_STOP_TRANSMISSION == cmd->cmdidx)
 		return 0;
@@ -483,19 +509,20 @@ sp_mmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
 				sp_sd_trace();
 			}
 
-				sp_sd_trace();
+			sp_sd_trace();
 			sp_mmc_check_sdstatus_errors(host, data, &ret);
 		} else {
 			sp_sd_trace();
 			sp_mmc_prep_data_info(host, cmd, data);
 
-#ifdef SP_MMC_ZEBU_SUPPORT_DEVICE_DDR_MODE
+#ifdef SP_MMC_SUPPORT_DDR_MODE
 			if (mmc->ddr_mode && (data->flags & MMC_DATA_WRITE)) {
-					ops->tunel_read_dly(host, SP_MMC_DDR_ZEBU_WRITE_CRC_STATUS_DLY);
-					ops->tunel_write_dly(host, SP_MMC_ZEBU_DDR_WRITE_DLY);
+				ops->tunel_read_dly(host, SP_MMC_DDR_READ_CRC_STATUS_DLY);
+				ops->tunel_write_dly(host, SP_MMC_DDR_WRITE_DLY);
 			}
 #endif
 			sp_mmc_trigger_sdstate(host);
+
 			/* Host's "read data start bit timeout counter" is broken, use
 			 * use software to set "the whole transaction's timeout" instead
 			 */
@@ -507,7 +534,7 @@ sp_mmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
 			sp_mmc_get_rsp(host, cmd); /* Makes sure host returns to a idle or error state */
 			sp_mmc_check_sdstatus_errors(host, data, &ret);
 
-#ifdef SP_MMC_ZEBU_SUPPORT_DEVICE_DDR_MODE
+#ifdef SP_MMC_SUPPORT_DDR_MODE
 			if (mmc->ddr_mode && (data->flags & MMC_DATA_WRITE)) {
 					ops->tunel_read_dly(host, host->rddly);
 					ops->tunel_write_dly(host, host->wrdly);
@@ -515,9 +542,11 @@ sp_mmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
 #endif
 		}
 
-		if ((SPMMC_DEVICE_TYPE_EMMC == host->dev_info.type) && data) {
-			if (ret && ((MMC_CMD_READ_MULTIPLE_BLOCK == cmd->cmdidx) || (MMC_CMD_WRITE_MULTIPLE_BLOCK == cmd->cmdidx)))
+		if (SPMMC_DEVICE_TYPE_EMMC == host->dev_info.type) {
+			if (ret && ((MMC_CMD_READ_MULTIPLE_BLOCK == cmd->cmdidx)
+				|| (MMC_CMD_WRITE_MULTIPLE_BLOCK == cmd->cmdidx))) {
 				send_stop_cmd(host);
+			}
 
 			if (ret == -EILSEQ ) {
 				sp_sd_trace();
@@ -529,7 +558,7 @@ sp_mmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
 				host->wrdly++;
 				host->wrdly &= MAX_DLY_CLK_MASK;
 				ops->tunel_write_dly(host, host->wrdly);
-				/* MMC_CMD_SEND_OP_COND response timeout need to re) && datainit */
+				/* MMC_CMD_SEND_OP_COND response timeout need to re-init */
 				if (cmd->cmdidx == MMC_CMD_SEND_OP_COND)
 					break;
 			} else {
@@ -953,6 +982,7 @@ static int sp_emmc_hw_init(sp_mmc_host *host)
 	}
 	base->sd_rxdattmr = SP_EMMC_RXDATTMR_MAX;
 	base->mediatype = 6;
+	mdelay(10);
 
 	return 0;
 }
@@ -1334,6 +1364,7 @@ int sp_emmc_hw_check_finish (sp_mmc_host *host)
 int	sp_emmc_hw_tx_dummy (sp_mmc_host *host)
 {
 	sp_sd_trace();
+	host->ebase->sdctrl1 = 1;
 	return 0;
 }
 
@@ -1343,6 +1374,8 @@ int sp_emmc_hw_check_error (sp_mmc_host *host, bool with_data)
 	int ret = 0;
 
 	if (host->ebase->sdstate_new & SDSTATE_NEW_ERROR_TIMEOUT) {
+		EPRINTK("cmd %d failed with sdstate = %x, sdstatus = %x\n",
+			host->current_cmd->cmdidx, host->ebase->sd_state, host->ebase->sdstatus);
 		/* Response related errors */
 		if (host->ebase->sdstatus & SP_SDSTATUS_WAIT_RSP_TIMEOUT)
 			ret = -ETIMEDOUT;
@@ -1468,7 +1501,7 @@ static int sp_mmc_probe(struct udevice *dev)
 		cfg->b_max		= CONFIG_SYS_MMC_MAX_BLK_COUNT;
 		cfg->name		= "emmc";
 		ops = &emmc_hw_ops;
-		cfg->host_caps |= MMC_MODE_DDR_52MHz;
+		//cfg->host_caps |= MMC_MODE_DDR_52MHz;
 		host->dmapio_mode = SP_MMC_DMA_MODE;
 	}
 	else {
@@ -1522,7 +1555,7 @@ int sp_mmc_set_dmapio(struct mmc *mmc, uint val)
 
 
 struct moon1_regs {
-    unsigned int sft_cfg[32];
+	unsigned int sft_cfg[32];
 };
 #define MOON1_REG ((volatile struct moon1_regs *)RF_GRP(1, 0))
 
@@ -1588,4 +1621,3 @@ U_BOOT_DRIVER(sd_sunplus) ={
 	.probe						= sp_mmc_probe,
 	.ops						= &sp_mmc_ops,
 };
-
