@@ -51,12 +51,17 @@ DECLARE_GLOBAL_DATA_PTR;
 
 static volatile struct stc_regs *g_regs = STC_AV2_REG;
 
+#undef USE_EXT_CLK
 /* 
  * TRIGGER_CLOCK is timer's runtime frequency. We expect it to be 1MHz.
  * TRIGGER_CLOCK = SOURCE_CLOCK / ([13:0] of 12.3 + 1).
  */
 #define SP_STC_TRIGGER_CLOCK	1000000
+#ifdef USE_EXT_CLK
 #define SP_STC_SOURCE_CLOCK	13500000	/* Use div_ext_clk, it is 13.5 MHz. */
+#else
+#define SP_STC_SOURCE_CLOCK	202000000	/* Use sysclk, it is 202 MHz. */
+#endif
 
 ulong get_timer_masked(void)
 {
@@ -103,7 +108,11 @@ int timer_init(void)
 	 * so 12.3[13:0] = (sysClk or divExtClk / trigger clcok) - 1
 	 * 12.3[15] = 1 for div_ext_clk
 	 */
+#ifdef USE_EXT_CLK
 	g_regs->stc_divisor = (1 << 15) | ((SP_STC_SOURCE_CLOCK / SP_STC_TRIGGER_CLOCK) - 1);
+#else  /* Use sysclk */
+	g_regs->stc_divisor = (0 << 15) | ((SP_STC_SOURCE_CLOCK / SP_STC_TRIGGER_CLOCK) - 1);
+#endif
 	gd->arch.timer_rate_hz = SP_STC_TRIGGER_CLOCK;
 
 	gd->arch.tbl = 0;
