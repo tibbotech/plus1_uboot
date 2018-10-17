@@ -161,6 +161,11 @@
 "elif itest.l *${bootinfo_base} == " __stringify(NAND_BOOT) "; then " \
 	"echo [scr] nand boot; " \
 	"run nand_boot; " \
+"elif itest.l *${bootinfo_base} == " __stringify(USB_ISP) "; then " \
+	"echo [scr] ISP from USB storage; " \
+	"run usb_isp; " \
+"else " \
+	"echo Stop; " \
 "fi"
 
 #define DSTADDR_KERNEL		0x307FC0 /* if stext is on 0x308000 */
@@ -256,7 +261,13 @@
 	"setexpr sz_kernel ${tmpval} + 0x40; " \
 	"setexpr sz_kernel ${sz_kernel} + 0x200; setexpr sz_kernel ${sz_kernel} / 0x200; " \
 	"mmc read ${addr_dst_kernel} ${addr_src_kernel} ${sz_kernel}; " \
-	"sp_go ${addr_dst_kernel} ${addr_dst_dtb}\0"
+	"sp_go ${addr_dst_kernel} ${addr_dst_dtb}\0" \
+"usb_isp=setenv isp_if usb && setenv isp_dev 0 && setenv isp_ram_addr 0x1000000; " \
+	"$isp_if start && fatload $isp_if $isp_dev $isp_ram_addr /ISPBOOOT.BIN 0x800 0x100000 && md.b $isp_ram_addr 0x200; " \
+	"setenv isp_main_storage emmc; " \
+	"setexpr script_addr $isp_ram_addr + 0x20 && setenv script_addr 0x${script_addr} && source $script_addr; " \
+	"\0"
+
 #if 0
 /* romter test booting command */
 #define CONFIG_BOOTCOMMAND      "echo bootcmd started ; sp_preboot dump ; sp_preboot ; printenv ; \

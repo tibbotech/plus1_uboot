@@ -28,11 +28,10 @@ enum Device_table {
 	DEVICE_MAX
 };
 
-#define SP_GET_BOOTINFO()      ((struct sp_bootinfo *)SP_BOOTINFO_BASE)
+#define SP_GET_BOOTINFO()      ((struct sp_bootinfo *)(SP_BOOTINFO_BASE & 0xffffff00 ))
 
 #define SP_IS_ISPBOOT()       (SP_GET_BOOTINFO()->gbootRom_boot_mode == USB_ISP || \
                                SP_GET_BOOTINFO()->gbootRom_boot_mode == SDCARD_ISP || \
-                               SP_GET_BOOTINFO()->gbootRom_boot_mode == UART_ISP || \
-                               SP_GET_BOOTINFO()->gbootRom_boot_mode == USB_MSDC_BOOT)
+                               SP_GET_BOOTINFO()->gbootRom_boot_mode == UART_ISP )
 
 #endif /* __SP_BOOTINFO_SC7XXX_H */
