@@ -58,11 +58,12 @@
 
 /* u-boot env parameter */
 #define CONFIG_SYS_MMC_ENV_DEV	0
-#define CONFIG_ENV_SIZE		0x2000
 #if defined(CONFIG_SYS_ENV_8388)
 #define CONFIG_ENV_OFFSET	0x087E4400	/* LBA 0x00043f22 */
+#define CONFIG_ENV_SIZE		0x2000
 #else /* CONFIG_SYS_ENV_SC7021_EVB (and CONFIG_SYS_ENV_ZEBU) */
-#define CONFIG_ENV_OFFSET	0x00B04400	/* LBA 0x00005822 */
+#define CONFIG_ENV_OFFSET	(0x1022 << 9)
+#define CONFIG_ENV_SIZE		(0x0400 << 9)
 #endif
 
 #define CONFIG_CMDLINE_EDITING
@@ -233,7 +234,7 @@
 	"setexpr sz_dtb ${sz_dtb} + 0x200; setexpr sz_dtb ${sz_dtb} / 0x200; " \
 	"mmc read ${addr_dst_dtb} ${addr_src_dtb} ${sz_dtb}; " \
 	"mmc read ${addr_tmp_header} ${addr_src_kernel} 0x1; " \
-	"setenv tmpval 0; setexpre tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
+	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
 	"setexpr sz_kernel ${tmpval} + 0x40; " \
 	"setexpr sz_kernel ${sz_kernel} + 0x200; setexpr sz_kernel ${sz_kernel} / 0x200; " \
 	"mmc read ${addr_dst_kernel} ${addr_src_kernel} ${sz_kernel}; " \
@@ -244,7 +245,7 @@
 	"setexpr sz_dtb ${sz_dtb} + 0x200; setexpr sz_dtb ${sz_dtb} / 0x200; " \
 	"mmc read ${addr_dst_dtb} ${addr_src_dtb} ${sz_dtb}; " \
 	"mmc read ${addr_tmp_header} ${addr_src_kernel} 0x1; " \
-	"setenv tmpval 0; setexpre tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
+	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
 	"setexpr sz_kernel ${tmpval} + 0x40; " \
 	"setexpr sz_kernel ${sz_kernel} + 0x200; setexpr sz_kernel ${sz_kernel} / 0x200; " \
 	"mmc read ${addr_dst_kernel} ${addr_src_kernel} ${sz_kernel}; " \
