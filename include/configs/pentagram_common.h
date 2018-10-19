@@ -108,9 +108,9 @@
  *      Then sp_go 0x307FC0 0x2FFFC0.
  * emmc_boot
  *      kernel is stored in emmc LBA CONFIG_SRCADDR_KERNEL and dtb is
- *      stored in emmc LBA CONFIG_SRCADDR_DTB. 
+ *      stored in emmc LBA CONFIG_SRCADDR_DTB.
  *      kernel will be loaded to 0x307FC0 and dtb will be loaded to 0x2FFFC0.
- *      Then bootm 0x307FC0 - 0x2FFFC0. 
+ *      Then bootm 0x307FC0 - 0x2FFFC0.
  * qk_emmc_boot
  *      kernel is stored in emmc LBA CONFIG_SRCADDR_KERNEL and dtb is
  *      stored in emmc LBA CONFIG_SRCADDR_DTB.
@@ -128,7 +128,7 @@
  * About "sp_go"
  * Earlier, sp_go do not handle header so you should pass addr w/o header.
  * But now sp_go DO verify magic/hcrc/dcrc in the quick sunplus uIamge header.
- * So the address passed for sp_go must have header in it. 
+ * So the address passed for sp_go must have header in it.
  */
 #define CONFIG_BOOTCOMMAND \
 "echo [scr] bootcmd started; " \
@@ -267,6 +267,13 @@
 	"$isp_if start && fatload $isp_if $isp_dev $isp_ram_addr /ISPBOOOT.BIN 0x800 0x100000 && md.b $isp_ram_addr 0x200; " \
 	"setenv isp_main_storage emmc; " \
 	"setexpr script_addr $isp_ram_addr + 0x20 && setenv script_addr 0x${script_addr} && source $script_addr; " \
+	"\0" \
+"usb_updt=setenv isp_if usb && setenv isp_dev 0 && setenv isp_ram_addr 0x1000000; " \
+	"setenv isp_update_file_name ISP_UPDT.BIN; " \
+	"$isp_if start && fatload $isp_if $isp_dev $isp_ram_addr /$isp_update_file_name 0x800 && md.b $isp_ram_addr 0x200; " \
+	"setenv isp_main_storage emmc ; " \
+	"setenv isp_image_header_offset 0; " \
+	"setexpr script_addr $isp_ram_addr + 0x20 && setenv script_addr 0x${script_addr} && source $script_addr; " \
 	"\0"
 
 #if 0
@@ -290,7 +297,7 @@ mmc read 0x2fffc0 0x1422 0xa ; mmc read 0x307fc0 0x1822 0x30f0 ; sp_go 0x308000 
 #endif
 
 /* MMC related configs */
-#define CONFIG_SUPPORT_EMMC_BOOT 
+#define CONFIG_SUPPORT_EMMC_BOOT
 /* #define CONFIG_MMC_TRACE */
 
 #endif /* __CONFIG_PENTAGRAM_H */
