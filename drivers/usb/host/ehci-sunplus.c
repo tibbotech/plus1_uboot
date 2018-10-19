@@ -112,15 +112,20 @@ static void uphy_init(void)
 	MOON4_REG->uphy1_ctl[1] = RF_MASK_V(0xffff, 0x8747);
 
 	 // 2. PLL power off/on twice
-	MOON4_REG->uphy0_ctl[3] = RF_MASK_V(0xffff, 0x8888);
+	MOON4_REG->uphy0_ctl[3] = RF_MASK_V(0xffff, 0x88);
+	MOON4_REG->uphy1_ctl[3] = RF_MASK_V(0xffff, 0x88);
 	mdelay(1);
-	MOON4_REG->uphy0_ctl[3] = RF_MASK_V(0xffff, 0x8080);
+	MOON4_REG->uphy0_ctl[3] = RF_MASK_V(0xffff, 0x80);
+	MOON4_REG->uphy1_ctl[3] = RF_MASK_V(0xffff, 0x80);
 	mdelay(1);
-	MOON4_REG->uphy0_ctl[3] = RF_MASK_V(0xffff, 0x8888);
+	MOON4_REG->uphy0_ctl[3] = RF_MASK_V(0xffff, 0x88);
+	MOON4_REG->uphy1_ctl[3] = RF_MASK_V(0xffff, 0x88);
 	mdelay(1);
-	MOON4_REG->uphy0_ctl[3] = RF_MASK_V(0xffff, 0x8080);
+	MOON4_REG->uphy0_ctl[3] = RF_MASK_V(0xffff, 0x80);
+	MOON4_REG->uphy1_ctl[3] = RF_MASK_V(0xffff, 0x80);
 	mdelay(1);
 	MOON4_REG->uphy0_ctl[3] = RF_MASK_V(0xffff, 0);
+	MOON4_REG->uphy1_ctl[3] = RF_MASK_V(0xffff, 0);
 
 	// 3. reset UPHY0/1
 	MOON0_REG->reset[2] = RF_MASK_V_SET(3 << 13);
