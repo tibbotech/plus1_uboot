@@ -14,7 +14,7 @@ config SYS_TEXT_BASE
 
 config SYS_USE_QKBOOT_HEADER
 	bool "use Sunpls quick boot header"
-	default y
+	default n
 	help
 	  Enable Sunplus quick boot header
 	  Sunplus quick boot header is the same
