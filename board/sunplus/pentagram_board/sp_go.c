@@ -62,7 +62,7 @@ int sp_qk_uimage_verify(ulong img_addr, int verify)
 
 	/* hcrc by quick sunplus crc */
 	if (!sp_image_check_hcrc(hdr)) {
-		puts("Bad Header Checksum\n");
+		puts("Bad Header Checksum(Simplified)\n");
 		return NULL;
 	}
 
@@ -72,7 +72,7 @@ int sp_qk_uimage_verify(ulong img_addr, int verify)
 	if (verify) {
 		puts("   Verifying Checksum ... ");
 		if (!sp_image_check_dcrc(hdr)) {
-			printf("Bad Data CRC\n");
+			printf("Bad Data CRC(Simplified)\n");
 			return NULL;
 		}
 		puts("OK\n");
