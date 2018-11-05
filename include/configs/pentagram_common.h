@@ -116,7 +116,7 @@
  *      stored in emmc LBA CONFIG_SRCADDR_DTB.
  *      kernel will be loaded to 0x307FC0 and dtb will be loaded to 0x2FFFC0.
  *      Then sp_go 0x307FC0 - 0x2FFFC0.
- * zmem_boot
+ * zmem_boot / qk_zmem_boot
  *      kernel is preloaded to 0x307FC0 and dtb is preloaded to 0x2FFFC0.
  *      Then sp_go 0x307FC0 0x2FFFC0.
  * zebu_emmc_boot
@@ -135,8 +135,13 @@
 "md.l ${bootinfo_base} 1; " \
 "if itest.l *${bootinfo_base} == " __stringify(SPI_NOR_BOOT) "; then " \
 	"if itest ${if_zebu} == 1; then " \
-		"echo [scr] zmem boot; " \
-		"run zmem_boot; " \
+		"if itest ${if_qkboot} == 1; then " \
+			"echo [scr] qk zmem boot; " \
+			"run qk_zmem_boot; " \
+		"else " \
+			"echo [scr] zmem boot; " \
+			"run zmem_boot; " \
+		"fi; " \
 	"else " \
 		"if itest ${if_qkboot} == 1; then " \
 			"echo [scr] qk romter boot; " \
@@ -250,7 +255,8 @@
 	"setexpr sz_kernel ${sz_kernel} + 0x200; setexpr sz_kernel ${sz_kernel} / 0x200; " \
 	"mmc read ${addr_dst_kernel} ${addr_src_kernel} ${sz_kernel}; " \
 	"sp_go ${addr_dst_kernel} ${addr_dst_dtb}\0" \
-"zmem_boot=sp_go ${addr_dst_kernel} ${addr_dst_dtb}\0" \
+"qk_zmem_boot=sp_go ${addr_dst_kernel} ${addr_dst_dtb}\0" \
+"zmem_boot=bootm ${addr_dst_kernel} - ${addr_dst_dtb}\0" \
 "zebu_emmc_boot=mmc rescan; mmc part; " \
 	"mmc read ${addr_tmp_header} ${addr_src_dtb} 0x1; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
