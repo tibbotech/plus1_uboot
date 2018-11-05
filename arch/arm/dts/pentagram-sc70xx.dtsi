@@ -78,4 +78,10 @@
 		reg = <0x9C000B00 0x80>;
 		spi-max-frequency = <50000000>;
 	};
+	
+	sp_l2sw: usb@0x9c108000 {
+		compatible = "sunplus,sunplus-l2sw";
+		reg = <0x9c108000 0x93>;
+	};
+
 };
