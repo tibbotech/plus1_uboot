@@ -169,7 +169,10 @@
 	"run nand_boot; " \
 "elif itest.l *${bootinfo_base} == " __stringify(USB_ISP) "; then " \
 	"echo [scr] ISP from USB storage; " \
-	"run usb_isp; " \
+	"run isp_usb; " \
+"elif itest.l *${bootinfo_base} == " __stringify(SDCARD_ISP) "; then " \
+	"echo [scr] ISP from SD Card; " \
+	"run isp_sdcard; " \
 "else " \
 	"echo Stop; " \
 "fi"
@@ -269,14 +272,31 @@
 	"setexpr sz_kernel ${sz_kernel} + 0x200; setexpr sz_kernel ${sz_kernel} / 0x200; " \
 	"mmc read ${addr_dst_kernel} ${addr_src_kernel} ${sz_kernel}; " \
 	"sp_go ${addr_dst_kernel} ${addr_dst_dtb}\0" \
-"usb_isp=setenv isp_if usb && setenv isp_dev 0 && setenv isp_ram_addr 0x1000000; " \
-	"$isp_if start && fatload $isp_if $isp_dev $isp_ram_addr /ISPBOOOT.BIN 0x800 0x100000 && md.b $isp_ram_addr 0x200; " \
+"isp_usb=setenv isp_if usb && setenv isp_dev 0; " \
+	"$isp_if start; " \
+	"run isp_common; " \
+	"\0" \
+"isp_sdcard=setenv isp_if mmc && setenv isp_dev 1; " \
+	"mmc list; " \
+	"run isp_common; " \
+	"\0" \
+"isp_common=setenv isp_ram_addr 0x1000000; " \
+	"fatls $isp_if $isp_dev / ; " \
+	"fatload $isp_if $isp_dev $isp_ram_addr /ISPBOOOT.BIN 0x800 0x100000 && md.b $isp_ram_addr 0x200; " \
 	"setenv isp_main_storage emmc; " \
 	"setexpr script_addr $isp_ram_addr + 0x20 && setenv script_addr 0x${script_addr} && source $script_addr; " \
 	"\0" \
-"usb_updt=setenv isp_if usb && setenv isp_dev 0 && setenv isp_ram_addr 0x1000000; " \
+"update_usb=setenv isp_if usb && setenv isp_dev 0; " \
+	"$isp_if start; " \
+	"run update_common; " \
+	"\0" \
+"update_sdcard=setenv isp_if mmc && setenv isp_dev 1; " \
+	"mmc list; " \
+	"run update_common; " \
+	"\0" \
+"update_common=setenv isp_ram_addr 0x1000000; " \
 	"setenv isp_update_file_name ISP_UPDT.BIN; " \
-	"$isp_if start && fatload $isp_if $isp_dev $isp_ram_addr /$isp_update_file_name 0x800 && md.b $isp_ram_addr 0x200; " \
+	"fatload $isp_if $isp_dev $isp_ram_addr /$isp_update_file_name 0x800 && md.b $isp_ram_addr 0x200; " \
 	"setenv isp_main_storage emmc ; " \
 	"setenv isp_image_header_offset 0; " \
 	"setexpr script_addr $isp_ram_addr + 0x20 && setenv script_addr 0x${script_addr} && source $script_addr; " \
