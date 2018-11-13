@@ -249,10 +249,10 @@ void spi_nand_readcacheQuadIO_byMapping(struct sp_spinand_info *info, uint32_t a
 
 	if ((info->row & (0x40)) && (((info->id & 0xFF) == 0xC2)||((info->id & 0xFF) == 0x2C))) {
 		for (i = addr ; i < (addr + size) ; i += 4)
-			*(unsigned int *)pbuf++ = *(unsigned int *)(0x9400000 + 0x1000 + i);
+			*(unsigned int *)pbuf++ = *(unsigned int *)(0x9dff0000 + 0x1000 + i);
 	} else {
 		for (i = addr ; i < (addr + size) ; i += 4)
-			*(unsigned int *)pbuf++ = *(unsigned int *)(0x9400000 + i);
+			*(unsigned int *)pbuf++ = *(unsigned int *)(0x9dff0000 + i);
 	}
 
 	wait_spi_idle(info);
@@ -270,8 +270,9 @@ int spi_nanddma_pageread(struct sp_spinand_info *info, uint32_t addr, unsigned i
 
 	writel(addr, &regs->spi_page_addr);
 
-	value = 0x08350095; // 4 bit data 8 dummy clock 1bit cmd  1bit addr
+	value = 0x08150095; // 4 bit data 8 dummy clock 1bit cmd  1bit addr
 	writel(value, &regs->spi_cfg[1]);
+	writel(value, &regs->spi_cfg[2]);
 
 	value = readl(&regs->spi_cfg[0]);
 	value = value|size; // 1k data len
@@ -291,10 +292,10 @@ int spi_nanddma_pageread(struct sp_spinand_info *info, uint32_t addr, unsigned i
 
 	//config ctrl info	
 	//set auto cfg
-	value = (0x1<<1);
+	value = (0x3<<1);
 	writel(value, &regs->spi_intr_msk);
 	writel(value, &regs->spi_intr_sts);
-	value = (0x6b<<24)|(1<<20)|(1<18)|(1<<17);
+	value = (0x03<<24)|(1<<20)|(1<18)|(1<<17);
 	writel(value, &regs->spi_auto_cfg);
 	while((readl(&regs->spi_intr_sts) & 0x2) == 0x0);
 
@@ -318,10 +319,11 @@ int spi_nanddma_pageprogram(struct sp_spinand_info *info, uint32_t addr, unsigne
 	//set cfg[1]= cmd 1 bit addr 1 bit data 1 bit	
 	value = 0x150095;
 	writel(value, &regs->spi_cfg[1]);
+	writel(value, &regs->spi_cfg[2]);
 
 	//read 2k data
-	value = readl(&regs->spi_cfg[0]);
-	value |= size; 
+	//value = readl(&regs->spi_cfg[0]);
+	value = (1<<19)|size; 
 	writel(value, &regs->spi_cfg[0]);
 	
 	// col addr set
@@ -340,11 +342,11 @@ int spi_nanddma_pageprogram(struct sp_spinand_info *info, uint32_t addr, unsigne
 
 	//config ctrl info	
 	//set auto cfg 	
-	value = (0x1<<1);	
+	value = (0x3<<1);	
 	writel((uint32_t)value, &regs->spi_intr_msk);
 	writel((uint32_t)value, &regs->spi_intr_sts);
 
-	value = (1<18)|(1<<17)|(0x02<<8)|(1);
+	value = (1<18)|(1<<17)|(0x02<<8)|(1<<1)|(1);
 	writel(value, &regs->spi_auto_cfg);
 
 	//polling dma operation done bit	
@@ -383,23 +385,7 @@ static void sp_spinand_select_chip(struct mtd_info *mtd, int chipnr)
 
 static int sp_spinand_fixup(struct sp_spinand_info *info)
 {
-	struct mtd_info *mtd = info->mtd;
-	struct nand_chip *chip = mtd->priv;
-	uint32_t nrpg;
-
-	/* column address */
 	info->cac = 2;
-
-	/* row address */
-	nrpg = lldiv(chip->chipsize, mtd->writesize);
-
-	if (nrpg & 0xFF000000)
-		info->rac = 4;
-	else if (nrpg & 0xFFFF0000)
-		info->rac = 3;
-	else
-		info->rac = 2;
-
 	return 0;
 }
 
@@ -422,10 +408,9 @@ static int sp_spinand_desc_prep(struct sp_spinand_info *info,
 						   (unsigned int *)info->buff.
 						   virt);
 		#else
-		spi_nanddma_pageread(info, row & 0x01FFFF,info->mtd->writesize +
+		spi_nanddma_pageread(info, row,info->mtd->writesize +
 						   info->mtd->oobsize,
-						   (unsigned int *)info->buff.
-						   virt);
+						   (unsigned int *)info->buff.phys);
 
 		#endif
 		break;
@@ -523,8 +508,7 @@ static void sp_spinand_cmdfunc(struct mtd_info *mtd, unsigned cmd, int col,
 	case NAND_CMD_READ0:	/* 0x00 */
 		sp_spinand_desc_prep(info, cmd, col, row);
 		sp_spinand_desc_send(info, 1);
-		if (readb(info->buff.virt + mtd->writesize + 1) == 0xFF)
-			break;
+		break;
 	case NAND_CMD_READOOB:	/* 0x50 */
 		sp_spinand_desc_prep(info, cmd, col, row);
 		sp_spinand_desc_send(info, 1);
@@ -582,6 +566,7 @@ static uint8_t sp_spinand_read_byte(struct mtd_info *mtd)
 
 	switch (info->cmd) {
 	case NAND_CMD_STATUS:
+		ret = readb(info->buff.virt);
 		break;
 
 	default:
@@ -657,11 +642,10 @@ static int sp_spinand_init(struct sp_spinand_info *info)
 {
 	unsigned int id;
 	struct nand_chip *nand = &info->nand;
-	struct mtd_info *mtd = get_nand_dev_by_index(0);
-	int ret;
+	struct mtd_info *mtd = &nand->mtd;
+	int ret,value;
 
 	info->mtd = mtd;
-	mtd->priv = nand;
 	nand->IO_ADDR_R = nand->IO_ADDR_W = info->regs;
 	printf("sp_spinand: regs@0x%p\n", info->regs);
 
@@ -695,72 +679,37 @@ static int sp_spinand_init(struct sp_spinand_info *info)
 	if ((id & 0xFF) == WB_ID) {
 		info->id = (id & WB_ID);
 		printf("Winbond SPI NAND found\n");
-		printf("read WB status-2:0x%02x\n",
-		       spi_nand_getfeatures(info, DEVICE_FEATURE_ADDR));
-#if USE_SP_BCH
 		printf("Set WB in BUF-1..& ECC-OFF,using S+ BCH");
-		/* Dis-able ECC, enable BUF-1 */
-		spi_nand_setfeatures(info, DEVICE_FEATURE_ADDR,
-				     WB_BUF1_DIS_ECC);
-#else
-		printf("Set WB in BUF-1..& ECC-ON");
-		/* enable ECC & BUF-1 */
-		spi_nand_setfeatures(info, DEVICE_FEATURE_ADDR, WB_BUF1_EN_ECC);
-#endif
-		printf("...done,status-2;0x%x\n",
-		       spi_nand_getfeatures(info, DEVICE_FEATURE_ADDR));
-	} else if (((id & 0xFF) == GD_ID) && ((id & 0xFF00) != GD_ID_HIGH)) {
-		info->id = id & 0xFF;
-		printf("GigaDevice SPI NAND found & enable QuadIO mode,");
-#if USE_SP_BCH
-		printf("using S+ BCH\n");
-		/* Dis-able ECC & ebable QuadIO */
-		spi_nand_setfeatures(info, DEVICE_FEATURE_ADDR, QUADIO_DIS_ECC);
-#else
-		printf("using device internal ECC\n");
-		/* enable ECC & QuadIO */
-		spi_nand_setfeatures(info, DEVICE_FEATURE_ADDR, QUADIO_EN_ECC);
-#endif
-		printf("read fea:0x%02x\n",
-		       spi_nand_getfeatures(info, DEVICE_FEATURE_ADDR));
-	} else if ((id & 0xFF) == MXIC_ID) {	/* MXIC1G:C212 */
-		info->id = (id & 0xFF);
-		printf("MXIC SPI NAND found\n");
-		printf("read MXIC status-2:0x%02x\n",
-		       spi_nand_getfeatures(info, DEVICE_FEATURE_ADDR));
-#if USE_SP_BCH
-		printf("using S+ BCH");
-		/* Dis-able ECC, enable Quad */
-		spi_nand_setfeatures(info, DEVICE_FEATURE_ADDR, QUADIO_DIS_ECC);
-#else
-		printf("using device internal ECC\n");
-		/* enable ECC & QuadIO */
-		spi_nand_setfeatures(info, DEVICE_FEATURE_ADDR, QUADIO_EN_ECC);
-#endif
-		printf("...done,status-2;0x%x\n",
-		       spi_nand_getfeatures(info, DEVICE_FEATURE_ADDR));
-
-	} else if ((id & 0xFFFF) == ESMT1G_ID) {	/* ESMT1G:21c8 */
-		info->id = id & 0xFFFF;
-		printf("ESMT SPI NAND found & enable QuadIO mode,");
-#if USE_SP_BCH
-		printf("using S+ BCH\n");
-		/* Dis-able ECC & ebable QuadIO */
-		spi_nand_setfeatures(info, DEVICE_FEATURE_ADDR, QUADIO_DIS_ECC);
-#else
-		printf("using device internal ECC\n");
-		/* enable ECC & QuadIO */
-		spi_nand_setfeatures(info, DEVICE_FEATURE_ADDR, QUADIO_EN_ECC);
-#endif
-		printf("read fea:0x%02x\n",
-		       spi_nand_getfeatures(info, DEVICE_FEATURE_ADDR));
-
+		spi_nand_setfeatures(info, DEVICE_FEATURE_ADDR,WB_BUF1_DIS_ECC);
+	} else if (((id & 0xFF) == 0xC8) && (!((((id>>8) & 0xFF) == 0x21)||(((id>>8) & 0xFF) == 0x01)||(((id>>8) & 0xFF) == 0x0a)))) { 
+		printf("GD SPI NAND found\n");
+		spi_nand_setfeatures(info, DEVICE_FEATURE_ADDR,0);	
 	} else {
-		printf("Unknow SPI NAND device\n");
-		return -ENXIO;
+		if ((id & 0xFF) == 0xC2) {	/* MXIC */
+			info->id = 0xC2;
+			printf("MXIC SPI NAND found\n");
+		}
+		else if ((id & 0xFF) == 0x2C) { /* MICRON */
+			info->id = 0x2C;
+			printf("MICRON SPI NAND found\n");
+		}
+		else if ((id & 0xFF) == 0xd5) {/* Etron */
+			info->id = 0xd5;
+			printf("Etron SPI NAND found\n");
+		}
+		else if ((id & 0xFF) == 0xC8) { /* ESMT */
+			info->id = (id & 0xFFFF);
+			printf("ESMT SPI NAND found\n");
+		} else {
+			printf("SPI NAND found\n");
+			info->id = (id & 0xFFFF);
+		}
+
+		value=spi_nand_getfeatures(info, DEVICE_FEATURE_ADDR);
+		value &= ~0x00000010;
+		spi_nand_setfeatures(info, DEVICE_FEATURE_ADDR, value);
 	}
 
-	printf("%s\n", __FUNCTION__);
 	spi_nand_setfeatures(info, DEVICE_PROTECTION_ADDR, 0x0);
 
 	ret = nand_scan_ident(mtd, 1, (struct nand_flash_dev *)sp_nand_ids);

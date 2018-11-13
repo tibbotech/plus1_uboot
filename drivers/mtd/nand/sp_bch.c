@@ -21,12 +21,6 @@ unsigned int *Get_SP_BCH_Info(void)
 }
 #endif
 
-/* Used in uboot/common/cmd_ispsp.c */
-uint32_t ispsp_chk4badblock_max_err_bit_in_page;
-uint32_t ispsp_chk4badblock_err_bit_in_page;
-uint32_t ispsp_chk4badblock_ecc_size;
-uint32_t ispsp_chk4badblock_ecc_strength;
-
 static int get_setbits(uint32_t n)
 {
 	n = n - ((n >> 1) & 0x55555555);
@@ -123,7 +117,7 @@ static int sp_bch_reset(struct sp_spinand_info *info)
 int sp_bch_init(struct mtd_info *mtd)
 {
 	struct sp_spinand_info *info = get_spinand_info();
-	struct nand_chip *nand;
+	struct nand_chip *nand = &info->nand;
 	struct nand_oobfree *oobfree;
 
 	int i;
@@ -139,14 +133,11 @@ int sp_bch_init(struct mtd_info *mtd)
 	if (!mtd || !info)
 		BUG();
 
-	if (!mtd->priv)
-		BUG();
 
 	rsvd = 32;
 	oobsz = mtd->oobsize;
 	pgsz = mtd->writesize;
-	nand = mtd->priv;
-	info->mtd = mtd;
+
 
 	/* 1024x60 */
 	size = 1024;
@@ -268,8 +259,7 @@ ecc_detected:
 	nand->ecc.size = size;
 	nand->ecc.strength = bits;
 	nand->ecc.steps = nrps;
-	ispsp_chk4badblock_ecc_strength = nand->ecc.strength;
-	ispsp_chk4badblock_ecc_size = nand->ecc.size;
+
 #if 0
 	if (size == 512)
 		nand->ecc.bytes = (13 * bits + 7) / 8;
@@ -308,11 +298,6 @@ ecc_detected:
 
 	sp_bch_reset(info);
 
-#if defined(CONFIG_SP_NFTL) || defined(CONFIG_SP_BCH_REPORT)
-	sp_bch_ftl_info = (unsigned int *)info;
-	struct sp_bch_regs *regs = info->bch_regs;
-	regs->cr0 = info->cr0;
-#endif
 	return 0;
 }
 
@@ -337,6 +322,7 @@ int sp_bch_encode(struct mtd_info *mtd, void *buf, void *ecc)
 	flush_dcache_range((ulong) buf, (ulong) buf + mtd->writesize);
 	flush_dcache_range((ulong) ecc, (ulong) ecc + mtd->oobsize);
 
+	writel(1, &regs->srr);
 	writel((uint32_t) buf, &regs->buf);
 	writel((uint32_t) ecc, &regs->ecc);
 
@@ -360,7 +346,8 @@ int sp_bch_encode_1024x60(void *buf, void *ecc)
 
 	flush_dcache_range((ulong) buf, (ulong) buf + 1024);
 	flush_dcache_range((ulong) ecc, (ulong) ecc + 128);
-
+	
+	writel(1, &regs->srr);
 	writel((uint32_t) buf, &regs->buf);
 	writel((uint32_t) ecc, &regs->ecc);
 
@@ -385,6 +372,7 @@ int sp_bch_decode_1024x60(void *buf, void *ecc)
 	flush_dcache_range((ulong) buf, (ulong) buf + 1024);
 	flush_dcache_range((ulong) ecc, (ulong) ecc + 128);
 
+	writel(1, &regs->srr);
 	writel((uint32_t) buf, &regs->buf);
 	writel((uint32_t) ecc, &regs->ecc);
 
@@ -419,36 +407,9 @@ int sp_bch_decode(struct mtd_info *mtd, void *buf, void *ecc)
 	flush_dcache_range((ulong) buf, (ulong) buf + mtd->writesize);
 	flush_dcache_range((ulong) ecc, (ulong) ecc + mtd->oobsize);
 
+	writel(1, &regs->srr);
 	writel((uint32_t) buf, &regs->buf);
 	writel((uint32_t) ecc, &regs->ecc);
-#ifdef CONFIG_SP_BCH_REPORT
-	bch_tmp = readl(&regs->cr0);
-	status = BCH_ECC_BITS(bch_tmp);	/* allowed_err_bits */
-	switch (status) {
-	case 0:
-		bch_tmp = 60;
-		break;
-	case 1:
-		bch_tmp = 40;
-		break;
-	case 2:
-		bch_tmp = 24;
-		break;
-	case 3:
-		bch_tmp = 16;
-		break;
-	case 4:
-		bch_tmp = 8;
-		break;
-	case 5:
-		bch_tmp = 4;
-		break;
-	default:
-		bch_tmp = 0xfffe;
-		break;
-	}
-	info->ecc_sts = bch_tmp;
-#endif
 
 	writel(CR0_START | CR0_DECODE | info->cr0, &regs->cr0);
 
@@ -459,31 +420,15 @@ int sp_bch_decode(struct mtd_info *mtd, void *buf, void *ecc)
 		printf("sp_bch: decode timeout\n");
 	} else if (status & SR_FAIL) {
 		if (sp_bch_blank(ecc, mtd->oobsize)) {
-#ifdef CONFIG_SP_BCH_REPORT
-			info->ecc_sts |= (SR_ERR_MAX(status) << 16);
-#endif
 			ret = 0;
 		} else {
 			printf("sp_bch: decode failed,status:0x%x\n", status);
-#ifdef CONFIG_SP_BCH_REPORT
-			info->ecc_sts |= ((bch_tmp + 1) << 16);
-#endif
 			mtd->ecc_stats.failed += SR_ERR_BITS(status);
 			sp_bch_reset(info);
-
 			ret = -1;
 		}
 	} else {
-#ifdef CONFIG_SP_BCH_REPORT
-		info->ecc_sts |= (SR_ERR_MAX(status) << 16);
-#endif
 		mtd->ecc_stats.corrected += SR_ERR_BITS(status);
-		ispsp_chk4badblock_err_bit_in_page =
-		    (uint32_t) (readl(&regs->esr));
-		if (ispsp_chk4badblock_err_bit_in_page >
-		    ispsp_chk4badblock_max_err_bit_in_page)
-			ispsp_chk4badblock_max_err_bit_in_page =
-			    ispsp_chk4badblock_err_bit_in_page;
 	}
 
 	return ret;

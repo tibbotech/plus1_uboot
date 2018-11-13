@@ -526,8 +526,9 @@ static int nand_block_checkbad(struct mtd_info *mtd, loff_t ofs, int allowbbt)
 
 	if (!(chip->options & NAND_SKIP_BBTSCAN) &&
 	    !(chip->options & NAND_BBT_SCANNED)) {
+		chip->options |= NAND_SKIP_BBTSCAN;
 		chip->options |= NAND_BBT_SCANNED;
-		chip->scan_bbt(mtd);
+		//chip->scan_bbt(mtd);
 	}
 
 	if (!chip->bbt)
@@ -897,7 +898,9 @@ static int nand_wait(struct mtd_info *mtd, struct nand_chip *chip)
 
 	status = (int)chip->read_byte(mtd);
 	/* This can happen if in case of timeout or buggy dev_ready */
+#if 0 //sunplus modify
 	WARN_ON(!(status & NAND_STATUS_READY));
+#endif
 	return status;
 }
 
