@@ -322,8 +322,8 @@ int spi_nanddma_pageprogram(struct sp_spinand_info *info, uint32_t addr, unsigne
 	writel(value, &regs->spi_cfg[2]);
 
 	//read 2k data
-	//value = readl(&regs->spi_cfg[0]);
-	value = (1<<19)|size; 
+	value = readl(&regs->spi_cfg[0]);
+	value = value|size; 
 	writel(value, &regs->spi_cfg[0]);
 	
 	// col addr set
