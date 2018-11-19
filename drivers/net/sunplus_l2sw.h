@@ -70,7 +70,7 @@ struct spl2sw_dev {
 	u32    rx_desc_num[RX_DESC_QUEUE_NUM];
 	u32    tx_desc_num[TX_DESC_QUEUE_NUM];
 	char   rxbuffer[RX_BUF_SZ];
-	char   *txbuffer;//[TX_BUF_MIN_SZ];  = 0x9E820100
+	char   txbuffer[TX_BUF_MIN_SZ];
 	u32    tx_currdesc;
 	u32    rx_currdesc;
 	struct eth_device *dev;

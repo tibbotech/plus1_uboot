@@ -166,7 +166,7 @@ static void init_tx_desc(struct spl2sw_dev *priv)
 		printf("tx_desc1  = %x\n",  priv->tx_desc_chain[i * TX_DESC_NUM]);
 		printf("tx_desc2  = %x\n",  &priv->tx_desc_chain[i * TX_DESC_NUM]);
 		printf("tx_desc3  = %x\n",  priv->tx_desc_chain);
-		priv->tx_desc[i] = 0x9E820000;//&priv->tx_desc_chain[i * TX_DESC_NUM];
+		priv->tx_desc[i] = &priv->tx_desc_chain[i * TX_DESC_NUM];//0x9E820000;
 		desc_init_tx_desc(priv->tx_desc[i], TX_DESC_NUM);
 	}	
 
@@ -402,13 +402,13 @@ static int spl2sw_tx(struct eth_device *dev, void *packet, int length)
 	u32 currdesc = priv->tx_currdesc;
 	struct spl2sw_desc *txdesc;
 	int timeout;
-	priv->txbuffer =0x9E820100;
+	//priv->txbuffer =0x9E820100;
 
 	printf("spl2sw_tx, length = %d\n",length);
 
 	int i;
 	char * temp;
-	#if 1
+	#if 0
 	temp=packet;
 	for (i=0; i<length; i++)
 	{
@@ -454,10 +454,7 @@ static int spl2sw_tx(struct eth_device *dev, void *packet, int length)
 		}
 		#endif
 		if (timeout-- < 0) {
-			printf("spl2sw: TX timeout\n");
-			printf("txdesc->cmd1 = [%x] \n",txdesc->cmd1);
-			DEBUG0("sw_int_status_0     = %x\r\n",regs->sw_int_status_0);
-
+			
 			spl2sw_dump_regs(dev);
 
 			for(i= 0;i<12;i++)
@@ -469,7 +466,7 @@ static int spl2sw_tx(struct eth_device *dev, void *packet, int length)
 			return -ETIMEDOUT;
 		}
 		udelay(1);
-		//writel((0x1<<0),&regs->cpu_tx_trig);
+		
 	}
 	
 	printf("spl2sw_tx done\n");
