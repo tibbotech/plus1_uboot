@@ -22,7 +22,6 @@
 /* Disable some options which is enabled by default: */
 #undef CONFIG_CMD_IMLS
 
-
 #define CONFIG_NR_DRAM_BANKS		1
 #define CONFIG_SYS_SDRAM_BASE		0
 #if defined(CONFIG_SYS_ENV_ZEBU)
@@ -95,6 +94,8 @@
 #define CONFIG_SYS_MAX_NAND_DEVICE   1
 #define CONFIG_SYS_NAND_SELF_INIT
 #define CONFIG_SYS_NAND_BASE    0x9c002b80
+
+#define CONFIG_MTD_DEVICE	/* needed for mtdparts cmd */
 #endif
 /*
  * In the beginning, bootcmd will check bootmode in SRAM and the flag
@@ -259,6 +260,19 @@
 	"setexpr sz_kernel ${sz_kernel} + 0x200; setexpr sz_kernel ${sz_kernel} / 0x200; " \
 	"mmc read ${addr_dst_kernel} ${addr_src_kernel} ${sz_kernel}; " \
 	"sp_go ${addr_dst_kernel} ${addr_dst_dtb}\0" \
+"nand_boot=nand read ${addr_tmp_header} dtb 0x40; " \
+	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x4; run be2le; " \
+	dbg_scr("md ${addr_tmp_header} 0x10; printenv tmpval; ") \
+	"setexpr sz_dtb ${tmpval} + 0x40; " \
+	dbg_scr("echo from dtb partition to ${addr_dst_dtb} sz ${sz_dtb}; ") \
+	"nand read ${addr_dst_dtb} dtb ${sz_dtb}; " \
+	"nand read ${addr_tmp_header} kernel 0x40; " \
+	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
+	dbg_scr("md ${addr_tmp_header} 0x10; printenv tmpval; ") \
+	"setexpr sz_kernel ${tmpval} + 0x40; " \
+	dbg_scr("echo from kernel partition to ${addr_dst_kernel} sz ${sz_kernel}; ") \
+	"nand read ${addr_dst_kernel} kernel ${sz_kernel}; " \
+	"bootm ${addr_dst_kernel} - ${addr_dst_dtb}\0" \
 "qk_zmem_boot=sp_go ${addr_dst_kernel} ${addr_dst_dtb}\0" \
 "zmem_boot=bootm ${addr_dst_kernel} - ${addr_dst_dtb}\0" \
 "zebu_emmc_boot=mmc rescan; mmc part; " \
