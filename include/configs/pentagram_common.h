@@ -21,8 +21,6 @@
 
 /* Disable some options which is enabled by default: */
 #undef CONFIG_CMD_IMLS
-//#define CONFIG_SYS_DCACHE_OFF		1
-//#define CONFIG_SYS_ICACHE_OFF		1
 
 
 #define CONFIG_NR_DRAM_BANKS		1
