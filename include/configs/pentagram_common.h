@@ -94,8 +94,9 @@
 #define CONFIG_SYS_MAX_NAND_DEVICE   1
 #define CONFIG_SYS_NAND_SELF_INIT
 #define CONFIG_SYS_NAND_BASE    0x9c002b80
-
 #define CONFIG_MTD_DEVICE	/* needed for mtdparts cmd */
+#define MTDIDS_DEFAULT		"nand0=sp_spinand.0"
+#define MTDPARTS_DEFAULT	"mtdparts=sp_spinand.0:-(whole_nand)"
 #endif
 /*
  * In the beginning, bootcmd will check bootmode in SRAM and the flag
