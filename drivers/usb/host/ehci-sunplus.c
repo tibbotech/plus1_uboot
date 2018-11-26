@@ -101,95 +101,132 @@ struct sunplus_ehci_priv {
 	struct usb_ehci *ehci;
 };
 
-static void uphy_init(void)
+static void uphy_init(int port_num)
 {
 	unsigned int val, set;
 
 	// 1. Default value modification
-	MOON4_REG->uphy0_ctl[0] = RF_MASK_V(0xffff, 0x4002);
-	MOON4_REG->uphy0_ctl[1] = RF_MASK_V(0xffff, 0x8747);
-	MOON4_REG->uphy1_ctl[0] = RF_MASK_V(0xffff, 0x4004);
-	MOON4_REG->uphy1_ctl[1] = RF_MASK_V(0xffff, 0x8747);
+	if(0 == port_num){
+		MOON4_REG->uphy0_ctl[0] = RF_MASK_V(0xffff, 0x4002);
+		MOON4_REG->uphy0_ctl[1] = RF_MASK_V(0xffff, 0x8747);	
+	} else if (1 == port_num){
+		MOON4_REG->uphy1_ctl[0] = RF_MASK_V(0xffff, 0x4004);
+		MOON4_REG->uphy1_ctl[1] = RF_MASK_V(0xffff, 0x8747);	
+	}
 
-	 // 2. PLL power off/on twice
-	MOON4_REG->uphy0_ctl[3] = RF_MASK_V(0xffff, 0x88);
-	MOON4_REG->uphy1_ctl[3] = RF_MASK_V(0xffff, 0x88);
+	// 2. PLL power off/on twice
+	if(0 == port_num){
+		MOON4_REG->uphy0_ctl[3] = RF_MASK_V(0xffff, 0x88);
+		mdelay(1);
+		MOON4_REG->uphy0_ctl[3] = RF_MASK_V(0xffff, 0x80);
+		mdelay(1);
+		MOON4_REG->uphy0_ctl[3] = RF_MASK_V(0xffff, 0x88);
+		mdelay(1);
+		MOON4_REG->uphy0_ctl[3] = RF_MASK_V(0xffff, 0x80);
+		mdelay(1);
+		MOON4_REG->uphy0_ctl[3] = RF_MASK_V(0xffff, 0);
+	} else if (1 == port_num){
+		MOON4_REG->uphy1_ctl[3] = RF_MASK_V(0xffff, 0x88);
+		mdelay(1);
+		MOON4_REG->uphy1_ctl[3] = RF_MASK_V(0xffff, 0x80);
+		mdelay(1);
+		MOON4_REG->uphy1_ctl[3] = RF_MASK_V(0xffff, 0x88);
+		mdelay(1);
+		MOON4_REG->uphy1_ctl[3] = RF_MASK_V(0xffff, 0x80);
+		mdelay(1);
+		MOON4_REG->uphy1_ctl[3] = RF_MASK_V(0xffff, 0);
+	}
 	mdelay(1);
-	MOON4_REG->uphy0_ctl[3] = RF_MASK_V(0xffff, 0x80);
-	MOON4_REG->uphy1_ctl[3] = RF_MASK_V(0xffff, 0x80);
-	mdelay(1);
-	MOON4_REG->uphy0_ctl[3] = RF_MASK_V(0xffff, 0x88);
-	MOON4_REG->uphy1_ctl[3] = RF_MASK_V(0xffff, 0x88);
-	mdelay(1);
-	MOON4_REG->uphy0_ctl[3] = RF_MASK_V(0xffff, 0x80);
-	MOON4_REG->uphy1_ctl[3] = RF_MASK_V(0xffff, 0x80);
-	mdelay(1);
-	MOON4_REG->uphy0_ctl[3] = RF_MASK_V(0xffff, 0);
-	MOON4_REG->uphy1_ctl[3] = RF_MASK_V(0xffff, 0);
 
 	// 3. reset UPHY0/1
-	MOON0_REG->reset[2] = RF_MASK_V_SET(3 << 13);
-	MOON0_REG->reset[2] = RF_MASK_V_CLR(3 << 13);
+	if(0 == port_num){
+		MOON0_REG->reset[2] = RF_MASK_V_SET(1 << 13);
+		MOON0_REG->reset[2] = RF_MASK_V_CLR(1 << 13);
+	} else if (1 == port_num){
+		MOON0_REG->reset[2] = RF_MASK_V_SET(1 << 14);
+		MOON0_REG->reset[2] = RF_MASK_V_CLR(1 << 14);
+	}
 	mdelay(1);
 
 	// 4. UPHY 0 internal register modification
-	UPHY0_RN_REG->cfg[7] = 0x8b;
-	UPHY1_RN_REG->cfg[7] = 0x8b;
+	if(0 == port_num){
+		UPHY0_RN_REG->cfg[7] = 0x8b;
+	} else if (1 == port_num){
+		UPHY1_RN_REG->cfg[7] = 0x8b;
+	}
 
 	// 5. USBC 0 reset
-	MOON0_REG->reset[2] = RF_MASK_V_SET(3 << 10);
-	MOON0_REG->reset[2] = RF_MASK_V_CLR(3 << 10);
+	if(0 == port_num){
+		MOON0_REG->reset[2] = RF_MASK_V_SET(1 << 10);
+		MOON0_REG->reset[2] = RF_MASK_V_CLR(1 << 10);
+	} else if (1 == port_num){
+		MOON0_REG->reset[2] = RF_MASK_V_SET(1 << 11);
+		MOON0_REG->reset[2] = RF_MASK_V_CLR(1 << 11);
+	}
 
 	// Backup solution to workaround real IC USB clock issue
 	// (issue: hang on reading EHCI_USBSTS after EN_ASYNC_SCHEDULE)
-	if (HB_GP_REG->hb_otp_data2 & 0x1) { // G350.2 bit[0]
-		printf("uphy0 rx clk inv\n");
-		MOON4_REG->uphy0_ctl[2] = RF_MASK_V_SET(1 << 6);
-	}
-	if (HB_GP_REG->hb_otp_data2 & 0x2) { // G350.2 bit[1]
-		printf("uphy1 rx clk inv\n");
-		MOON4_REG->uphy1_ctl[2] = RF_MASK_V_SET(1 << 6);
+	if(0 == port_num){
+		if (HB_GP_REG->hb_otp_data2 & 0x1) { // G350.2 bit[0]
+			printf("uphy0 rx clk inv\n");
+			MOON4_REG->uphy0_ctl[2] = RF_MASK_V_SET(1 << 6);
+		}
+	} else if (1 == port_num){
+		if (HB_GP_REG->hb_otp_data2 & 0x2) { // G350.2 bit[1]
+			printf("uphy1 rx clk inv\n");
+			MOON4_REG->uphy1_ctl[2] = RF_MASK_V_SET(1 << 6);
+		}		
 	}
 
-        // OTP for USB DISC (disconnect voltage)
+    // OTP for USB DISC (disconnect voltage)
 	val = HB_GP_REG->hb_otp_data6;
-        set = val & 0x1F; // UPHY0 DISC
-        if (!set) {
-                set = DEFAULT_UPHY_DISC;
-        } else if (set <= ORIG_UPHY_DISC) {
-                set += 2;
-        }
-        UPHY0_RN_REG->cfg[7] = (UPHY0_RN_REG->cfg[7] & ~0x1F) | set;
-
-        set = (val >> 5) & 0x1F; // UPHY1 DISC
-        if (!set) {
-                set = DEFAULT_UPHY_DISC;
-        } else if (set <= ORIG_UPHY_DISC) {
-                set += 2;
-        }
-        UPHY1_RN_REG->cfg[7] = (UPHY1_RN_REG->cfg[7] & ~0x1F) | set;
+	if(0 == port_num){
+		set = val & 0x1F; // UPHY0 DISC
+	    if (!set) {
+	            set = DEFAULT_UPHY_DISC;
+	    } else if (set <= ORIG_UPHY_DISC) {
+	            set += 2;
+	    }
+	    UPHY0_RN_REG->cfg[7] = (UPHY0_RN_REG->cfg[7] & ~0x1F) | set;
+	} else if (1 == port_num){
+		set = (val >> 5) & 0x1F; // UPHY1 DISC
+	    if (!set) {
+	            set = DEFAULT_UPHY_DISC;
+	    } else if (set <= ORIG_UPHY_DISC) {
+	            set += 2;
+	    }
+	    UPHY1_RN_REG->cfg[7] = (UPHY1_RN_REG->cfg[7] & ~0x1F) | set;
+	}
 }
 
-static void usb_power_init(int is_host)
+static void usb_power_init(int is_host, int port_num)
 {
-        // a. enable pin mux control (sft_cfg_8, bit2/bit3)
-        //    Host: enable
-        //    Device: disable
+    // a. enable pin mux control (sft_cfg_8, bit2/bit3)
+    //    Host: enable
+    //    Device: disable
 	if (is_host) {
-		MOON1_REG->sft_cfg[3] = RF_MASK_V_SET(3 << 2);
+		MOON1_REG->sft_cfg[3] = RF_MASK_V_SET(1 << (2 + port_num));
 	} else {
-		MOON1_REG->sft_cfg[3] = RF_MASK_V_CLR(3 << 2);
+		MOON1_REG->sft_cfg[3] = RF_MASK_V_CLR(1 << (2 + port_num));
 	}
 
-
-        // b. USB control register:
-        //    Host:   ctrl=1, host sel=1, type=1
-        //    Device  ctrl=1, host sel=0, type=0
+    // b. USB control register:
+    //    Host:   ctrl=1, host sel=1, type=1
+    //    Device  ctrl=1, host sel=0, type=0
 	if (is_host) {
-		MOON4_REG->usbc_ctl = RF_MASK_V_SET((7 << 12) | (7 << 4));
+		if(0 == port_num){
+			MOON4_REG->usbc_ctl = RF_MASK_V_SET(7 << 4);
+		} else if (1 == port_num){
+			MOON4_REG->usbc_ctl = RF_MASK_V_SET(7 << 12);
+		}
 	} else {
-		MOON4_REG->usbc_ctl = RF_MASK_V_SET((1 << 12) | (1 << 4));
-		MOON4_REG->usbc_ctl = RF_MASK_V_CLR((3 << 13) | (3 << 5));
+		if(0 == port_num){
+			MOON4_REG->usbc_ctl = RF_MASK_V_SET(1 << 4);
+			MOON4_REG->usbc_ctl = RF_MASK_V_CLR(3 << 5);
+		} else if (1 == port_num){
+			MOON4_REG->usbc_ctl = RF_MASK_V_SET(1 << 12);
+			MOON4_REG->usbc_ctl = RF_MASK_V_CLR(3 << 13);
+		}
 	}
 }
 
@@ -213,16 +250,18 @@ static int ehci_sunplus_probe(struct udevice *dev)
 
 	hccr = (struct ehci_hccr *)((uint32_t)&priv->ehci->ehci_len_rev);
 	hcor = (struct ehci_hcor *)((uint32_t)&priv->ehci->ehci_usbcmd);
+	printf("%s.%d, dev_name:%s,port_num:%d\n",__FUNCTION__, __LINE__, dev->name, dev->seq);
 
-	uphy_init();
-	usb_power_init(1);
+	uphy_init(dev->seq);
+	usb_power_init(1, dev->seq);
 
 	return ehci_register(dev, hccr, hcor, NULL, 0, plat->init_type);
 }
 
 static int ehci_usb_remove(struct udevice *dev)
 {
-	usb_power_init(0);
+	printf("%s.%d, dev_name:%s,port_num:%d\n",__FUNCTION__, __LINE__, dev->name, dev->seq);
+	usb_power_init(0, dev->seq);
 
 	return ehci_deregister(dev);
 }
