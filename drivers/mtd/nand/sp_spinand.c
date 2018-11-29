@@ -70,6 +70,9 @@ int spi_nand_getfeatures(struct sp_spinand_info *info,uint32_t addr)
 	value = SPINAND_CFG01_DEFAULT;
 	writel(value ,&regs->spi_cfg[1]);
 
+	value = (1<<1);
+	writel(value, &regs->spi_timing);
+
 	value = SPINAND_AUTOCFG_CMDEN;
 	writel(value ,&regs->spi_auto_cfg);
 
@@ -152,6 +155,9 @@ void spi_nand_readid(struct sp_spinand_info *info, uint32_t addr, uint32_t *data
 	value = SPINAND_CFG01_DEFAULT;
 	writel(value ,&regs->spi_cfg[1]);
 
+	value = (1<<1);
+	writel(value, &regs->spi_timing);
+
 	value = SPINAND_AUTOCFG_CMDEN;
 	writel(value ,&regs->spi_auto_cfg);
 
@@ -173,7 +179,7 @@ int spi_nand_blkerase(struct sp_spinand_info *info, uint32_t addr)
 	struct sp_spinand_regs *regs = info->regs;
 	int value = 0;
 	
-	value = (1<<24)|(1<<20)|(1<<19)|(7<<16)|(0xd8<<8)|(1<<7)|(0<<4)|(1<<2)|(3);
+	value = (1<<24)|(1<<20)|(1<<19)|(2<<16)|(0xd8<<8)|(1<<7)|(0<<4)|(1<<2)|(3);
 	writel(value ,&regs->spi_ctrl);
 
 	writel(addr ,&regs->spi_page_addr);
@@ -278,6 +284,9 @@ int spi_nanddma_pageread(struct sp_spinand_info *info, uint32_t addr, unsigned i
 	value = value|size; // 1k data len
 	writel(value, &regs->spi_cfg[0]);
 
+	value = (1<<1);
+	writel(value, &regs->spi_timing);
+
 	if ((addr & 0x40) && (((info->id & 0xFF) == 0xC2)||((info->id & 0xFF) == 0x2C)))		
 		value = 0x1000;
 	else
@@ -310,7 +319,7 @@ int spi_nanddma_pageprogram(struct sp_spinand_info *info, uint32_t addr, unsigne
 	/* polling DMA_OWNER == 0 */
 	while(readl(&regs->spi_auto_cfg) & (1<<17));
 
-	value = (1<<24)|(7<<16)|(1<<7)|(1<<2)|(2);
+	value = (1<<24)|(2<<16)|(1<<7)|(1<<2)|(2);
 	writel(value, &regs->spi_ctrl);
 
 	writel(addr, &regs->spi_page_addr);
