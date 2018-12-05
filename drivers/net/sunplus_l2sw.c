@@ -15,6 +15,26 @@
 //#define cpu_to_le32(x)	(x)
 
 //#define le32_to_cpu(x)	(x)
+#define rounddown(x, y)   (((u32)(x) / (u32)(y)) * (u32)(y))
+
+#define roundup(x, y)   (((u32)(x) / (u32)(y)) * (u32)(y) +(2*y))
+
+#if 1
+
+#define ALIGN_END_ADDR(x) 	\
+	(roundup(x, CONFIG_SYS_CACHELINE_SIZE))
+
+#else
+
+#define ALIGN_END_ADDR(type, ptr, size)			\
+	((unsigned long)(ptr) + roundup((size) * sizeof(type), CONFIG_SYS_CACHELINE_SIZE))
+
+#endif
+
+
+
+#define ALIGN_START_ADDR(x) 	\
+	(rounddown(x, CONFIG_SYS_CACHELINE_SIZE))
 
 static void  spl2sw_hw_init(struct spl2sw_dev *priv)
 {
@@ -44,6 +64,8 @@ static void  spl2sw_hw_init(struct spl2sw_dev *priv)
 static inline void desc_set_buf_len(struct spl2sw_desc *p, u32 buf_sz)
 {
 	p->cmd2 = cpu_to_le32(buf_sz);
+
+	flush_dcache_range(ALIGN_START_ADDR(p), ALIGN_END_ADDR(p));
 }
 
 
@@ -56,15 +78,13 @@ static inline void tx_desc_send_set(struct spl2sw_desc *p,
 	u32	to_vlan=0x1;
 
 	cmd1 = (OWN_BIT | FS_BIT | LS_BIT | (force_dp<<18) | (to_vlan<<12)| (len&LEN_MASK));
-	cmd2 = (len&LEN_MASK);
+	cmd2 = (EOR_BIT|(len&LEN_MASK));
     p->addr1 = cpu_to_le32(paddr);
 	
     p->cmd1 = cmd1;
 	p->cmd2 = cmd2;
-	printf("tx_desc_send_set cmd1= [%x]\n",p->cmd1);
-	printf("tx_desc_send_set cmd2= [%x]\n",p->cmd2);
-	printf("tx_desc_send_set addr1= [%x]\n",p->addr1);
-	printf("tx_desc_send_set addr2= [%x]\n",p->addr2);
+	flush_dcache_range(ALIGN_START_ADDR(p), ALIGN_END_ADDR(p));
+	
 }
 
 
@@ -82,31 +102,44 @@ static inline void desc_init_rx_desc(struct spl2sw_desc *p, int ring_size,
 		desc_set_buf_len(p, buf_sz);
 	}
 	end->cmd2|= cpu_to_le32(EOR_BIT);
+
+	flush_dcache_range(ALIGN_START_ADDR(end), ALIGN_END_ADDR(end));
+	
 }
 
 static inline void desc_init_tx_desc(struct spl2sw_desc *p, u32 ring_size)
 {
 	memset(p, '\0', sizeof(*p) * ring_size);
-	printf("p = %x\n", p);
-	printf("p[ring_size - 1] = %x\n", p[ring_size - 1]);
+	//printf("p = %x\n", p);
+	//printf("p[ring_size - 1] = %x\n", &p[ring_size - 1]);
+	//printf("p[ring_size - 1].cmd2 = %x\n", &p[ring_size - 1].cmd2);
+	//printf("p end = %x\n",  ALIGN_END_ADDR(struct spl2sw_desc, p, 1));
 	p[ring_size - 1].cmd2|= cpu_to_le32(EOR_BIT);
+
+	flush_dcache_range(ALIGN_START_ADDR(&p[ring_size - 1]), ALIGN_END_ADDR(&p[ring_size - 1]));
+	
 }
 
 static inline int desc_get_owner(struct spl2sw_desc *p)
 {
+	flush_dcache_range(ALIGN_START_ADDR(p), ALIGN_END_ADDR(p));
 	return le32_to_cpu(p->cmd1) & OWN_BIT;
 }
 
 static inline void desc_set_rx_owner(struct spl2sw_desc *p)
 {
 	/* Clear all fields and set the owner */
+	
 	p->cmd1 |= cpu_to_le32(OWN_BIT);
+
+	flush_dcache_range(ALIGN_START_ADDR(p), ALIGN_END_ADDR(p));
 }
 
 
 
 static inline int desc_get_rx_frame_len(struct spl2sw_desc *p)
 {
+	flush_dcache_range(ALIGN_START_ADDR(p), ALIGN_END_ADDR(p));
 	u32 data = le32_to_cpu(p->cmd2);
 	u32 len = (data & RXDESC_FRAME_LEN_MASK);
 
@@ -115,6 +148,7 @@ static inline int desc_get_rx_frame_len(struct spl2sw_desc *p)
 
 static inline void *desc_get_buf_addr(struct spl2sw_desc *p)
 {
+	flush_dcache_range(ALIGN_START_ADDR(p), ALIGN_END_ADDR(p));
 	return (void *)le32_to_cpu(p->addr1);
 }
 
@@ -122,6 +156,8 @@ static inline void desc_set_buf_addr(struct spl2sw_desc *p,
 				     void *paddr, int len)
 {
 	p->addr1 = cpu_to_le32(paddr);
+
+	flush_dcache_range(ALIGN_START_ADDR(p), ALIGN_END_ADDR(p));
 }
 
 static void init_rx_desc(struct spl2sw_dev *priv)
@@ -163,14 +199,11 @@ static void init_tx_desc(struct spl2sw_dev *priv)
 	for(i=0; i<TX_DESC_QUEUE_NUM; i++)
 	{
 		priv->tx_desc_num[i] = TX_DESC_NUM;
-		printf("tx_desc1  = %x\n",  priv->tx_desc_chain[i * TX_DESC_NUM]);
-		printf("tx_desc2  = %x\n",  &priv->tx_desc_chain[i * TX_DESC_NUM]);
-		printf("tx_desc3  = %x\n",  priv->tx_desc_chain);
+
 		priv->tx_desc[i] = &priv->tx_desc_chain[i * TX_DESC_NUM];//0x9E820000;
 		desc_init_tx_desc(priv->tx_desc[i], TX_DESC_NUM);
 	}	
 
-	printf("tx_desc  = %x\n", priv->tx_desc[0]);
 	//printf("&tx_desc  = %x\n", &priv->tx_desc[0]);
 	writel(0, &regs->tx_lbase_addr_0);
 	writel(priv->tx_desc[0], &regs->tx_hbase_addr_0);
@@ -368,29 +401,20 @@ static int spl2sw_init(struct eth_device *dev, bd_t * bis)
 	struct spl2sw_dev *priv = dev->priv;
 	int value;
 
-	printf("spl2sw_init1\n");
+	
 	mac_hw_stop(dev);
-
 	/* Initialize the descriptor chains */
 	init_tx_desc(priv);
-	printf("spl2sw_init5\n");
 	init_rx_desc(priv);
-	printf("spl2sw_init6\n");
-
 	/* enable port */
 	spl2sw_enable_port(dev);
-	printf("spl2sw_init3\n");
-
 	/* set the hardware MAC address */
 	spl2sw_hwaddr_set(dev);
-	printf("spl2sw_init4\n");
-
-
 	/* Initialize l2sw hw */
 	spl2sw_hw_init(priv);
 	printf("spl2sw_init end\n");
-	spl2sw_dump_regs(dev);
-	regs->sw_int_mask_0 = 0x00000000;
+	//spl2sw_dump_regs(dev);
+	//regs->sw_int_mask_0 = 0x00000000;
 
 	return 0;
 }
@@ -404,7 +428,7 @@ static int spl2sw_tx(struct eth_device *dev, void *packet, int length)
 	int timeout;
 	//priv->txbuffer =0x9E820100;
 
-	printf("spl2sw_tx, length = %d\n",length);
+	//printf("spl2sw_tx, length = %d\n",length);
 
 	int i;
 	char * temp;
@@ -418,7 +442,7 @@ static int spl2sw_tx(struct eth_device *dev, void *packet, int length)
 	#endif 
 	
 	txdesc = priv->tx_desc[TX_DESC_QUEUE_NUM - 1];
-	printf("txdesc = %x\n",txdesc);
+	//DEBUG0("txdesc = %x\n",txdesc);
 
 	if(length < TX_BUF_MIN_SZ)
 	{
@@ -431,18 +455,13 @@ static int spl2sw_tx(struct eth_device *dev, void *packet, int length)
 		tx_desc_send_set(txdesc, packet, length);
 	}
 
-	init_rx_desc(priv);
-	regs->sw_int_status_0 = 0xffffffff ;
-
 	/* write tx trig */
 	regs->cpu_tx_trig=1;
-	writel(0x1,&regs->cpu_tx_trig);
-
+	//writel(0x1,&regs->cpu_tx_trig);
 
 	timeout = 1000000;
 	while (desc_get_owner(txdesc)) {
-		//printf("le32_to_cpu(txdesc->cmd1) = [%x] \n",le32_to_cpu(txdesc->cmd1));
-		//printf("txdesc->cmd1 = [%x] \n",txdesc->cmd1);
+
 		#if 0
 		DEBUG0("sw_int_status_0     = %x\r\n",regs->sw_int_status_0);
 		if((regs->sw_int_status_0 & 0x00000080) == 0x80)
@@ -455,7 +474,8 @@ static int spl2sw_tx(struct eth_device *dev, void *packet, int length)
 		#endif
 		if (timeout-- < 0) {
 			
-			spl2sw_dump_regs(dev);
+			printf("spl2sw_tx timeout\n");
+			//spl2sw_dump_regs(dev);
 
 			for(i= 0;i<12;i++)
 			{	
@@ -469,7 +489,7 @@ static int spl2sw_tx(struct eth_device *dev, void *packet, int length)
 		
 	}
 	
-	printf("spl2sw_tx done\n");
+	//DEBUG0("spl2sw_tx done\n");
 
 	priv->tx_currdesc = (currdesc + 1) & (TX_DESC_NUM - 1);
 	return 0;
@@ -483,12 +503,24 @@ static int spl2sw_rx(struct eth_device *dev)
 	struct spl2sw_desc *rxdesc = &priv->rx_desc_chain[currdesc];
 	int length = 0;
 
-	//printf("spl2sw_rx\n");
-	/* check if the host has the desc */
-	if (desc_get_owner(rxdesc))
-		return -1; /* something bad happened */
 
+	/* check if the host has the desc */
+	while (desc_get_owner(rxdesc))
+	{
+		currdesc = (currdesc + 1) & (RX_TOTAL_DESC_NUM - 1);
+
+
+		if(currdesc == 0)
+		{
+			priv->rx_currdesc = 0;
+			//DEBUG0("spl2sw_rx,return -1 \n");
+			return -1;
+		}
+			
+		rxdesc = &priv->rx_desc_chain[currdesc];
+	}
 	length = desc_get_rx_frame_len(rxdesc);
+	//printf("spl2sw_rx length = %d\n", length);
 
 	net_process_received_packet(desc_get_buf_addr(rxdesc), length);
 
@@ -507,7 +539,7 @@ static void spl2sw_halt(struct eth_device *dev)
 	int value;
 
 	/* Disable TX/RX */
-	printf("spl2sw_halt\n");
+	DEBUG0("spl2sw_halt\n");
 
 	writel(0xffffffff, &regs->sw_int_mask_0);
 	
@@ -534,7 +566,7 @@ int spl2sw_initialize(u32 id, ulong base_addr)
 	struct spl2sw_regs *regs;
 	u32 macaddr[2];
 
-	printf("spl2sw_initialize\n");
+	DEBUG0("spl2sw_initialize\n");
 
 	regs = (struct spl2sw_regs *)base_addr;
 
@@ -546,14 +578,14 @@ int spl2sw_initialize(u32 id, ulong base_addr)
 	if (!dev)
 		return 0;
 	memset(dev, 0, sizeof(*dev));
-	printf("spl2sw_initialize debug 1\n");
+	//DEBUG0("spl2sw_initialize debug 1\n");
 	/* Structure must be aligned, because it contains the descriptors */
 	priv = memalign(32, sizeof(*priv));
 	if (!priv) {
 		free(dev);
 		return 0;
 	}
-	printf("spl2sw_initialize debug 2\n");
+	//DEBUG0("spl2sw_initialize debug 2\n");
 
 	dev->iobase = (int)base_addr;
 	dev->priv = priv;
@@ -570,10 +602,10 @@ int spl2sw_initialize(u32 id, ulong base_addr)
 	dev->send = spl2sw_tx;
 	dev->recv = spl2sw_rx;
 	dev->halt = spl2sw_halt;
-	printf("spl2sw_initialize debug 3\n");
+	//DEBUG0("spl2sw_initialize debug 3\n");
 
 	eth_register(dev);
-	printf("spl2sw_initialize debug 4\n");
+	//DEBUG0("spl2sw_initialize debug 4\n");
 	/* set broad pinmux */
 	spl2sw_pinmux_set(dev);
 

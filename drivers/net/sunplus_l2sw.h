@@ -12,10 +12,10 @@
 
 #include <linux/compiler.h>
 
-#define PHY0_ADDR			0x2
-#define PHY1_ADDR			0x3
+#define PHY0_ADDR			0x0
+#define PHY1_ADDR			0x1
 /* define DESC NUM*/
-#define	TX_DESC_NUM			8
+#define	TX_DESC_NUM			1
 #define	RX_DESC_NUM			8
 #define RX_QUEUE0_DESC_NUM	8
 #define RX_QUEUE1_DESC_NUM	8
