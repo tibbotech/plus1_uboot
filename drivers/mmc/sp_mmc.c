@@ -1374,8 +1374,6 @@ int sp_emmc_hw_check_error (sp_mmc_host *host, bool with_data)
 	int ret = 0;
 
 	if (host->ebase->sdstate_new & SDSTATE_NEW_ERROR_TIMEOUT) {
-		EPRINTK("cmd %d failed with sdstate = %x, sdstatus = %x\n",
-			host->current_cmd->cmdidx, host->ebase->sd_state, host->ebase->sdstatus);
 		/* Response related errors */
 		if (host->ebase->sdstatus & SP_SDSTATUS_WAIT_RSP_TIMEOUT)
 			ret = -ETIMEDOUT;
