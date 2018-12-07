@@ -140,7 +140,7 @@ static inline void desc_set_rx_owner(struct spl2sw_desc *p)
 static inline int desc_get_rx_frame_len(struct spl2sw_desc *p)
 {
 	flush_dcache_range(ALIGN_START_ADDR(p), ALIGN_END_ADDR(p));
-	u32 data = le32_to_cpu(p->cmd2);
+	u32 data = le32_to_cpu(p->cmd1);
 	u32 len = (data & RXDESC_FRAME_LEN_MASK);
 
 	return len;
@@ -520,7 +520,7 @@ static int spl2sw_rx(struct eth_device *dev)
 		rxdesc = &priv->rx_desc_chain[currdesc];
 	}
 	length = desc_get_rx_frame_len(rxdesc);
-	//printf("spl2sw_rx length = %d\n", length);
+	printf("spl2sw_rx length = %d\n", length);
 
 	net_process_received_packet(desc_get_buf_addr(rxdesc), length);
 
