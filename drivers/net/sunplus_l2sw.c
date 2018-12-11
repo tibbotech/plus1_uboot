@@ -84,6 +84,7 @@ static inline void tx_desc_send_set(struct spl2sw_desc *p,
     p->cmd1 = cmd1;
 	p->cmd2 = cmd2;
 	flush_dcache_range(ALIGN_START_ADDR(p), ALIGN_END_ADDR(p));
+	flush_dcache_range(ALIGN_START_ADDR(p->addr1), ALIGN_END_ADDR(p->addr1 + 1500));
 	
 }
 
@@ -149,6 +150,7 @@ static inline int desc_get_rx_frame_len(struct spl2sw_desc *p)
 static inline void *desc_get_buf_addr(struct spl2sw_desc *p)
 {
 	flush_dcache_range(ALIGN_START_ADDR(p), ALIGN_END_ADDR(p));
+	flush_dcache_range(ALIGN_START_ADDR(p->addr1), ALIGN_END_ADDR(p->addr1 + 1500));
 	return (void *)le32_to_cpu(p->addr1);
 }
 
