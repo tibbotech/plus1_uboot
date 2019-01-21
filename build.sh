@@ -1,12 +1,12 @@
 function build_uboot() {
-	export CROSS_COMPILE=armv7hf-glibc-linux-
+	export CROSS_COMPILE=arm-linux-gnueabihf-
 	make $1
 	make clean
 	make all -j8
 }
 
 # check if toolchain is ok or nor
-which armv7hf-glibc-linux-gcc
+which arm-linux-gnueabihf-gcc
 if [ $? -eq 0 ]; then
 	echo "toolchain is ready."
 else
@@ -14,7 +14,7 @@ else
 	echo "toolchain is not ready!"
 	echo "Adding toolchain path to your \$PATH"
 	echo ""
-	export PATH=$PATH:../../build/tools/armv7-eabihf--glibc--stable/bin
+	export PATH="../../build/tools/arm-linux-gnueabihf/bin/:$PATH"
 fi
 
 # check if config is ok or not
