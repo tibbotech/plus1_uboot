@@ -140,14 +140,21 @@ config NAND_ARASAN
 	  controller. This uses the hardware ECC for read and
 	  write operations.
 
-config  SP_SPINAND	  
+config SP_SPINAND	  
 	bool "Sunplus SPI NAND Controller Interface support"
+	select SP_NAND_BBLK
 	depends on DM || MTD
 	imply CMD_NAND
 	help
 	  This selects the Sunplus SPI NAND Controller Interface.
 	  If you have a controller with this interface, say Y here.
 	  If unsure, say N.	  
+
+config SP_NAND_BBLK
+	bool "Sunplus boot block feature"
+	help
+	  Sunplus' bootloader needs this feature to write nand boot
+	  block data.
 
 config  USE_SP_BCH
 	bool "Sunplus SPI NAND BCH Interface support"
