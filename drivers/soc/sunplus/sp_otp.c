@@ -102,7 +102,7 @@ struct sunplus_hbgpio {
 static volatile struct otprx_sunplus *regs = (volatile struct otprx_sunplus *)(OTPRX_BASE_ADR);
 static volatile struct hbgpio_sunplus *otp_data = (volatile struct hbgpio_sunplus *)(HB_GPIO);
 
-int readOTPData(int addr, char *value)
+int read_otp_data(int addr, char *value)
 {        	
 	unsigned int addr_data;
 	unsigned int byte_shift;
@@ -151,7 +151,7 @@ static int do_read_otp(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]
 		if (addr >= QAC628_OTP_SIZE)
 			return CMD_RET_USAGE;
 		
-	    if (readOTPData(addr, &value) == -1)
+	    if (read_otp_data(addr, &value) == -1)
 			return CMD_RET_FAILURE;
 
 		data = value;
@@ -166,7 +166,7 @@ static int do_read_otp(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]
 		
 		for (addr = 0 ; addr < (QAC628_OTP_SIZE - 1); addr += (QAC628_OTP_WORD_SIZE * QAC628_OTP_WORDS_PER_BANK))
 		{
-	        if (readOTPData(addr, &value) == -1)
+	        if (read_otp_data(addr, &value) == -1)
 			    return CMD_RET_FAILURE;
 			
 			for (i = 0; i < 4; i++, j++)
