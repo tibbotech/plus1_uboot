@@ -12,6 +12,7 @@
 #ifndef _DT_BINDINGS_PINMUX_Q628_H
 #define _DT_BINDINGS_PINMUX_Q628_H
 
+/* For pinmux select */
 #define	G_MX_UNDEFINED   0 
 #define	G_MX00_GPIO_P0_0 0 
 #define	G_MX01_GPIO_P0_1 0 
@@ -208,5 +209,87 @@
 #define	PMX_GPIO_INT5    0x031a4008			// (0-64, 8)	
 #define	PMX_GPIO_INT6    0x031b4000			// (0-64, 0)	
 #define	PMX_GPIO_INT7    0x031b4008			// (0-64, 8)
+
+/* For gpio select */
+#define	PINSEL_00   0    /*G_MX00_GPIO_P0_0*/   
+#define	PINSEL_01   1    /*G_MX01_GPIO_P0_1*/
+#define	PINSEL_02   2    /*G_MX02_GPIO_P0_2*/
+#define	PINSEL_03   3    /*G_MX03_GPIO_P0_3*/
+#define	PINSEL_04   4    /*G_MX04_GPIO_P0_4*/
+#define	PINSEL_05   5    /*G_MX05_GPIO_P0_5*/
+#define	PINSEL_06   6    /*G_MX06_GPIO_P0_6*/
+#define	PINSEL_07   7    /*G_MX07_GPIO_P0_7*/ 
+#define	PINSEL_08   8    /*G_MX08_GPIO_P1_0*/ 
+#define	PINSEL_09   9    /*G_MX09_GPIO_P1_1*/ 
+#define	PINSEL_10  10    /*G_MX10_GPIO_P1_2*/ 
+#define	PINSEL_11  11    /*G_MX11_GPIO_P1_3*/ 
+#define	PINSEL_12  12    /*G_MX12_GPIO_P1_4*/ 
+#define	PINSEL_13  13    /*G_MX13_GPIO_P1_5*/ 
+#define	PINSEL_14  14    /*G_MX14_GPIO_P1_6*/ 
+#define	PINSEL_15  15    /*G_MX15_GPIO_P1_7*/ 
+#define	PINSEL_16  16    /*G_MX16_GPIO_P2_0*/ 
+#define	PINSEL_17  17    /*G_MX17_GPIO_P2_1*/ 
+#define	PINSEL_18  18    /*G_MX18_GPIO_P2_2*/ 
+#define	PINSEL_19  19    /*G_MX19_GPIO_P2_3*/ 
+#define	PINSEL_20  20    /*G_MX20_GPIO_P2_4*/ 
+#define	PINSEL_21  21    /*G_MX21_GPIO_P2_5*/ 
+#define	PINSEL_22  22    /*G_MX22_GPIO_P2_6*/ 
+#define	PINSEL_23  23    /*G_MX23_GPIO_P2_7*/ 
+#define	PINSEL_24  24    /*G_MX24_GPIO_P3_0*/ 
+#define	PINSEL_25  25    /*G_MX25_GPIO_P3_1*/ 
+#define	PINSEL_26  26    /*G_MX26_GPIO_P3_2*/ 
+#define	PINSEL_27  27    /*G_MX27_GPIO_P3_3*/ 
+#define	PINSEL_28  28    /*G_MX28_GPIO_P3_4*/ 
+#define	PINSEL_29  29    /*G_MX29_GPIO_P3_5*/ 
+#define	PINSEL_30  30    /*G_MX30_GPIO_P3_6*/ 
+#define	PINSEL_31  31    /*G_MX31_GPIO_P3_7*/ 
+#define	PINSEL_32  32    /*G_MX32_GPIO_P4_0*/ 
+#define	PINSEL_33  33    /*G_MX33_GPIO_P4_1*/ 
+#define	PINSEL_34  34    /*G_MX34_GPIO_P4_2*/ 
+#define	PINSEL_35  35    /*G_MX35_GPIO_P4_3*/ 
+#define	PINSEL_36  36    /*G_MX36_GPIO_P4_4*/ 
+#define	PINSEL_37  37    /*G_MX37_GPIO_P4_5*/ 
+#define	PINSEL_38  38    /*G_MX38_GPIO_P4_6*/ 
+#define	PINSEL_39  39    /*G_MX39_GPIO_P4_7*/ 
+#define	PINSEL_40  40    /*G_MX40_GPIO_P5_0*/ 
+#define	PINSEL_41  41    /*G_MX41_GPIO_P5_1*/ 
+#define	PINSEL_42  42    /*G_MX42_GPIO_P5_2*/ 
+#define	PINSEL_43  43    /*G_MX43_GPIO_P5_3*/ 
+#define	PINSEL_44  44    /*G_MX44_GPIO_P5_4*/ 
+#define	PINSEL_45  45    /*G_MX45_GPIO_P5_5*/ 
+#define	PINSEL_46  46    /*G_MX46_GPIO_P5_6*/ 
+#define	PINSEL_47  47    /*G_MX47_GPIO_P5_7*/ 
+#define	PINSEL_48  48    /*G_MX48_GPIO_P6_0*/ 
+#define	PINSEL_49  49    /*G_MX49_GPIO_P6_1*/ 
+#define	PINSEL_50  50    /*G_MX50_GPIO_P6_2*/ 
+#define	PINSEL_51  51    /*G_MX51_GPIO_P6_3*/ 
+#define	PINSEL_52  52    /*G_MX52_GPIO_P6_4*/ 
+#define	PINSEL_53  53    /*G_MX53_GPIO_P6_5*/ 
+#define	PINSEL_54  54    /*G_MX54_GPIO_P6_6*/ 
+#define	PINSEL_55  55    /*G_MX55_GPIO_P6_7*/ 
+#define	PINSEL_56  56    /*G_MX56_GPIO_P7_0*/ 
+#define	PINSEL_57  57    /*G_MX57_GPIO_P7_1*/ 
+#define	PINSEL_58  58    /*G_MX58_GPIO_P7_2*/ 
+#define	PINSEL_59  59    /*G_MX59_GPIO_P7_3*/ 
+#define	PINSEL_60  60    /*G_MX60_GPIO_P7_4*/ 
+#define	PINSEL_61  61    /*G_MX61_GPIO_P7_5*/ 
+#define	PINSEL_62  62    /*G_MX62_GPIO_P7_6*/ 
+#define	PINSEL_63  63    /*G_MX63_GPIO_P7_7*/ 
+#define	PINSEL_64  64    /*G_MX64_GPIO_P8_0*/ 
+#define	PINSEL_65  65    /*G_MX65_GPIO_P8_1*/ 
+#define	PINSEL_66  66    /*G_MX66_GPIO_P8_2*/ 
+#define	PINSEL_67  67    /*G_MX67_GPIO_P8_3*/ 
+#define	PINSEL_68  68    /*G_MX68_GPIO_P8_4*/ 
+#define	PINSEL_69  69    /*G_MX69_GPIO_P8_5*/ 
+#define	PINSEL_70  70    /*G_MX70_GPIO_P8_6*/ 
+#define	PINSEL_71  71    /*G_MX71_GPIO_P8_7*/ 
+
+#define	GPIO_OUT		0
+#define	GPIO_OUT_OD		1
+#define	GPIO_IN			2
+
+#define	GPIO_LOW		0
+#define	GPIO_HIGH		1
+#define	GPIO_NULL		2
 
 #endif
