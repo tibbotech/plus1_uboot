@@ -206,17 +206,17 @@ int spl2sw_pinmux_set(struct eth_device *dev)
 	u32 reg;
 	struct spl2sw_regs *regs = (struct spl2sw_regs *)dev->iobase;
 
-	MOON2_REG->sft_cfg[0] = 0x22282228;
-	MOON2_REG->sft_cfg[1] = 0x17231723;
-	MOON2_REG->sft_cfg[2] = 0x202C202C;
-	MOON2_REG->sft_cfg[3] = 0x2B212B21;
-	MOON2_REG->sft_cfg[4] = 0x2A292A29;
-	MOON2_REG->sft_cfg[5] = 0x26252625;
-	MOON2_REG->sft_cfg[6] = 0x24272427;
-	MOON2_REG->sft_cfg[7] = 0x1D1F1D1F;
-	MOON2_REG->sft_cfg[8] = 0x191E191E;
-	MOON2_REG->sft_cfg[9] = 0x1B1A1B1A;
-	MOON2_REG->sft_cfg[10] = 0x01000100;
+	//MOON2_REG->sft_cfg[0] = 0x22282228;
+	//MOON2_REG->sft_cfg[1] = 0x17231723;
+	//MOON2_REG->sft_cfg[2] = 0x202C202C;
+	//MOON2_REG->sft_cfg[3] = 0x2B212B21;
+	//MOON2_REG->sft_cfg[4] = 0x2A292A29;
+	//MOON2_REG->sft_cfg[5] = 0x26252625;
+	//MOON2_REG->sft_cfg[6] = 0x24272427;
+	//MOON2_REG->sft_cfg[7] = 0x1D1F1D1F;
+	//MOON2_REG->sft_cfg[8] = 0x191E191E;
+	//MOON2_REG->sft_cfg[9] = 0x1B1A1B1A;
+	//MOON2_REG->sft_cfg[10] = 0x01000100;
 
 	//set clock
 	reg = MOON5_REG->sft_cfg[5];
