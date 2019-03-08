@@ -53,7 +53,7 @@ static void  spl2sw_hw_init(struct spl2sw_dev *priv)
 	reg=readl(&regs->port_cntl0);
 	writel(reg&(~(0x3<<24)),&regs->port_cntl0);
 
-	reg=reg=readl(&regs->cpu_cntl);
+	reg=readl(&regs->cpu_cntl);
 	writel(reg&(~(0x3F<<0)),&regs->cpu_cntl);
 }
 
@@ -151,12 +151,11 @@ static inline void desc_set_buf_addr(struct spl2sw_desc *p, void *paddr, int len
 static void init_rx_desc(struct spl2sw_dev *priv)
 {
 	struct spl2sw_desc *rxdesc;
-	struct spl2sw_regs *regs = (struct spl2sw_desc *)priv->dev->iobase;
+	struct spl2sw_regs *regs = (struct spl2sw_regs *)priv->dev->iobase;
 	void *rxbuffer = priv->rxbuffer;
 	int i,j;
 
 	for (i=0; i<RX_DESC_QUEUE_NUM; i++) {
-
 		priv->rx_desc_num[i] = RX_DESC_NUM;
 		priv->rx_desc[i] = &priv->rx_desc_chain[i * RX_DESC_NUM];
 		desc_init_rx_desc(priv->rx_desc[i], RX_DESC_NUM, ETH_BUF_SZ);
@@ -171,13 +170,13 @@ static void init_rx_desc(struct spl2sw_dev *priv)
 		}
 	}
 
-	writel(priv->rx_desc[0], &regs->rx_lbase_addr_0);
-	writel(priv->rx_desc[1], &regs->rx_hbase_addr_0);
+	writel((int)priv->rx_desc[0], &regs->rx_lbase_addr_0);
+	writel((int)priv->rx_desc[1], &regs->rx_hbase_addr_0);
 }
 
 static void init_tx_desc(struct spl2sw_dev *priv)
 {
-	struct spl2sw_regs *regs = (struct spl2sw_desc *)priv->dev->iobase;
+	struct spl2sw_regs *regs = (struct spl2sw_regs *)priv->dev->iobase;
 	int i;
 
 	for (i=0; i<TX_DESC_QUEUE_NUM; i++) {
@@ -189,7 +188,7 @@ static void init_tx_desc(struct spl2sw_dev *priv)
 
 	//printf("&tx_desc  = %x\n", &priv->tx_desc[0]);
 	writel(0, &regs->tx_lbase_addr_0);
-	writel(priv->tx_desc[0], &regs->tx_hbase_addr_0);
+	writel((int)priv->tx_desc[0], &regs->tx_hbase_addr_0);
 }
 
 
@@ -231,6 +230,8 @@ int spl2sw_pinmux_set(struct eth_device *dev)
 	writel((reg&(~(0x1f<<16)))|(PHY0_ADDR<<16), &regs->mac_force_mode);
 	reg=readl(&regs->mac_force_mode);
 	writel((reg&(~(0x1f<<24)))|(PHY1_ADDR<<24), &regs->mac_force_mode);
+
+	return 0;
 }
 
 void spl2sw_enable_port(struct eth_device *dev)
@@ -242,10 +243,7 @@ void spl2sw_enable_port(struct eth_device *dev)
 	u8 proxy=0x0;
 	u8 mc_ingress=0x0;
 	u8 vlan_id=0x0;
-	u8 vlan_memset=0x9;
-
 	struct spl2sw_regs *regs = (struct spl2sw_regs *)dev->iobase;
-
 
 	//phy address
 	reg=readl(&regs->mac_force_mode);
@@ -274,7 +272,6 @@ void spl2sw_enable_port(struct eth_device *dev)
 
 void spl2sw_dump_regs(struct eth_device *dev)
 {
-	u32 reg;
 	struct spl2sw_regs *regs = (struct spl2sw_regs *)dev->iobase;
 
 	DEBUG0("moon 0.10       = %x\r\n",MOON0_REG->clken[9]);
@@ -355,7 +352,6 @@ void spl2sw_dump_regs(struct eth_device *dev)
 static int mac_hw_stop(struct eth_device *dev)
 {
 	struct spl2sw_regs *regs = (struct spl2sw_regs *)dev->iobase;
-	struct spl2sw_dev *priv = dev->priv;
 	int reg;
 
 	regs->sw_int_mask_0 = 0xffffffff;
@@ -366,14 +362,14 @@ static int mac_hw_stop(struct eth_device *dev)
 
 	reg = regs->port_cntl0;
 	regs->port_cntl0 = DIS_PORT_RX | reg;
+
+	return 0;
 }
 
 
 static int spl2sw_init(struct eth_device *dev, bd_t * bis)
 {
-	struct spl2sw_regs *regs = (struct spl2sw_regs *)dev->iobase;
 	struct spl2sw_dev *priv = dev->priv;
-	int value;
 
 	mac_hw_stop(dev);
 
@@ -409,7 +405,7 @@ static int spl2sw_tx(struct eth_device *dev, void *packet, int length)
 	//printf("spl2sw_tx, length = %d\n",length);
 
 	int i;
-	char * temp;
+	//char * temp;
 
 	#if 0
 	temp=packet;
@@ -469,7 +465,6 @@ static int spl2sw_tx(struct eth_device *dev, void *packet, int length)
 
 static int spl2sw_rx(struct eth_device *dev)
 {
-	struct spl2sw_regs *regs = (struct spl2sw_regs *)dev->iobase;
 	struct spl2sw_dev *priv = dev->priv;
 	u32 currdesc = priv->rx_currdesc;
 	struct spl2sw_desc *rxdesc = &priv->rx_desc_chain[currdesc];
@@ -530,12 +525,10 @@ int spl2sw_initialize(u32 id, ulong base_addr)
 {
 	struct eth_device *dev;
 	struct spl2sw_dev *priv;
-	struct spl2sw_regs *regs;
-	u32 macaddr[2];
+	//struct spl2sw_regs *regs = (struct spl2sw_regs *)base_addr;
+	//u32 macaddr[2];
 
 	DEBUG0("spl2sw_initialize\n");
-
-	regs = (struct spl2sw_regs *)base_addr;
 
 	/* check hardware version */
 	//if (readl(&regs->version) != 0x1012)
