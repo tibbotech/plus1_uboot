@@ -22,12 +22,16 @@ typedef unsigned char BYTE;
 #define diag_printf(s...) ((void)0)
 #endif
 
-//#define DEBUG
+#define DEBUG
 #ifdef DEBUG
 #define msg_printf(fmt, arg...) printf(fmt, ##arg)
 #else
 #define msg_printf(s...) ((void)0)
 #endif
+#define SP_SPINOR_DMA 1
+
+#define CFG_BUFF_MAX		(18 << 10)
+#define CONFIG_SRAM_BASE                0x9e800000
 
 #define CMD_BUF_LEN 4
 
@@ -243,11 +247,25 @@ struct pentagram_spi_nor_platdata {
 	unsigned int clock;
 	unsigned int mode;
 };
-
+#if (SP_SPINOR_DMA)
+struct spinorbufdesc{
+		uint32_t idx;
+		uint32_t size;
+           dma_addr_t phys;
+}__aligned(ARCH_DMA_MINALIGN) ;
+#endif
 struct pentagram_spi_nor_priv {
-	struct pentagram_spi_nor_regs *regs;
-	unsigned int clock;
-	unsigned int mode;
+    struct pentagram_spi_nor_regs *regs;
+    unsigned int clock;
+    unsigned int mode;
+#if (SP_SPINOR_DMA)
+    struct  spinorbufdesc wchain;
+    struct  spinorbufdesc rchain;
+    UINT8 w_buf[CFG_BUFF_MAX] __aligned(ARCH_DMA_MINALIGN);
+    UINT8 r_buf[CFG_BUFF_MAX] __aligned(ARCH_DMA_MINALIGN);
+#endif
 };
+
+
 
 #endif /* __SP_SPI_NOR_H */
