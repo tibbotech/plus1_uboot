@@ -29,89 +29,90 @@ int AV1_GetStc32(void)
 
 static void spi_nor_io_CUST_config(UINT8 cmd_b, UINT8 addr_b, UINT8 data_b, SPI_ENHANCE enhance,UINT8 dummy)
 {
-	UINT32 config;
-	if(enhance.enhance_en == 1)
-	{
-		config = spi_reg->spi_cfg0  & CLEAR_ENHANCE_DATA;
-		if(enhance.enhance_bit == 4)
-		{
-			config &= ~(1<<18);
-		}else if(enhance.enhance_bit == 8)
-		{
-			config |= (1<<18);
-		}
-		spi_reg->spi_cfg0 = config | ENHANCE_DATA(enhance.enhance_data);
-	}
-	config = 0;
-	switch (cmd_b)
-	{
-		case 4:
-			config |= SPI_CMD_4b | SPI_CMD_OEN_4b;
-			break;
-		case 2:
-			config |= SPI_CMD_2b | SPI_CMD_OEN_2b;
-			break;
-		case 1:
-			config |= SPI_CMD_1b | SPI_CMD_OEN_1b;
-			break;
-		case 0:
-		default:
-			config |= SPI_CMD_NO | SPI_CMD_OEN_NO;
-			break;
-	}
-	switch (addr_b)
-	{
-		case 4:
-			config |= SPI_ADDR_4b | SPI_ADDR_OEN_4b;
-			break;
-		case 2:
-			config |= SPI_ADDR_2b | SPI_ADDR_OEN_2b;
-			break;
-		case 1:
-			config |= SPI_ADDR_1b | SPI_ADDR_OEN_1b;
-			break;
-		case 0:
-		default:
-			config |= SPI_ADDR_NO | SPI_ADDR_OEN_NO;
-			break;
-	}
-	switch (data_b)
-	{
-		case 4:
-			config |= SPI_DATA_4b | SPI_DATA_OEN_4b;
-			break;
-		case 2:
-			config |= SPI_DATA_2b | SPI_DATA_OEN_2b;
-			break;
-		case 1:
-			config |= SPI_DATA_1b | SPI_DATA_OEN_1b | SPI_DATA_IEN_DQ1;
-			break;
-		case 0:
-		default:
-			config |= SPI_DATA_NO | SPI_DATA_OEN_NO;
-			break;
-	}
-	switch (enhance.enhance_bit_mode)
-	{
-		case 4:
-			config |= SPI_ENHANCE_4b;
-			break;                  
-		case 2:                     
-			config |= SPI_ENHANCE_2b;
-			break;                  
-		case 1:                     
-			config |= SPI_ENHANCE_1b;
-			break;                  
-		case 0:                     
-		default:                    
-			config |= SPI_ENHANCE_NO;
-			break;
-	}
-	spi_reg->spi_cfg1 =   config | SPI_DUMMY_CYC(dummy);
+    UINT32 config;
+    if(enhance.enhance_en == 1)
+    {
+        config = spi_reg->spi_cfg0  & CLEAR_ENHANCE_DATA;
+        if(enhance.enhance_bit == 4)
+        {
+            config &= ~(1<<18);
+        }else if(enhance.enhance_bit == 8)
+        {
+            config |= (1<<18);
+        }
+        spi_reg->spi_cfg0 = config | ENHANCE_DATA(enhance.enhance_data);
+    }
+    config = 0;
+    switch (cmd_b)
+    {
+        case 4:
+            config |= SPI_CMD_4b | SPI_CMD_OEN_4b;
+            break;
+        case 2:
+            config |= SPI_CMD_2b | SPI_CMD_OEN_2b;
+            break;
+        case 1:
+            config |= SPI_CMD_1b | SPI_CMD_OEN_1b;
+            break;
+        case 0:
+        default:
+            config |= SPI_CMD_NO | SPI_CMD_OEN_NO;
+            break;
+    }
+    switch (addr_b)
+    {
+        case 4:
+            config |= SPI_ADDR_4b | SPI_ADDR_OEN_4b;
+            break;
+        case 2:
+            config |= SPI_ADDR_2b | SPI_ADDR_OEN_2b;
+            break;
+        case 1:
+            config |= SPI_ADDR_1b | SPI_ADDR_OEN_1b;
+            break;
+        case 0:
+        default:
+            config |= SPI_ADDR_NO | SPI_ADDR_OEN_NO;
+            break;
+    }
+    switch (data_b)
+    {
+        case 4:
+            config |= SPI_DATA_4b | SPI_DATA_OEN_4b;
+            break;
+        case 2:
+            config |= SPI_DATA_2b | SPI_DATA_OEN_2b;
+            break;
+        case 1:
+            config |= SPI_DATA_1b | SPI_DATA_OEN_1b | SPI_DATA_IEN_DQ1;
+            break;
+        case 0:
+        default:
+            config |= SPI_DATA_NO | SPI_DATA_OEN_NO;
+            break;
+    }
+    switch (enhance.enhance_bit_mode)
+    {
+        case 4:
+            config |= SPI_ENHANCE_4b;
+            break;                  
+        case 2:                     
+            config |= SPI_ENHANCE_2b;
+            break;                  
+        case 1:                     
+            config |= SPI_ENHANCE_1b;
+            break;                  
+        case 0:                     
+        default:                    
+            config |= SPI_ENHANCE_NO;
+            break;
+    }
+    spi_reg->spi_cfg1 =   config | SPI_DUMMY_CYC(dummy);
     spi_reg->spi_cfg2 =   config | SPI_DUMMY_CYC(dummy);
-	msg_printf("spi_reg->spi_cfg0 0x%x\n",spi_reg->spi_cfg0);
-	msg_printf("spi_reg->spi_cfg1 0x%x\n",spi_reg->spi_cfg1);
+    msg_printf("spi_reg->spi_cfg0 0x%x\n",spi_reg->spi_cfg0);
+    msg_printf("spi_reg->spi_cfg1 0x%x\n",spi_reg->spi_cfg1);
 }
+
 #if (SP_SPINOR_DMA)
 static void spi_readcmd_set(UINT8 cmd)
 {
@@ -147,73 +148,24 @@ static void spi_readcmd_set(UINT8 cmd)
 	
 	return ;
 }
-#else
-static void spi_fast_read_enable(void)
-{
-	SPI_ENHANCE enhance;
-	enhance.enhance_en = 0;
-	diag_printf("%s\n",__FUNCTION__);
-	while((spi_reg->spi_ctrl & SPI_CTRL_BUSY)!=0)
-	{
-		msg_printf("wait spi_reg->spi_ctrl 0x%x\n",spi_reg->spi_ctrl);
-	};
-	spi_reg->spi_ctrl = A_CHIP | SPI_CLK_D_16;
-	spi_nor_io_CUST_config(CMD_1,ADDR_1,DATA_1,enhance,DUMMY_CYCLE(8));
-	return ;
-}
-static void spi_fast_read_disable(void)
-{
-	SPI_ENHANCE enhance;
-	enhance.enhance_en = 0;
-	diag_printf("%s\n",__FUNCTION__);
-	while((spi_reg->spi_ctrl & SPI_CTRL_BUSY)!=0)
-	{
-		msg_printf("wait spi_reg->spi_ctrl 0x%x\n",spi_reg->spi_ctrl);
-	};
-	spi_reg->spi_ctrl = A_CHIP | SPI_CLK_D_32;
-	spi_nor_io_CUST_config(CMD_1,ADDR_1,DATA_1,enhance,DUMMY_CYCLE(0));
-	return ;
-}
-#endif
-static UINT8 spi_nor_read_status1(void)
-{
-	diag_printf("%s\n",__FUNCTION__);
-	UINT32 ctrl;
-	ctrl = spi_reg->spi_ctrl & CLEAR_CUST_CMD;
-	ctrl = ctrl | READ | BYTE_0 | ADDR_0B | CUST_CMD(0x05);
-	while((spi_reg->spi_ctrl & SPI_CTRL_BUSY)!=0)
-	{
-		msg_printf("wait spi_reg->spi_ctrl 0x%x\n",spi_reg->spi_ctrl);
-	};
-	spi_reg->spi_data = 0;
-	spi_reg->spi_ctrl = ctrl;
-	spi_reg->spi_auto_cfg |= PIO_TRIGGER;
-	while((spi_reg->spi_auto_cfg & PIO_TRIGGER)!=0)
-	{
-		msg_printf("wait PIO_TRIGGER\n");
-	};
-	msg_printf("spi_reg->spi_status 0x%x\n",spi_reg->spi_status);
-	return (spi_reg->spi_status&0xff);
-}
 
-#if (SP_SPINOR_DMA)
 static int spi_flash_xfer_DMAread(struct pentagram_spi_nor_priv *priv,UINT8 *cmd, size_t cmd_len, void *data, size_t data_len)
 {
     diag_printf("%s\n",__FUNCTION__);
     UINT32 addr_temp = 0;
-    UINT8 *data_in = data;
+    //UINT8 *data_in = data;
     UINT32 time = 0;
     UINT32 ctrl = 0;
     UINT32 autocfg = 0;
-    int fast_read = 0;
+    //int fast_read = 0;
     int value = 0;
     struct spinorbufdesc *desc_r = &priv->rchain;
-    UINT32 desc_start = (UINT32)desc_r;
-    UINT32 desc_end = (UINT32)desc_r + roundup(sizeof(*desc_r), ARCH_DMA_MINALIGN);
+    //UINT32 desc_start = (UINT32)desc_r;
+    //UINT32 desc_end = (UINT32)desc_r + roundup(sizeof(*desc_r), ARCH_DMA_MINALIGN);
     ulong data_end;
     
     msg_printf("addr 0x%x\n", desc_r->phys);
-    msg_printf("desc_start 0x%x, desc_end 0x%x\n", desc_start, desc_end);
+    //msg_printf("desc_start 0x%x, desc_end 0x%x\n", desc_start, desc_end);
     /* Invalidate entire buffer descriptor */
     //invalidate_dcache_range(desc_start, desc_end);
     
@@ -287,6 +239,7 @@ static int spi_flash_xfer_DMAread(struct pentagram_spi_nor_priv *priv,UINT8 *cmd
 		msg_printf("wait spi_reg->spi_ctrl 0x%x\n",spi_reg->spi_ctrl);
     };
     msg_printf("spi_status 0x%x spi_status_2 0x%x\n", spi_reg->spi_status, spi_reg->spi_status_2);
+
     /* Invalidate received data */
     invalidate_dcache_range(rounddown(desc_r->phys, ARCH_DMA_MINALIGN),
     					                              roundup(data_end,ARCH_DMA_MINALIGN));
@@ -300,7 +253,6 @@ static int spi_flash_xfer_DMAread(struct pentagram_spi_nor_priv *priv,UINT8 *cmd
     //{
     //    spi_fast_read_disable();
     //}
-
     return 0;
 }
 
@@ -308,21 +260,20 @@ static int spi_flash_xfer_DMAwrite(struct pentagram_spi_nor_priv *priv, UINT8 *c
 {
     diag_printf("%s\n",__FUNCTION__);
     UINT32 total_count = data_len;
-    UINT32 addr_offset = 0;
     UINT32 addr_temp = 0;
-    UINT8 *data_in = (UINT8 *)data;
-    UINT8 *data_o;
+    //UINT8 *data_in = (UINT8 *)data;
+    //UINT8 *data_o;
     UINT32 time = 0;
     UINT32 ctrl = 0;
     UINT32 autocfg = 0;
     int value = 0;
     struct spinorbufdesc *desc_w = &priv->wchain;
-    UINT32 desc_start = (UINT32)desc_w;
-    UINT32 desc_end = (UINT32)desc_w + roundup(sizeof(*desc_w), ARCH_DMA_MINALIGN);
+    //UINT32 desc_start = (UINT32)desc_w;
+    //UINT32 desc_end = (UINT32)desc_w + roundup(sizeof(*desc_w), ARCH_DMA_MINALIGN);
     ulong data_end = desc_w->phys + roundup(data_len, ARCH_DMA_MINALIGN);
 
     msg_printf("addr 0x%x\n", desc_w->phys);
-    msg_printf("desc_start 0x%x, desc_end 0x%x\n", desc_start, desc_end);
+   // msg_printf("desc_start 0x%x, desc_end 0x%x\n", desc_start, desc_end);
     msg_printf("DMA write : wdata length %d, cmd 0x%x\n",data_len, cmd[0]);
     /* Invalidate entire buffer descriptor */
     //invalidate_dcache_range(desc_start, desc_end);
@@ -334,15 +285,13 @@ static int spi_flash_xfer_DMAwrite(struct pentagram_spi_nor_priv *priv, UINT8 *c
     }
    
     if (total_count > 0) {
-        data_o = (UINT8 *)desc_w->phys;
-       
-        msg_printf("data length %d, buff lengh 0x%x\n",data_len, addr_offset);
-        msg_printf("wdata %x %x %x %x %x %x %x %x\n",data_in[3], data_in[2], data_in[1], data_in[0], data_in[7], data_in[6],data_in[5],data_in[4]);
-        //msg_printf("wdata0 %x %x %x %x %x %x %x %x\n",data_o[3], data_o[2], data_o[1], data_o[0],data_o[7], data_o[6],data_o[5], data_o[4]);
+        //data_o = (UINT8 *)desc_w->phys;
+
+        //msg_printf("wdata %x %x %x %x %x %x %x %x\n",data_in[3], data_in[2], data_in[1], data_in[0], data_in[7], data_in[6],data_in[5],data_in[4]);
         memcpy((void *)desc_w->phys, data, data_len); // copy data to dma
         /* Flush data to be sent */
         flush_dcache_range(desc_w->phys, data_end);
-        msg_printf("wdata0 %x %x %x %x %x %x %x %x\n",data_o[3], data_o[2], data_o[1], data_o[0],data_o[7], data_o[6],data_o[5], data_o[4]);
+        //msg_printf("wdata0 %x %x %x %x %x %x %x %x\n",data_o[3], data_o[2], data_o[1], data_o[0],data_o[7], data_o[6],data_o[5], data_o[4]);
     }
     spi_readcmd_set(cmd[0]);
     ctrl = spi_reg->spi_ctrl & CLEAR_CUST_CMD;
@@ -403,6 +352,55 @@ static int spi_flash_xfer_DMAwrite(struct pentagram_spi_nor_priv *priv, UINT8 *c
     return 0;
 }
 #else
+static void spi_fast_read_enable(void)
+{
+	SPI_ENHANCE enhance;
+	enhance.enhance_en = 0;
+	diag_printf("%s\n",__FUNCTION__);
+	while((spi_reg->spi_ctrl & SPI_CTRL_BUSY)!=0)
+	{
+		msg_printf("wait spi_reg->spi_ctrl 0x%x\n",spi_reg->spi_ctrl);
+	};
+	spi_reg->spi_ctrl = A_CHIP | SPI_CLK_D_16;
+	spi_nor_io_CUST_config(CMD_1,ADDR_1,DATA_1,enhance,DUMMY_CYCLE(8));
+	return ;
+}
+
+static void spi_fast_read_disable(void)
+{
+	SPI_ENHANCE enhance;
+	enhance.enhance_en = 0;
+	diag_printf("%s\n",__FUNCTION__);
+	while((spi_reg->spi_ctrl & SPI_CTRL_BUSY)!=0)
+	{
+		msg_printf("wait spi_reg->spi_ctrl 0x%x\n",spi_reg->spi_ctrl);
+	};
+	spi_reg->spi_ctrl = A_CHIP | SPI_CLK_D_32;
+	spi_nor_io_CUST_config(CMD_1,ADDR_1,DATA_1,enhance,DUMMY_CYCLE(0));
+	return ;
+}
+
+static UINT8 spi_nor_read_status1(void)
+{
+	diag_printf("%s\n",__FUNCTION__);
+	UINT32 ctrl;
+	ctrl = spi_reg->spi_ctrl & CLEAR_CUST_CMD;
+	ctrl = ctrl | READ | BYTE_0 | ADDR_0B | CUST_CMD(0x05);
+	while((spi_reg->spi_ctrl & SPI_CTRL_BUSY)!=0)
+	{
+		msg_printf("wait spi_reg->spi_ctrl 0x%x\n",spi_reg->spi_ctrl);
+	};
+	spi_reg->spi_data = 0;
+	spi_reg->spi_ctrl = ctrl;
+	spi_reg->spi_auto_cfg |= PIO_TRIGGER;
+	while((spi_reg->spi_auto_cfg & PIO_TRIGGER)!=0)
+	{
+		msg_printf("wait PIO_TRIGGER\n");
+	};
+	msg_printf("spi_reg->spi_status 0x%x\n",spi_reg->spi_status);
+	return (spi_reg->spi_status&0xff);
+}
+
 static int spi_flash_xfer_read(UINT8 *cmd, size_t cmd_len, void *data, size_t data_len)
 {
 	diag_printf("%s\n",__FUNCTION__);
@@ -670,6 +668,7 @@ static int spi_flash_xfer_write(UINT8 *cmd, size_t cmd_len, const void *data, si
 	return 0;
 }
 #endif
+
 static int pentagram_spi_nor_ofdata_to_platdata(struct udevice *bus)
 {
 	diag_printf("%s\n",__FUNCTION__);
@@ -684,6 +683,7 @@ static int pentagram_spi_nor_ofdata_to_platdata(struct udevice *bus)
 
 	return 0;
 }
+
 static int pentagram_spi_nor_probe(struct udevice *bus)
 {
     diag_printf("%s\n",__FUNCTION__);
@@ -703,7 +703,6 @@ static int pentagram_spi_nor_probe(struct udevice *bus)
     spi_reg = (pentagram_spi_nor_regs *)priv->regs;
     cmd_buf =malloc (CMD_BUF_LEN * sizeof(UINT8));
     
-
 #if (SP_SPINOR_DMA)
     msg_printf("buffsddr 0x%x\n", cmd_buf);
     msg_printf("wdesc 0x%x rdesc 0x%x\n", wdesc, rdesc);
@@ -730,14 +729,18 @@ static int pentagram_spi_nor_remove(struct udevice *dev)
 
 static int pentagram_spi_nor_claim_bus(struct udevice *dev)
 {
-	diag_printf("%s\n",__FUNCTION__);
-	//set pinmux
-	UINT32* grp1_sft_cfg = (UINT32 *) 0x9c000080;
-	grp1_sft_cfg[1] = RF_MASK_V(0xf, (2 << 2) | 2);
-	spi_reg->spi_ctrl = A_CHIP | SPI_CLK_D_32;//SPI_CLK_D_16 = 62M
-	spi_reg->spi_cfg1 = SPI_CMD_OEN_1b | SPI_ADDR_OEN_1b | SPI_DATA_OEN_1b | SPI_CMD_1b | SPI_ADDR_1b
-						| SPI_DATA_1b | SPI_ENHANCE_NO | SPI_DUMMY_CYC(0) | SPI_DATA_IEN_DQ1;
-	spi_reg->spi_auto_cfg &= ~(AUTO_RDSR_EN);
+    diag_printf("%s\n",__FUNCTION__);
+    //set pinmux
+    UINT32* grp1_sft_cfg = (UINT32 *) 0x9c000080;
+    grp1_sft_cfg[1] = RF_MASK_V(0xf, (2 << 2) | 2);
+#if (SP_SPINOR_DMA)
+    spi_reg->spi_ctrl = A_CHIP | SPI_CLK_D_16;
+#else
+    spi_reg->spi_ctrl = A_CHIP | SPI_CLK_D_32;//SPI_CLK_D_16 = 62M
+#endif
+    spi_reg->spi_cfg1 = SPI_CMD_OEN_1b | SPI_ADDR_OEN_1b | SPI_DATA_OEN_1b | SPI_CMD_1b | SPI_ADDR_1b
+                                             | SPI_DATA_1b | SPI_ENHANCE_NO | SPI_DUMMY_CYC(0) | SPI_DATA_IEN_DQ1;
+    spi_reg->spi_auto_cfg &= ~(AUTO_RDSR_EN);
 
 	return 0;
 }
@@ -787,8 +790,6 @@ static int pentagram_spi_nor_xfer(struct udevice *dev, unsigned int bitlen,
     // read
         msg_printf("read\n");
 #if (SP_SPINOR_DMA)
-        if ((cmd_buf[0] != 0x9f) && (cmd_buf[0] != 0x5))
-            cmd_buf[0] = 0xEB;//test
         spi_flash_xfer_DMAread(priv, cmd_buf, cmd_len, din, len);
 #else
         spi_flash_xfer_read(cmd_buf, cmd_len, din, len);

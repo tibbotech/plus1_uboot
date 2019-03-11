@@ -22,7 +22,7 @@ typedef unsigned char BYTE;
 #define diag_printf(s...) ((void)0)
 #endif
 
-#define DEBUG
+//#define DEBUG
 #ifdef DEBUG
 #define msg_printf(fmt, arg...) printf(fmt, ##arg)
 #else
