@@ -88,7 +88,7 @@ struct otprx_sunplus {
 };
 
 struct sunplus_otp_priv {
-    struct otprx2_sunplus *regs;
+	struct otprx2_sunplus *regs;
 };
 
 struct hbgpio_sunplus {
@@ -96,7 +96,7 @@ struct hbgpio_sunplus {
 };
 
 struct sunplus_hbgpio {
-    struct hbgpio_sunplus *otp_data;
+	struct hbgpio_sunplus *otp_data;
 };
 
 static volatile struct otprx_sunplus *regs = (volatile struct otprx_sunplus *)(OTPRX_BASE_ADR);
@@ -107,16 +107,16 @@ int read_otp_data(int addr, char *value)
 	unsigned int addr_data;
 	unsigned int byte_shift;
 	unsigned int status;
-    u32 timeout = OTP_READ_TIMEOUT;
+	u32 timeout = OTP_READ_TIMEOUT;
 	
 	addr_data = addr % (QAC628_OTP_WORD_SIZE * QAC628_OTP_WORDS_PER_BANK);
 	addr_data = addr_data / QAC628_OTP_WORD_SIZE;
 	
 	byte_shift = addr % (QAC628_OTP_WORD_SIZE * QAC628_OTP_WORDS_PER_BANK);
 	byte_shift = byte_shift % QAC628_OTP_WORD_SIZE;
-		
+	
 	writel(0x0, &regs->otp_cmd_status);
-
+	
 	addr = addr / (QAC628_OTP_WORD_SIZE * QAC628_OTP_WORDS_PER_BANK);
 	addr = addr * QAC628_OTP_BIT_ADDR_OF_BANK;
 	writel(addr, &regs->otp_addr);
@@ -124,56 +124,56 @@ int read_otp_data(int addr, char *value)
 	writel(0x1E04, &regs->otp_cmd);
 	
 	do
-    {
-        udelay(10);
+	{
+		udelay(10);
 		if (timeout-- == 0)
-		    return -1;
-
-        status = readl(&regs->otp_cmd_status);
-    } while((status & OTP_READ_DONE) != OTP_READ_DONE);
-
+			return -1;
+		
+		status = readl(&regs->otp_cmd_status);
+	} while((status & OTP_READ_DONE) != OTP_READ_DONE);
+	
 	*value = (otp_data->hb_gpio_rgst_bus32[8+addr_data] >> (8 * byte_shift)) & 0xFF;
-
+	
 	return 0;
 }
 
 static int do_read_otp(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
-    unsigned int addr;	
-    char value;
+	unsigned int addr;	
+	char value;
 	unsigned int data;
 	int i, j;
 	
 	if (argc == 2)
 	{
-	    addr = simple_strtoul(argv[1], NULL, 0);
-
+		addr = simple_strtoul(argv[1], NULL, 0);
+		
 		if (addr >= QAC628_OTP_SIZE)
 			return CMD_RET_USAGE;
 		
-	    if (read_otp_data(addr, &value) == -1)
+		if (read_otp_data(addr, &value) == -1)
 			return CMD_RET_FAILURE;
-
+		
 		data = value;
-        printf("OTP DATA (byte %u) = 0x%X\n", addr, data);
+		printf("OTP DATA (byte %u) = 0x%X\n", addr, data);
 		
 		return 0;
 	}
 	else if (argc == 1)
 	{
-	    printf(" (byte No.)   (data)\n");
-	    j = 0;
+		printf(" (byte No.)   (data)\n");
+		j = 0;
 		
 		for (addr = 0 ; addr < (QAC628_OTP_SIZE - 1); addr += (QAC628_OTP_WORD_SIZE * QAC628_OTP_WORDS_PER_BANK))
 		{
-	        if (read_otp_data(addr, &value) == -1)
-			    return CMD_RET_FAILURE;
+			if (read_otp_data(addr, &value) == -1)
+				return CMD_RET_FAILURE;
 			
 			for (i = 0; i < 4; i++, j++)
 			{   					
-                printf("  %03u~%03u : 0x%08X\n", 3+j*4, j*4, otp_data->hb_gpio_rgst_bus32[8+i]); 	
+				printf("  %03u~%03u : 0x%08X\n", 3+j*4, j*4, otp_data->hb_gpio_rgst_bus32[8+i]); 	
 			}
-
+			
 			printf("\n");
 		}
 		
@@ -181,7 +181,7 @@ static int do_read_otp(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]
 	}
 	else
 	{
-	    return CMD_RET_USAGE;
+		return CMD_RET_USAGE;
 	}	    
 }
 

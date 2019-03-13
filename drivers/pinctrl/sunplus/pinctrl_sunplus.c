@@ -219,17 +219,23 @@ static int sunplus_pinctrl_config(int offset)
 		#ifdef PINCTRL_DEBUG
 		printf("%s: no of pinmux entries= %d\n", __func__, len1);
 		#endif
-		if ((len1 < 0) || (len1%2 != 0))
-			return -EINVAL;
-		for (i = 0; i < len1; i++) {
-			if(i%2 ==1)
-			{
-				debug("pinmux = 0x%08x 0x%08x\n", *(pin_mux + i-1),*(pin_mux + i));
-				GPIO_PIN_MUX_SEL(*(pin_mux + i-1),*(pin_mux + i));
-				GPIO_F_SET(*(pin_mux + i),0);
-				GPIO_M_SET(*(pin_mux + i),1);
-				//value = GPIO_PIN_MUX_GET(*(pin_mux + i-1));
-				//printf("pinmux get = 0x%02x \n", value);
+		if ((len1 < 0) || (len1%2 != 0)) {
+			#ifdef PINCTRL_DEBUG
+			printf("%s: none pinmux setting in subnode= %d\n", __func__, len1);
+			#endif
+			//return -EINVAL;
+		}
+		else {
+			for (i = 0; i < len1; i++) {
+				if(i%2 ==1)
+				{
+					debug("pinmux = 0x%08x 0x%08x\n", *(pin_mux + i-1),*(pin_mux + i));
+					GPIO_PIN_MUX_SEL(*(pin_mux + i-1),*(pin_mux + i));
+					GPIO_F_SET(*(pin_mux + i),0);
+					GPIO_M_SET(*(pin_mux + i),1);
+					//value = GPIO_PIN_MUX_GET(*(pin_mux + i-1));
+					//printf("pinmux get = 0x%02x \n", value);
+				}
 			}
 		}
 		#ifdef PINCTRL_DEBUG
@@ -242,111 +248,116 @@ static int sunplus_pinctrl_config(int offset)
 		#ifdef PINCTRL_DEBUG
 		printf("%s: no of gpio entries= %d\n", __func__, len2);
 		#endif
-		if ((len2 < 0) || (len2%3 != 0))
-			return -EINVAL;
-
-		for (j = 0; j < len2; j++) {
-			if(j%3 ==2)
-			{
-				debug("gpio_sp = 0x%08x 0x%08x 0x%08x \n", *(gpio_sp + j-2), *(gpio_sp + j-1), *(gpio_sp + j));
-				if((*(gpio_sp + j-2)) < 72)
+		if ((len2 < 0) || (len2%3 != 0)) {
+			#ifdef PINCTRL_DEBUG
+			printf("%s: none gpio setting in subnode %d\n", __func__, len2);
+			#endif
+			//return -EINVAL;
+		}
+		else {
+			for (j = 0; j < len2; j++) {
+				if(j%3 ==2)
 				{
-					#ifdef PINCTRL_DEBUG
-					if(GPIO_F_GET(*(gpio_sp + j-2)) == 1)
+					debug("gpio_sp = 0x%08x 0x%08x 0x%08x \n", *(gpio_sp + j-2), *(gpio_sp + j-1), *(gpio_sp + j));
+					if((*(gpio_sp + j-2)) < 72)
 					{
-						if(GPIO_M_GET(*(gpio_sp + j-2)) == 1)
-							debug("Before Change : GPIO Mode \n");
+						#ifdef PINCTRL_DEBUG
+						if(GPIO_F_GET(*(gpio_sp + j-2)) == 1)
+						{
+							if(GPIO_M_GET(*(gpio_sp + j-2)) == 1)
+								debug("Before Change : GPIO Mode \n");
+							else
+								debug("Before Change : IOP Mode \n");
+						}
 						else
-							debug("Before Change : IOP Mode \n");
-					}
-					else
-					{
-						debug("Before Change : Pinmux Mode \n");
-					}
-					#endif
-					if((*(gpio_sp + j-1) == 0) || (*(gpio_sp + j-1) == 1)) //Output or //Open Drain
-					{
-						if(*(gpio_sp + j-1) == 1)
-							GPIO_OD_SET(*(gpio_sp + j-2),1);
-						else if(*(gpio_sp + j-1) == 0)
-							GPIO_OD_SET(*(gpio_sp + j-2),0);
-						else
-							return -EINVAL;
-
-						if(*(gpio_sp + j) == 1) //high
+						{
+							debug("Before Change : Pinmux Mode \n");
+						}
+						#endif
+						if((*(gpio_sp + j-1) == 0) || (*(gpio_sp + j-1) == 1)) //Output or //Open Drain
+						{
+							if(*(gpio_sp + j-1) == 1)
+								GPIO_OD_SET(*(gpio_sp + j-2),1);
+							else if(*(gpio_sp + j-1) == 0)
+								GPIO_OD_SET(*(gpio_sp + j-2),0);
+							else
+								return -EINVAL;
+	
+							if(*(gpio_sp + j) == 1) //high
+							{
+								if(GPIO_O_INV_GET(*(gpio_sp + j-2)) == 0)
+									GPIO_O_SET(*(gpio_sp + j-2),1);
+								else if(GPIO_O_INV_GET(*(gpio_sp + j-2)) == 1)
+									GPIO_O_SET(*(gpio_sp + j-2),0);
+								else
+									return -EINVAL;
+								GPIO_E_SET(*(gpio_sp + j-2),1);
+								debug("Set Pin %d to High \n", (*(gpio_sp + j-2)));
+							}
+							else if(*(gpio_sp + j) == 0) //low
+							{
+								if(GPIO_O_INV_GET(*(gpio_sp + j-2)) == 0)
+									GPIO_O_SET(*(gpio_sp + j-2),0);
+								else if(GPIO_O_INV_GET(*(gpio_sp + j-2)) == 1)
+									GPIO_O_SET(*(gpio_sp + j-2),1);
+								else
+									return -EINVAL;
+								GPIO_E_SET(*(gpio_sp + j-2),1);
+								debug("Set Pin %d to Low \n", (*(gpio_sp + j-2)));
+							}
+							else
+								return -EINVAL;
+							GPIO_F_SET(*(gpio_sp + j-2),1);
+							GPIO_M_SET(*(gpio_sp + j-2),1);
+						}
+						else if(*(gpio_sp + j-1) == 2) //Input
 						{
 							if(GPIO_O_INV_GET(*(gpio_sp + j-2)) == 0)
-								GPIO_O_SET(*(gpio_sp + j-2),1);
+							{
+								if(GPIO_I_GET(*(gpio_sp + j-2))==0)
+									debug("Pin %d Current setting : Input Low \n", (*(gpio_sp + j-2)));
+								else if(GPIO_I_GET(*(gpio_sp + j-2))==1)
+									debug("Pin %d Current setting : Input High \n", (*(gpio_sp + j-2)));
+								else
+									return -EINVAL;
+							}
 							else if(GPIO_O_INV_GET(*(gpio_sp + j-2)) == 1)
-								GPIO_O_SET(*(gpio_sp + j-2),0);
+							{
+								if(GPIO_I_GET(*(gpio_sp + j-2))==0)
+									debug("Pin %d Current setting : Input High (with Invert) \n", (*(gpio_sp + j-2)));
+								else if(GPIO_I_GET(*(gpio_sp + j-2))==1)
+									debug("Pin %d Current setting : Input Low (with Invert) \n", (*(gpio_sp + j-2)));
+								else
+									return -EINVAL;
+							}
 							else
 								return -EINVAL;
-							GPIO_E_SET(*(gpio_sp + j-2),1);
-							debug("Set Pin %d to High \n", (*(gpio_sp + j-2)));
-						}
-						else if(*(gpio_sp + j) == 0) //low
-						{
-							if(GPIO_O_INV_GET(*(gpio_sp + j-2)) == 0)
-								GPIO_O_SET(*(gpio_sp + j-2),0);
-							else if(GPIO_O_INV_GET(*(gpio_sp + j-2)) == 1)
-								GPIO_O_SET(*(gpio_sp + j-2),1);
-							else
-								return -EINVAL;
-							GPIO_E_SET(*(gpio_sp + j-2),1);
-							debug("Set Pin %d to Low \n", (*(gpio_sp + j-2)));
+							GPIO_F_SET(*(gpio_sp + j-2),1);
+							GPIO_M_SET(*(gpio_sp + j-2),1);
 						}
 						else
 							return -EINVAL;
-						GPIO_F_SET(*(gpio_sp + j-2),1);
-						GPIO_M_SET(*(gpio_sp + j-2),1);
-					}
-					else if(*(gpio_sp + j-1) == 2) //Input
-					{
-						if(GPIO_O_INV_GET(*(gpio_sp + j-2)) == 0)
+	
+						//value = GPIO_PARA_GET(*(gpio_sp + j-2));
+						//printf("gpio value = 0x%08x \n", value);
+						#ifdef PINCTRL_DEBUG
+						if(GPIO_F_GET(*(gpio_sp + j-2)) == 1)
 						{
-							if(GPIO_I_GET(*(gpio_sp + j-2))==0)
-								debug("Pin %d Current setting : Input Low \n", (*(gpio_sp + j-2)));
-							else if(GPIO_I_GET(*(gpio_sp + j-2))==1)
-								debug("Pin %d Current setting : Input High \n", (*(gpio_sp + j-2)));
+							if(GPIO_M_GET(*(gpio_sp + j-2)) == 1)
+								debug("After Change : GPIO Mode \n");
 							else
-								return -EINVAL;
-						}
-						else if(GPIO_O_INV_GET(*(gpio_sp + j-2)) == 1)
-						{
-							if(GPIO_I_GET(*(gpio_sp + j-2))==0)
-								debug("Pin %d Current setting : Input High (with Invert) \n", (*(gpio_sp + j-2)));
-							else if(GPIO_I_GET(*(gpio_sp + j-2))==1)
-								debug("Pin %d Current setting : Input Low (with Invert) \n", (*(gpio_sp + j-2)));
-							else
-								return -EINVAL;
+								debug("After Change : IOP Mode \n");
 						}
 						else
-							return -EINVAL;
-						GPIO_F_SET(*(gpio_sp + j-2),1);
-						GPIO_M_SET(*(gpio_sp + j-2),1);
-					}
-					else
-						return -EINVAL;
-
-					//value = GPIO_PARA_GET(*(gpio_sp + j-2));
-					//printf("gpio value = 0x%08x \n", value);
-					#ifdef PINCTRL_DEBUG
-					if(GPIO_F_GET(*(gpio_sp + j-2)) == 1)
-					{
-						if(GPIO_M_GET(*(gpio_sp + j-2)) == 1)
-							debug("After Change : GPIO Mode \n");
-						else
-							debug("After Change : IOP Mode \n");
+						{
+							debug("After Change : Pinmux Mode \n");
+						}
+						#endif
 					}
 					else
 					{
-						debug("After Change : Pinmux Mode \n");
+						debug("Over setting range \n");
 					}
-					#endif
-				}
-				else
-				{
-					debug("Over setting range \n");
 				}
 			}
 		}
