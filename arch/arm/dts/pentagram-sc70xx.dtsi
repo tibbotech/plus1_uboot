@@ -50,8 +50,10 @@
 							PMX_L2SW_P1_MAC_RMII_RXD0	G_MX33_GPIO_P4_1
 							PMX_L2SW_P1_MAC_RMII_RXD1	G_MX34_GPIO_P4_2
 							PMX_L2SW_P1_MAC_RMII_RXER	G_MX31_GPIO_P3_7
-							//temply set i2c pinmux at here due to create new node have bug
-							PMX_I2CM0_CK			G_MX10_GPIO_P1_2
+				>;
+			};
+			i2c {
+				pinmux = <	PMX_I2CM0_CK			G_MX10_GPIO_P1_2
 							PMX_I2CM0_DAT		  G_MX11_GPIO_P1_3
 							PMX_I2CM1_CK			G_MX12_GPIO_P1_4
 							PMX_I2CM1_DAT		  G_MX13_GPIO_P1_5
