@@ -19,7 +19,7 @@ DECLARE_GLOBAL_DATA_PTR;
 
 static UINT8 *cmd_buf;
 static size_t cmd_len;
-static volatile pentagram_spi_nor_regs* spi_reg;
+static volatile sp_spi_nor_regs* spi_reg;
 
 int AV1_GetStc32(void)
 {
@@ -30,6 +30,7 @@ int AV1_GetStc32(void)
 static void spi_nor_io_CUST_config(UINT8 cmd_b, UINT8 addr_b, UINT8 data_b, SPI_ENHANCE enhance,UINT8 dummy)
 {
     UINT32 config;
+    
     if(enhance.enhance_en == 1)
     {
         config = spi_reg->spi_cfg0  & CLEAR_ENHANCE_DATA;
@@ -109,8 +110,6 @@ static void spi_nor_io_CUST_config(UINT8 cmd_b, UINT8 addr_b, UINT8 data_b, SPI_
     }
     spi_reg->spi_cfg1 =   config | SPI_DUMMY_CYC(dummy);
     spi_reg->spi_cfg2 =   config | SPI_DUMMY_CYC(dummy);
-    msg_printf("spi_reg->spi_cfg0 0x%x\n",spi_reg->spi_cfg0);
-    msg_printf("spi_reg->spi_cfg1 0x%x\n",spi_reg->spi_cfg1);
 }
 
 #if (SP_SPINOR_DMA)
@@ -118,6 +117,7 @@ static void spi_readcmd_set(UINT8 cmd)
 {
     SPI_ENHANCE enhance;
     enhance.enhance_en = 0;
+    enhance.enhance_bit_mode = 0;
     diag_printf("%s\n",__FUNCTION__);
 	
     switch (cmd)
@@ -144,157 +144,132 @@ static void spi_readcmd_set(UINT8 cmd)
             spi_nor_io_CUST_config(CMD_1,ADDR_1,DATA_1,enhance,DUMMY_CYCLE(0));
             break;
     }
-	//spi_reg->spi_ctrl = A_CHIP | SPI_CLK_D_16;
 	
-	return ;
+	  return ;
 }
 
-static int spi_flash_xfer_DMAread(struct pentagram_spi_nor_priv *priv,UINT8 *cmd, size_t cmd_len, void *data, size_t data_len)
-{
-    diag_printf("%s\n",__FUNCTION__);
+static int spi_flash_xfer_DMAread(struct sp_spi_nor_priv *priv,UINT8 *cmd, size_t cmd_len, void *data, size_t data_len)
+{  
     UINT32 addr_temp = 0;
-    //UINT8 *data_in = data;
+    UINT8 *data_in = data;
     UINT32 time = 0;
     UINT32 ctrl = 0;
     UINT32 autocfg = 0;
-    //int fast_read = 0;
+    UINT32 temp_len = 0;
     int value = 0;
     struct spinorbufdesc *desc_r = &priv->rchain;
-    //UINT32 desc_start = (UINT32)desc_r;
-    //UINT32 desc_end = (UINT32)desc_r + roundup(sizeof(*desc_r), ARCH_DMA_MINALIGN);
     ulong data_end;
     
-    msg_printf("addr 0x%x\n", desc_r->phys);
-    //msg_printf("desc_start 0x%x, desc_end 0x%x\n", desc_start, desc_end);
-    /* Invalidate entire buffer descriptor */
-    //invalidate_dcache_range(desc_start, desc_end);
-    
-    msg_printf("DMA read :data length %d cmd[0] 0x%x\n",data_len, cmd[0]);
-    while ((spi_reg->spi_auto_cfg & (1<<17)) ||  (spi_reg->spi_ctrl & (1<<31))){
+    diag_printf("%s\n",__FUNCTION__);
+    msg_printf("DMA read :data length 0x%x cmd[0] 0x%x\n",data_len, cmd[0]);
+    while ((spi_reg->spi_auto_cfg & DMA_TRIGGER) ||  (spi_reg->spi_ctrl & SPI_CTRL_BUSY)){
         time++;
-        if (time > 0x10000){
-             msg_printf("##time out: spi_auto_cfg 0x%x spi_ctrl 0x%x\n", spi_reg->spi_auto_cfg, spi_reg->spi_ctrl);
+        if (time > 0x30000){
+             msg_printf("##busy check time out: spi_auto_cfg 0x%x spi_ctrl 0x%x\n", spi_reg->spi_auto_cfg, spi_reg->spi_ctrl);
+             break;
         }     
     }
 
-    //if (data_len > spinordma->size)
-    //    msg_printf("##data len > dma len\n");
-    data_end = desc_r->phys + data_len;
-    msg_printf("data length %d\n",data_len);
+    data_end = desc_r->phys + CFG_BUFF_MAX;
+    msg_printf("data length %d buff size 0x%x\n",data_len, desc_r->size);
 
-    //if (cmd[0] == CMD_FAST_READ)
-    {
-        spi_readcmd_set(cmd[0]);
-        //fast_read = 1;
-    }
-    ctrl = spi_reg->spi_ctrl & (CLEAR_CUST_CMD);
+    spi_readcmd_set(cmd[0]);
+        
+    ctrl = spi_reg->spi_ctrl & (CLEAR_CUST_CMD & (~(1<<19)));
     ctrl |= (READ | BYTE_0 | ADDR_0B);
         
-    spi_reg->spi_page_addr = 0;
+    //spi_reg->spi_page_addr = 0;
     spi_reg->spi_data = 0;
     if (cmd_len > 1)
     {
-        addr_temp = (cmd[1] << 16) | (cmd[2] << 8) | cmd[3];
-        spi_reg->spi_page_addr = addr_temp;
-        ctrl |= ADDR_3B;
-        msg_printf("addr2 0x%x\n", spi_reg->spi_page_addr);
+        addr_temp = (cmd[1] << 16) | (cmd[2] << 8) | cmd[3];       
+        ctrl |= ADDR_3B;       
     }
         
     spi_reg->spi_ctrl = ctrl;
     msg_printf("data ctrl 0x%x\n",ctrl);
-    value =  (spi_reg->spi_cfg0 & CLEAR_DATA64_LEN) |  data_len | DATA64_EN;
-    if (cmd[0] == 5)//need to check
-        value |= (1<<19);
-    spi_reg->spi_cfg0 = value;
     spi_reg->spi_page_size = 0x100<<4;
-
-    spi_reg->spi_mem_data_addr = desc_r->phys;
-    msg_printf("dma addr 0x%x\n", spi_reg->spi_mem_data_addr);
-
-    msg_printf("spi_auto_cfg  0x%x\n", spi_reg->spi_auto_cfg);
-
-    autocfg =  (cmd[0]<<24)|(1<<20);    
-    spi_reg->spi_auto_cfg |= autocfg;
-    
-    spi_reg->spi_intr_msk = (0x2<<1);
-    spi_reg->spi_intr_sts = 0x07;
-	
-    msg_printf("spi_intr_msk 0x%x spi_intr_sts 0x%x\n", spi_reg->spi_intr_msk, spi_reg->spi_intr_sts);
-    spi_reg->spi_auto_cfg |=  (1<<17);
-    msg_printf("spi_auto_cfg 0x%x\n", spi_reg->spi_auto_cfg);
-    msg_printf("spi_ctrl 0x%x\n", spi_reg->spi_ctrl);
-    msg_printf("spi_page_addr 0x%x\n", spi_reg->spi_page_addr);
-    msg_printf("spi_cfg0 0x%x\n", spi_reg->spi_cfg0);
-    msg_printf("spi_cfg1 0x%x\n", spi_reg->spi_cfg1);
-    msg_printf("spi_cfg2 0x%x\n", spi_reg->spi_cfg2);
-    msg_printf("spi_page_size 0x%x\n", spi_reg->spi_page_size);
-    
-    while(( spi_reg->spi_intr_sts & 0x2) == 0x0);
-    msg_printf("Bf spi_intr_msk 0x%x spi_intr_sts 0x%x\n", spi_reg->spi_intr_msk, spi_reg->spi_intr_sts);
-    msg_printf("spi_auto_cfg 0x%x\n", spi_reg->spi_auto_cfg);
-    spi_reg->spi_intr_sts |= 0x02;
-    spi_reg->spi_intr_msk = 0;
-    while((spi_reg->spi_ctrl & SPI_CTRL_BUSY)!=0)
+    do 
     {
-		msg_printf("wait spi_reg->spi_ctrl 0x%x\n",spi_reg->spi_ctrl);
-    };
-    msg_printf("spi_status 0x%x spi_status_2 0x%x\n", spi_reg->spi_status, spi_reg->spi_status_2);
+        spi_reg->spi_page_addr = addr_temp;
+        if (data_len > CFG_BUFF_MAX){
+            temp_len = CFG_BUFF_MAX;
+            data_len -= CFG_BUFF_MAX; 
+        }else{ 
+            temp_len = data_len;
+            data_len = 0;
+        }
+        msg_printf("remain len  0x%x\n", data_len);
+        value =  (spi_reg->spi_cfg0 & CLEAR_DATA64_LEN) |  temp_len | DATA64_EN;
+        if (cmd[0] == 5)//need to check
+            value |= (1<<19);
+        spi_reg->spi_cfg0 = value;
+   
+        spi_reg->spi_mem_data_addr = desc_r->phys;
+        msg_printf("dma addr 0x%x\n", spi_reg->spi_mem_data_addr);
+        msg_printf("spi_auto_cfg  0x%x\n", spi_reg->spi_auto_cfg);
 
-    /* Invalidate received data */
-    invalidate_dcache_range(rounddown(desc_r->phys, ARCH_DMA_MINALIGN),
-    					                              roundup(data_end,ARCH_DMA_MINALIGN));
-    memcpy(data,  (void *)desc_r->phys, data_len); 
+        autocfg =  (cmd[0]<<24)|(1<<20)| DMA_TRIGGER;
+        value = (spi_reg->spi_auto_cfg &(~(0xff<<24))) | autocfg;
+    
+        spi_reg->spi_intr_msk = (0x2<<1);
+        spi_reg->spi_intr_sts = 0x07;
+	
+        spi_reg->spi_auto_cfg = value;
+    
+        while(( spi_reg->spi_intr_sts & 0x2) == 0x0);
+        
+        spi_reg->spi_intr_sts |= 0x02;
+        spi_reg->spi_intr_msk = 0;
+        time = 0;
+        while((spi_reg->spi_ctrl & SPI_CTRL_BUSY)!=0)
+        {
+            time++;
+            if (time > 0x20000){
+                msg_printf("##busy check time out: spi_auto_cfg 0x%x spi_ctrl 0x%x\n", spi_reg->spi_auto_cfg, spi_reg->spi_ctrl);
+                data_len = 0;
+                break;
+            }
+        }
 
-    msg_printf("data %x %x %x %x %x %x %x %x\n",data_in[3], data_in[2], data_in[1], data_in[0], data_in[7], data_in[6],data_in[5],data_in[4]);
+        /* Invalidate received data */
+        invalidate_dcache_range(rounddown(desc_r->phys, ARCH_DMA_MINALIGN),
+    					                                  roundup(data_end,ARCH_DMA_MINALIGN));
+        memcpy(data_in,  (void *)desc_r->phys, temp_len); 
+        addr_temp += CFG_BUFF_MAX;
+        data_in += CFG_BUFF_MAX;
+    } while (data_len != 0);
     spi_reg->spi_cfg0 &= (DATA64_DIS & (~ (1<<19))); 
     spi_reg->spi_auto_cfg  &= ~autocfg;
     spi_readcmd_set(0);
-    //if (fast_read == 1)
-    //{
-    //    spi_fast_read_disable();
-    //}
     return 0;
 }
 
-static int spi_flash_xfer_DMAwrite(struct pentagram_spi_nor_priv *priv, UINT8 *cmd, size_t cmd_len, const void *data, size_t data_len)
-{
-    diag_printf("%s\n",__FUNCTION__);
-    UINT32 total_count = data_len;
+static int spi_flash_xfer_DMAwrite(struct sp_spi_nor_priv *priv, UINT8 *cmd, size_t cmd_len, const void *data, size_t data_len)
+{  
+    UINT32 temp_len = data_len;
     UINT32 addr_temp = 0;
-    //UINT8 *data_in = (UINT8 *)data;
-    //UINT8 *data_o;
+    UINT8 *data_in = (UINT8 *)data;
     UINT32 time = 0;
     UINT32 ctrl = 0;
     UINT32 autocfg = 0;
     int value = 0;
     struct spinorbufdesc *desc_w = &priv->wchain;
-    //UINT32 desc_start = (UINT32)desc_w;
-    //UINT32 desc_end = (UINT32)desc_w + roundup(sizeof(*desc_w), ARCH_DMA_MINALIGN);
-    ulong data_end = desc_w->phys + roundup(data_len, ARCH_DMA_MINALIGN);
-
-    msg_printf("addr 0x%x\n", desc_w->phys);
-   // msg_printf("desc_start 0x%x, desc_end 0x%x\n", desc_start, desc_end);
+    ulong data_end = desc_w->phys + roundup(CFG_BUFF_MAX, ARCH_DMA_MINALIGN);
+    
+    diag_printf("%s\n",__FUNCTION__); 
     msg_printf("DMA write : wdata length %d, cmd 0x%x\n",data_len, cmd[0]);
-    /* Invalidate entire buffer descriptor */
-    //invalidate_dcache_range(desc_start, desc_end);
-    while ((spi_reg->spi_auto_cfg & (1<<17)) ||  (spi_reg->spi_ctrl & (1<<31))){
+    
+    while ((spi_reg->spi_auto_cfg & DMA_TRIGGER) ||  (spi_reg->spi_ctrl & SPI_CTRL_BUSY)){
         time++;
-        if (time > 0x10000){
-             msg_printf("##time out: spi_auto_cfg 0x%x spi_ctrl 0x%x\n", spi_reg->spi_auto_cfg, spi_reg->spi_ctrl);
+        if (time > 0x30000){
+             msg_printf("##busy check time out: spi_auto_cfg 0x%x spi_ctrl 0x%x\n", spi_reg->spi_auto_cfg, spi_reg->spi_ctrl);
+             break;
         }     
     }
    
-    if (total_count > 0) {
-        //data_o = (UINT8 *)desc_w->phys;
-
-        //msg_printf("wdata %x %x %x %x %x %x %x %x\n",data_in[3], data_in[2], data_in[1], data_in[0], data_in[7], data_in[6],data_in[5],data_in[4]);
-        memcpy((void *)desc_w->phys, data, data_len); // copy data to dma
-        /* Flush data to be sent */
-        flush_dcache_range(desc_w->phys, data_end);
-        //msg_printf("wdata0 %x %x %x %x %x %x %x %x\n",data_o[3], data_o[2], data_o[1], data_o[0],data_o[7], data_o[6],data_o[5], data_o[4]);
-    }
     spi_readcmd_set(cmd[0]);
-    ctrl = spi_reg->spi_ctrl & CLEAR_CUST_CMD;
+    ctrl = spi_reg->spi_ctrl & (CLEAR_CUST_CMD & (~(1<<19)));
     ctrl |= (WRITE | BYTE_0 | ADDR_0B | (1<<19));
     if (cmd[0] == 6)//need to check
         ctrl &= ~(1<<19);
@@ -303,49 +278,59 @@ static int spi_flash_xfer_DMAwrite(struct pentagram_spi_nor_priv *priv, UINT8 *c
     spi_reg->spi_data = 0;
     if (cmd_len > 1)
     {
-        addr_temp = (cmd[1] << 16) | (cmd[2] << 8) | cmd[3];
-        spi_reg->spi_page_addr = addr_temp;
-        ctrl |= ADDR_3B;
-        msg_printf("waddr2 0x%x\n", spi_reg->spi_page_addr);
+        addr_temp = (cmd[1] << 16) | (cmd[2] << 8) | cmd[3];        
+        ctrl |= ADDR_3B;       
     }
         
     spi_reg->spi_ctrl = ctrl;
-    msg_printf("wdata ctrl 0x%x\n",ctrl);
-    value =  spi_reg->spi_cfg0;
-    spi_reg->spi_cfg0 = (value & CLEAR_DATA64_LEN) | data_len;//| DATA64_EN;
     spi_reg->spi_page_size = 0x100<<4;
-    msg_printf("wspi_page_size 0x%x spi_bch 0x%x\n", spi_reg->spi_page_size, spi_reg->spi_bch);
+    do
+    { 
+        spi_reg->spi_page_addr = addr_temp;
+        if (data_len > CFG_BUFF_MAX){
+            temp_len = CFG_BUFF_MAX;
+            data_len -= CFG_BUFF_MAX; 
+        }else{ 
+            temp_len = data_len;
+            data_len = 0;
+        }
 
-    spi_reg->spi_mem_data_addr = desc_w->phys;
-    msg_printf("wdma addr 0x%x\n", spi_reg->spi_mem_data_addr);
+        if (temp_len > 0) {
+            memcpy((void *)desc_w->phys, data_in, temp_len); // copy data to dma
+            /* Flush data to be sent */
+            flush_dcache_range(desc_w->phys, data_end);
+        }
+        value =  spi_reg->spi_cfg0;
+        spi_reg->spi_cfg0 = (value & CLEAR_DATA64_LEN) | temp_len;//| DATA64_EN;
+            
+        spi_reg->spi_mem_data_addr = desc_w->phys;
+        
+        autocfg = DMA_TRIGGER | (cmd[0]<<8) | (1); 
+        value = (spi_reg->spi_auto_cfg & (~(0xff<<8))) | autocfg;
 
-    msg_printf("wspi_auto_cfg  0x%x\n", spi_reg->spi_auto_cfg);
-
-    autocfg =   (1<<17)|(cmd[0]<<8)|(1); 
-
-    spi_reg->spi_intr_msk = (0x2<<1);
-    spi_reg->spi_intr_sts = 0x07;
-	
-    msg_printf("wspi_intr_msk 0x%x spi_intr_sts 0x%x\n", spi_reg->spi_intr_msk, spi_reg->spi_intr_sts);
-    spi_reg->spi_auto_cfg =  autocfg;
-    msg_printf("wspi_auto_cfg 0x%x\n", spi_reg->spi_auto_cfg);
-    msg_printf("wspi_ctrl 0x%x\n", spi_reg->spi_ctrl);
-    msg_printf("wspi_page_addr 0x%x\n", spi_reg->spi_page_addr);
-    msg_printf("wspi_cfg0 0x%x\n", spi_reg->spi_cfg0);
-    msg_printf("wspi_cfg1 0x%x\n", spi_reg->spi_cfg1);
-    msg_printf("wspi_cfg2 0x%x\n", spi_reg->spi_cfg2);
-    
-    while(( spi_reg->spi_intr_sts & 0x2) == 0x0);
-    msg_printf("wBf spi_intr_msk 0x%x spi_intr_sts 0x%x\n", spi_reg->spi_intr_msk, spi_reg->spi_intr_sts);
-    msg_printf("wspi_auto_cfg 0x%x\n", spi_reg->spi_auto_cfg);
-    spi_reg->spi_intr_sts |= 0x02;
-    spi_reg->spi_intr_msk = 0;
-    while((spi_reg->spi_ctrl & SPI_CTRL_BUSY)!=0)
-    {
-        msg_printf("wait spi_reg->spi_ctrl 0x%x\n",spi_reg->spi_ctrl);
-    };
-    msg_printf("wspi_status 0x%x spi_status_2 0x%x\n", spi_reg->spi_status, spi_reg->spi_status_2);
-
+        spi_reg->spi_intr_msk = (0x2<<1);
+        spi_reg->spi_intr_sts = 0x07;
+	       
+        spi_reg->spi_auto_cfg =  value;
+        
+        while(( spi_reg->spi_intr_sts & 0x2) == 0x0);
+       
+        spi_reg->spi_intr_sts |= 0x02;
+        spi_reg->spi_intr_msk = 0;
+        time = 0;
+        while((spi_reg->spi_ctrl & SPI_CTRL_BUSY)!=0)
+        {
+            time++;
+            if (time > 0x30000){
+                msg_printf("##busy check time out: spi_auto_cfg 0x%x spi_ctrl 0x%x\n", spi_reg->spi_auto_cfg, spi_reg->spi_ctrl);
+                data_len = 0;
+                break;
+            }
+        }
+                
+        addr_temp += CFG_BUFF_MAX;
+        data_in += CFG_BUFF_MAX;
+    } while (data_len != 0);
     spi_reg->spi_cfg0 &= DATA64_DIS; 
     spi_reg->spi_auto_cfg  &= ~autocfg;
     spi_readcmd_set(0);
@@ -382,8 +367,9 @@ static void spi_fast_read_disable(void)
 
 static UINT8 spi_nor_read_status1(void)
 {
-	diag_printf("%s\n",__FUNCTION__);
 	UINT32 ctrl;
+	
+	diag_printf("%s\n",__FUNCTION__);
 	ctrl = spi_reg->spi_ctrl & CLEAR_CUST_CMD;
 	ctrl = ctrl | READ | BYTE_0 | ADDR_0B | CUST_CMD(0x05);
 	while((spi_reg->spi_ctrl & SPI_CTRL_BUSY)!=0)
@@ -669,14 +655,14 @@ static int spi_flash_xfer_write(UINT8 *cmd, size_t cmd_len, const void *data, si
 }
 #endif
 
-static int pentagram_spi_nor_ofdata_to_platdata(struct udevice *bus)
+static int sp_spi_nor_ofdata_to_platdata(struct udevice *bus)
 {
-	diag_printf("%s\n",__FUNCTION__);
-	struct pentagram_spi_nor_platdata *plat = bus->platdata;
+	struct sp_spi_nor_platdata *plat = bus->platdata;
 	const void *blob = gd->fdt_blob;
 	int node = dev_of_offset(bus);
 
-	plat->regs = (struct pentagram_spi_nor_regs *)fdtdec_get_addr(blob, node, "reg");
+  diag_printf("%s\n",__FUNCTION__);
+	plat->regs = (struct sp_spi_nor_regs *)fdtdec_get_addr(blob, node, "reg");
 
 	plat->clock = fdtdec_get_int(blob, node, "spi-max-frequency",
 					50000000);
@@ -684,11 +670,10 @@ static int pentagram_spi_nor_ofdata_to_platdata(struct udevice *bus)
 	return 0;
 }
 
-static int pentagram_spi_nor_probe(struct udevice *bus)
+static int sp_spi_nor_probe(struct udevice *bus)
 {
-    diag_printf("%s\n",__FUNCTION__);
-    struct pentagram_spi_nor_platdata *plat = dev_get_platdata(bus);
-    struct pentagram_spi_nor_priv *priv = dev_get_priv(bus);
+    struct sp_spi_nor_platdata *plat = dev_get_platdata(bus);
+    struct sp_spi_nor_priv *priv = dev_get_priv(bus);
 #if (SP_SPINOR_DMA)
     struct spinorbufdesc *wdesc = &priv->wchain;
     struct spinorbufdesc *rdesc = &priv->rchain;
@@ -697,10 +682,11 @@ static int pentagram_spi_nor_probe(struct udevice *bus)
     UINT32 *r_buffer_adr = (UINT32 *)&priv->r_buf[0];
 #endif
 
+    diag_printf("%s\n",__FUNCTION__);
     priv->regs = plat->regs;
     priv->clock = plat->clock;
     
-    spi_reg = (pentagram_spi_nor_regs *)priv->regs;
+    spi_reg = (sp_spi_nor_regs *)priv->regs;
     cmd_buf =malloc (CMD_BUF_LEN * sizeof(UINT8));
     
 #if (SP_SPINOR_DMA)
@@ -710,9 +696,11 @@ static int pentagram_spi_nor_probe(struct udevice *bus)
     flush_dcache_range((ulong)w_buffer_adr, (ulong)w_buffer_adr + CFG_BUFF_MAX);
     flush_dcache_range((ulong)r_buffer_adr, (ulong)r_buffer_adr + CFG_BUFF_MAX);
     tempdesc = wdesc;
+    tempdesc->size = CFG_BUFF_MAX;
     tempdesc->phys = (dma_addr_t)w_buffer_adr;
     flush_dcache_range((ulong)(&priv->wchain), (ulong)(&priv->wchain) + sizeof(priv->wchain));
     tempdesc = rdesc;
+    tempdesc->size = CFG_BUFF_MAX;
     tempdesc->phys = (dma_addr_t)r_buffer_adr;
     flush_dcache_range((ulong)(&priv->rchain),(ulong)(&priv->rchain) + sizeof(priv->rchain));
     msg_printf("wdesc->phys 0x%x,  rdesc->phys 0x%x\n", wdesc->phys, rdesc->phys);
@@ -720,18 +708,19 @@ static int pentagram_spi_nor_probe(struct udevice *bus)
     return 0;
 }
 
-static int pentagram_spi_nor_remove(struct udevice *dev)
+static int sp_spi_nor_remove(struct udevice *dev)
 {
 	diag_printf("%s\n",__FUNCTION__);
 	free(cmd_buf);
 	return 0;
 }
 
-static int pentagram_spi_nor_claim_bus(struct udevice *dev)
-{
-    diag_printf("%s\n",__FUNCTION__);
+static int sp_spi_nor_claim_bus(struct udevice *dev)
+{   
     //set pinmux
     UINT32* grp1_sft_cfg = (UINT32 *) 0x9c000080;
+    
+    diag_printf("%s\n",__FUNCTION__);
     grp1_sft_cfg[1] = RF_MASK_V(0xf, (2 << 2) | 2);
 #if (SP_SPINOR_DMA)
     spi_reg->spi_ctrl = A_CHIP | SPI_CLK_D_16;
@@ -745,24 +734,24 @@ static int pentagram_spi_nor_claim_bus(struct udevice *dev)
 	return 0;
 }
 
-static int pentagram_spi_nor_release_bus(struct udevice *dev)
+static int sp_spi_nor_release_bus(struct udevice *dev)
 {
 	diag_printf("%s\n",__FUNCTION__);
 	return 0;
 }
 
-static int pentagram_spi_nor_xfer(struct udevice *dev, unsigned int bitlen,
+static int sp_spi_nor_xfer(struct udevice *dev, unsigned int bitlen,
 			    const void *dout, void *din, unsigned long flags)
-{
-    diag_printf("%s\n", __FUNCTION__);
+{    
 #if (SP_SPINOR_DMA)
     struct udevice *bus = dev->parent;
-    //struct pentagram_spi_nor_platdata *pdata = dev_get_platdata(bus);
-    struct pentagram_spi_nor_priv *priv = dev_get_priv(bus);
+    //struct sp_spi_nor_platdata *pdata = dev_get_platdata(bus);
+    struct sp_spi_nor_priv *priv = dev_get_priv(bus);
 #endif
     unsigned int len;
     int flc = 0;
 
+    diag_printf("%s\n", __FUNCTION__);
     if (bitlen == 0)
         goto out;
 
@@ -816,13 +805,12 @@ out:
 	return 0;
 }
 
-static int pentagram_spi_nor_set_speed(struct udevice *bus, uint speed)
+static int sp_spi_nor_set_speed(struct udevice *bus, uint speed)
 {
-	diag_printf("%s\n",__FUNCTION__);
-	struct pentagram_spi_nor_platdata *plat = bus->platdata;
-	struct pentagram_spi_nor_priv *priv = dev_get_priv(bus);
+	struct sp_spi_nor_platdata *plat = bus->platdata;
+	struct sp_spi_nor_priv *priv = dev_get_priv(bus);
 	//int ret;
-
+  diag_printf("%s\n",__FUNCTION__);
 	if (speed > plat->clock)
 		speed = plat->clock;
 	//set spi nor clock
@@ -831,41 +819,40 @@ static int pentagram_spi_nor_set_speed(struct udevice *bus, uint speed)
 
 	return 0;
 }
-static int pentagram_spi_nor_set_mode(struct udevice *bus, uint mode)
+static int sp_spi_nor_set_mode(struct udevice *bus, uint mode)
 {
-	diag_printf("%s\n",__FUNCTION__);
-	struct pentagram_spi_nor_priv *priv = dev_get_priv(bus);
+	struct sp_spi_nor_priv *priv = dev_get_priv(bus);
 	//uint32_t reg;
-
+  diag_printf("%s\n",__FUNCTION__);
 	//set spi nor mode
 	debug("%s: regs=%p, mode=%d\n", __func__, priv->regs, priv->mode);
 
 	return 0;
 }
 
-static const struct dm_spi_ops pentagram_spi_nor_ops = {
-	.claim_bus	= pentagram_spi_nor_claim_bus,
-	.release_bus= pentagram_spi_nor_release_bus,
-	.xfer		= pentagram_spi_nor_xfer,
-	.set_speed	= pentagram_spi_nor_set_speed,
-	.set_mode	= pentagram_spi_nor_set_mode,
+static const struct dm_spi_ops sp_spi_nor_ops = {
+	.claim_bus	= sp_spi_nor_claim_bus,
+	.release_bus= sp_spi_nor_release_bus,
+	.xfer		= sp_spi_nor_xfer,
+	.set_speed	= sp_spi_nor_set_speed,
+	.set_mode	= sp_spi_nor_set_mode,
 };
 
-static const struct udevice_id pentagram_spi_nor_ids[] = {
-	{ .compatible = "sunplus,pentagram-spi-nor" },
+static const struct udevice_id sp_spi_nor_ids[] = {
+	{ .compatible = "sunplus,sunplus-q628-spi-nor" },
 	{ }
 };
 
-U_BOOT_DRIVER(pentagram_spi_nor) = {
-	.name	= "pentagram_spi_nor",
+U_BOOT_DRIVER(sp_spi_nor) = {
+	.name	= "sp_spi_nor",
 	.id	= UCLASS_SPI,
-	.of_match = pentagram_spi_nor_ids,
-	.ops	= &pentagram_spi_nor_ops,
-	.ofdata_to_platdata = pentagram_spi_nor_ofdata_to_platdata,
-	.probe	= pentagram_spi_nor_probe,
-	.remove	= pentagram_spi_nor_remove,
-	.platdata_auto_alloc_size = sizeof(struct pentagram_spi_nor_platdata),
-	.priv_auto_alloc_size = sizeof(struct pentagram_spi_nor_priv),
+	.of_match = sp_spi_nor_ids,
+	.ops	= &sp_spi_nor_ops,
+	.ofdata_to_platdata = sp_spi_nor_ofdata_to_platdata,
+	.probe	= sp_spi_nor_probe,
+	.remove	= sp_spi_nor_remove,
+	.platdata_auto_alloc_size = sizeof(struct sp_spi_nor_platdata),
+	.priv_auto_alloc_size = sizeof(struct sp_spi_nor_priv),
 #if (SP_SPINOR_DMA)
      .flags = DM_FLAG_ALLOC_PRIV_DMA,
 #endif

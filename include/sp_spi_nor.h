@@ -37,50 +37,10 @@ typedef unsigned char BYTE;
 
 #define RF_MASK_V(_mask, _val)       (((_mask) << 16) | (_val))
 
-#define PIO_TRIGGER (1<<21)
+//spi_ctrl
 #define SPI_CTRL_BUSY (1<<31)
-#define SPI_DUMMY_CYC(x) (x<<24)
 #define CUST_CMD(x) (x<<8)
 #define CLEAR_CUST_CMD (~0xffff)
-#define AXI_DEFINED_READ(x) (x<<24)
-#define CLEAR_AXI_DEFINED_READ (0xffffff)
-#define ENABLE_AXI_DEFINED_READ (1<<20)
-#define CLEAR_DATA_LEN (~0xff)
-#define DMA_TRIGGER (1<<17)
-#define ENHANCE_DATA(x) (x<<24)
-#define CLEAR_ENHANCE_DATA (~(0xff<<24))
-#define DATA64_EN (1<<20)
-#define DATA64_DIS ~(1<<20)
-#define DATA64_READ_ADDR(x) (x<<16)
-#define DATA64_WRITE_ADDR(x) (x)
-#define SPI_SRAM_ST (0x7<<13)
-#define DUMMY_CYCLE(x) (x)
-#define USER_DEFINED_READ(x) (x<<24)
-#define USER_DEFINED_READ_EN (1<<20)
-#define PREFETCH_ENABLE (1<<22)
-#define PREFETCH_DISABLE (~(1<<22))
-#define PAGE_ACCESS_ENABLE (1<<29)
-#define PAGE_ACCESS_DISABLE (~(1<<29))
-#define AUTO_RDSR_EN (1<<18)
-#define CLEAR_DATA64_LEN (~0xffff)
-
-#define SPI_DATA64_MAX_LEN ((1<<16)-1)
-#define CMD_FAST_READ (0xb)
-#define CMD_READ_STATUS (0x5)
-#define SPI_TIMEOUT 450
-
-typedef struct{
-	UINT8 enhance_en;
-	UINT8 enhance_bit;
-	UINT8 enhance_bit_mode;
-	UINT8 enhance_data;
-}SPI_ENHANCE;
-enum ERASE_TYPE
-{
-	SECTOR = 0,
-	BLOCK = 1,
-	CHIP = 2
-};
 enum SPI_CLOCK_SEL
 {
 	SPI_CLK_D_2 = (1)<<16,
@@ -90,13 +50,6 @@ enum SPI_CLOCK_SEL
 	SPI_CLK_D_16 = (5)<<16,
 	SPI_CLK_D_24 = (6)<<16,
 	SPI_CLK_D_32 = (7)<<16
-};
-enum SPI_USEABLE_DQ
-{
-	DQ0 = 1<<20,
-	DQ1 = 1<<21,
-	DQ2 = 1<<22,
-	DQ3 = 1<<23
 };
 enum SPI_CHIP_SEL
 {
@@ -123,6 +76,9 @@ enum SPI_PIO_DATA_BYTE
 	BYTE_3 = 3<<4,
 	BYTE_4 = 4<<4
 };
+//spi_cfg1/2
+#define SPI_DUMMY_CYC(x) (x<<24)
+#define DUMMY_CYCLE(x) (x)
 enum SPI_CMD_BIT
 {
 	SPI_CMD_NO = (0)<<16,
@@ -178,6 +134,52 @@ enum SPI_DATA_IEN_BIT
 	SPI_DATA_IEN_DQ0 = (1)<<6,
 	SPI_DATA_IEN_DQ1 = (2)<<6
 };
+//spi_autocfg
+#define USER_DEFINED_READ(x) (x<<24)
+#define USER_DEFINED_READ_EN (1<<20)
+#define DMA_TRIGGER (1<<17)
+#define AUTO_RDSR_EN (1<<18)
+#define PIO_TRIGGER (1<<21)
+#define PREFETCH_ENABLE (1<<22)
+#define PREFETCH_DISABLE (~(1<<22))
+//spi_cfg0
+#define ENHANCE_DATA(x) (x<<24)
+#define CLEAR_ENHANCE_DATA (~(0xff<<24))
+#define DATA64_EN (1<<20)
+#define DATA64_DIS ~(1<<20)
+#define CLEAR_DATA64_LEN (~0xffff)
+#define SPI_DATA64_MAX_LEN ((1<<16)-1)
+//spi_buf_addr
+#define DATA64_READ_ADDR(x) (x<<16)
+#define DATA64_WRITE_ADDR(x) (x)
+//spi_status_2
+#define SPI_SRAM_ST (0x7<<13)
+
+#define CMD_FAST_READ (0xb)
+#define CMD_READ_STATUS (0x5)
+#define SPI_TIMEOUT 450
+
+typedef struct{
+	UINT8 enhance_en;
+	UINT8 enhance_bit;
+	UINT8 enhance_bit_mode;
+	UINT8 enhance_data;
+}SPI_ENHANCE;
+enum ERASE_TYPE
+{
+	SECTOR = 0,
+	BLOCK = 1,
+	CHIP = 2
+};
+
+enum SPI_USEABLE_DQ
+{
+	DQ0 = 1<<20,
+	DQ1 = 1<<21,
+	DQ2 = 1<<22,
+	DQ3 = 1<<23
+};
+
 enum SPI_CMD_IO_BIT
 {
 	CMD_0 = 0,
@@ -185,6 +187,7 @@ enum SPI_CMD_IO_BIT
 	CMD_2 = 2,
 	CMD_4 = 4
 };
+
 enum SPI_ADDR_IO_BIT
 {
 	ADDR_0 = 0,
@@ -192,6 +195,7 @@ enum SPI_ADDR_IO_BIT
 	ADDR_2 = 2,
 	ADDR_4 = 4
 };
+
 enum SPI_DATA_IO_BIT
 {
 	DATA_0 = 0,
@@ -199,17 +203,20 @@ enum SPI_DATA_IO_BIT
 	DATA_2 = 2,
 	DATA_4 = 4
 };
+
 enum SPI_DMA_MODE
 {
 	DMA_OFF = 0,
 	DMA_ON = 1
 };
+
 enum SPI_SRAM_STATUS
 {
 	SRAM_CONFLICT = 0,
 	SRAM_EMPTY = 1,
 	SRAM_FULL = 2
 };
+
 enum SPI_INTR_STATUS
 {
 	BUFFER_ENOUGH = 1,
@@ -240,10 +247,10 @@ typedef struct{
 	UINT32  spi_intr_sts						; 
 	UINT32  spi_page_size						; 
 	UINT32  G22_RESERVED[12]					; 
-}pentagram_spi_nor_regs;
+}sp_spi_nor_regs;
 
-struct pentagram_spi_nor_platdata {
-	struct pentagram_spi_nor_regs *regs;
+struct sp_spi_nor_platdata {
+	struct sp_spi_nor_regs *regs;
 	unsigned int clock;
 	unsigned int mode;
 };
@@ -254,8 +261,8 @@ struct spinorbufdesc{
            dma_addr_t phys;
 }__aligned(ARCH_DMA_MINALIGN) ;
 #endif
-struct pentagram_spi_nor_priv {
-    struct pentagram_spi_nor_regs *regs;
+struct sp_spi_nor_priv {
+    struct sp_spi_nor_regs *regs;
     unsigned int clock;
     unsigned int mode;
 #if (SP_SPINOR_DMA)
