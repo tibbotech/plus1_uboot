@@ -37,6 +37,10 @@ CONFIG_USB=y
 CONFIG_USB_STORAGE=y
 CONFIG_REGEX=y
 #
+# Soc
+#
+CONFIG_OTP_SUNPLUS=y
+#
 # Pin controllers
 #
 CONFIG_PINCTRL=y
