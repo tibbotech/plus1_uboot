@@ -253,18 +253,20 @@ struct sp_spi_nor_platdata {
 	struct sp_spi_nor_regs *regs;
 	unsigned int clock;
 	unsigned int mode;
+	unsigned int chipsel;
 };
 #if (SP_SPINOR_DMA)
 struct spinorbufdesc{
 		uint32_t idx;
 		uint32_t size;
-           dma_addr_t phys;
+    dma_addr_t phys;
 }__aligned(ARCH_DMA_MINALIGN) ;
 #endif
 struct sp_spi_nor_priv {
     struct sp_spi_nor_regs *regs;
     unsigned int clock;
     unsigned int mode;
+    unsigned int chipsel;
 #if (SP_SPINOR_DMA)
     struct  spinorbufdesc wchain;
     struct  spinorbufdesc rchain;

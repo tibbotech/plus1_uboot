@@ -119,6 +119,7 @@
 		compatible = "sunplus,sunplus-q628-spi-nor";
 		reg = <0x9C000B00 0x80>;
 		spi-max-frequency = <50000000>;
+		chip-selection = <0>;
 	};
 
 	sp_l2sw: l2sw@0x9c108000 {
