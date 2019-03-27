@@ -40,9 +40,6 @@ int board_init(void)
 
 int board_eth_init(bd_t *bis)
 {
-#ifdef CONFIG_CMD_NET
-	spl2sw_initialize(0, 0x9c108000);
-#endif	
 	return 0;
 }
 

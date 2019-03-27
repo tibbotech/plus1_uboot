@@ -1,575 +1,716 @@
 /*
- * Sunplusl 2swc ethernet driver for u-boot
- */
+ * (C) Copyright 2019
+ * Author: Wells Lu, wells.lu@sunplus.com
+ *
+ * SPDX-License-Identifier: GPL-2.0+
+ *
+ * Ethernet driver for Sunplus L2SW (Q628)
+ *
+*/
 
-#include <config.h>
+#include <asm/io.h>
 #include <common.h>
 #include <dm.h>
-#include <net.h>
+#include <fdt_support.h>
+#include <linux/err.h>
 #include <malloc.h>
-#include <asm/io.h>
-#include <phy.h>
 #include <miiphy.h>
+#include <net.h>
 #include "sunplus_l2sw.h"
 
-//#define cpu_to_le32(x)        (x)
 
-//#define le32_to_cpu(x)        (x)
-#define rounddown(x, y)   (((u32)(x) / (u32)(y)) * (u32)(y))
+extern int read_otp_data(int addr, char *value);
 
-#define roundup(x, y)   (((u32)(x) / (u32)(y)) * (u32)(y) +(2*y))
 
-#if 1
+static struct l2sw_reg* ls2w_reg_base = NULL;
+static struct moon5_reg* moon5_reg_base = NULL;
 
-#define ALIGN_END_ADDR(x)       \
-	(roundup(x, CONFIG_SYS_CACHELINE_SIZE))
+#if 0
+static void print_packet(char *p, int len)
+{
+	char buf[120], *packet_t;
+	u32 LenType;
+	int i;
 
-#else
+	i = snprintf(buf, sizeof(buf), "MAC: DA=%02x:%02x:%02x:%02x:%02x:%02x, "
+		"SA=%02x:%02x:%02x:%02x:%02x:%02x, ",
+		(u32)p[0], (u32)p[1], (u32)p[2], (u32)p[3], (u32)p[4], (u32)p[5],
+		(u32)p[6], (u32)p[7], (u32)p[8], (u32)p[9], (u32)p[10], (u32)p[11]);
 
-#define ALIGN_END_ADDR(type, ptr, size)                 \
-	((unsigned long)(ptr) + roundup((size) * sizeof(type), CONFIG_SYS_CACHELINE_SIZE))
+	LenType = (((u32)p[12])<<8) + p[13];
+	if (LenType == 0x8100) {
+		snprintf(buf+i, sizeof(buf)-i, "TPID=%04x, Tag=%04x, LenType=%04x, len=%d (VLAN tagged packet)\n",
+			LenType, (u32)((((u32)p[14])<<8)+p[15]), (u32)((((u32)p[16])<<8)+p[17]),
+			(int)len);
+	} else if (LenType > 1500) {
+		switch (LenType) {
+		case 0x0800:
+			packet_t = "IPv4"; break;
+		case 0x0806:
+			packet_t = "ARP"; break;
+		case 0x8035:
+			packet_t = "RARP"; break;
+		case 0x86DD:
+			packet_t = "IPv6"; break;
+		default:
+			packet_t = "unknown";
+		}
 
+		snprintf(buf+i, sizeof(buf)-i, "Type=%04x, len=%d (%s packet)\n",
+			LenType, (int)len, packet_t);
+	} else {
+		snprintf(buf+i, sizeof(buf)-i, "Len=%04x, len=%d (802.3 packet)\n",
+			LenType, (int)len);
+	}
+
+	eth_info("%s\n", buf);
+}
 #endif
 
-
-
-#define ALIGN_START_ADDR(x)     \
-	(rounddown(x, CONFIG_SYS_CACHELINE_SIZE))
-
-static void  spl2sw_hw_init(struct spl2sw_dev *priv)
+u32 mdio_read(u32 phy_id, u16 regnum)
 {
-	struct spl2sw_regs *regs = (struct spl2sw_regs *)priv->dev->iobase;
-	u32 reg;
+	u32 value;
+	ulong start;
+	int timeout = CONFIG_MDIO_TIMEOUT;
 
-	//set vlan gp
-	writel((1<<4)+0,&regs->PVID_config0);
-	writel((6<<8)+9,&regs->VLAN_memset_config0);
+	HWREG_W(phy_cntl_reg0, (1<<14) | (regnum <<8) | phy_id);
 
-	//enable soc port0 crc padding
-	reg=readl(&regs->cpu_cntl);
-	writel((reg&(~(0x1<<6)))|(0x1<<8),&regs->cpu_cntl);
-
-	//enable port0
-	reg=readl(&regs->port_cntl0);
-	writel(reg&(~(0x3<<24)),&regs->port_cntl0);
-
-	reg=readl(&regs->cpu_cntl);
-	writel(reg&(~(0x3F<<0)),&regs->cpu_cntl);
-}
-
-static inline void desc_set_buf_len(struct spl2sw_desc *p, u32 buf_sz)
-{
-	p->cmd2 = cpu_to_le32(buf_sz);
-
-	flush_dcache_range(ALIGN_START_ADDR(p), ALIGN_END_ADDR(p));
-}
-
-
-static inline void tx_desc_send_set(struct spl2sw_desc *p, void *paddr, int len)
-{
-	u32 cmd1;
-	u32 cmd2;
-	u32 force_dp=0x1;
-	u32 to_vlan=0x1;
-
-	cmd1 = (OWN_BIT | FS_BIT | LS_BIT | (force_dp<<18) | (to_vlan<<12)| (len&LEN_MASK));
-	cmd2 = (EOR_BIT|(len&LEN_MASK));
-	p->addr1 = cpu_to_le32(paddr);
-
-	p->cmd1 = cmd1;
-	p->cmd2 = cmd2;
-	flush_dcache_range(ALIGN_START_ADDR(p), ALIGN_END_ADDR(p));
-	flush_dcache_range(ALIGN_START_ADDR(p->addr1), ALIGN_END_ADDR(p->addr1 + 1500));
-}
-
-static inline void desc_init_rx_desc(struct spl2sw_desc *p, int ring_size, int buf_sz)
-{
-	struct spl2sw_desc *end = p + ring_size - 1;
-
-	memset(p, 0, sizeof(*p) * ring_size);
-
-	for (; p <= end; p++) {
-		p->cmd1 = OWN_BIT;
-		desc_set_buf_len(p, buf_sz);
-	}
-	end->cmd2|= cpu_to_le32(EOR_BIT);
-
-	flush_dcache_range(ALIGN_START_ADDR(end), ALIGN_END_ADDR(end));
-}
-
-static inline void desc_init_tx_desc(struct spl2sw_desc *p, u32 ring_size)
-{
-	memset(p, '\0', sizeof(*p) * ring_size);
-	//printf("p = %x\n", p);
-	//printf("p[ring_size - 1] = %x\n", &p[ring_size - 1]);
-	//printf("p[ring_size - 1].cmd2 = %x\n", &p[ring_size - 1].cmd2);
-	//printf("p end = %x\n",  ALIGN_END_ADDR(struct spl2sw_desc, p, 1));
-	p[ring_size - 1].cmd2|= cpu_to_le32(EOR_BIT);
-
-	flush_dcache_range(ALIGN_START_ADDR(&p[ring_size - 1]), ALIGN_END_ADDR(&p[ring_size - 1]));
-}
-
-static inline int desc_get_owner(struct spl2sw_desc *p)
-{
-	flush_dcache_range(ALIGN_START_ADDR(p), ALIGN_END_ADDR(p));
-	return le32_to_cpu(p->cmd1) & OWN_BIT;
-}
-
-static inline void desc_set_rx_owner(struct spl2sw_desc *p)
-{
-	/* Clear all fields and set the owner */
-	p->cmd1 |= cpu_to_le32(OWN_BIT);
-
-	flush_dcache_range(ALIGN_START_ADDR(p), ALIGN_END_ADDR(p));
-}
-
-
-
-static inline int desc_get_rx_frame_len(struct spl2sw_desc *p)
-{
-	flush_dcache_range(ALIGN_START_ADDR(p), ALIGN_END_ADDR(p));
-	u32 data = le32_to_cpu(p->cmd1);
-	u32 len = (data & RXDESC_FRAME_LEN_MASK);
-
-	return len;
-}
-
-static inline void *desc_get_buf_addr(struct spl2sw_desc *p)
-{
-	flush_dcache_range(ALIGN_START_ADDR(p), ALIGN_END_ADDR(p));
-	flush_dcache_range(ALIGN_START_ADDR(p->addr1), ALIGN_END_ADDR(p->addr1 + 1500));
-	return (void *)le32_to_cpu(p->addr1);
-}
-
-static inline void desc_set_buf_addr(struct spl2sw_desc *p, void *paddr, int len)
-{
-	p->addr1 = cpu_to_le32(paddr);
-
-	flush_dcache_range(ALIGN_START_ADDR(p), ALIGN_END_ADDR(p));
-}
-
-static void init_rx_desc(struct spl2sw_dev *priv)
-{
-	struct spl2sw_desc *rxdesc;
-	struct spl2sw_regs *regs = (struct spl2sw_regs *)priv->dev->iobase;
-	void *rxbuffer = priv->rxbuffer;
-	int i,j;
-
-	for (i=0; i<RX_DESC_QUEUE_NUM; i++) {
-		priv->rx_desc_num[i] = RX_DESC_NUM;
-		priv->rx_desc[i] = &priv->rx_desc_chain[i * RX_DESC_NUM];
-		desc_init_rx_desc(priv->rx_desc[i], RX_DESC_NUM, ETH_BUF_SZ);
-
-		for (j = 0; j < RX_DESC_NUM; j++) {
-			rxdesc = priv->rx_desc[i] ;
-
-			desc_set_buf_addr(rxdesc + j, rxbuffer + (j * ETH_BUF_SZ),
-					  ETH_BUF_SZ);
-
-			desc_set_rx_owner(rxdesc + j);
+	start = get_timer(0);
+	while (get_timer(start) < timeout) {
+		value = HWREG_R(phy_cntl_reg1);
+		if (value & (1<<1)) {
+			//eth_info("mdio_read(addr=%d, reg=%d) = %04x\n", phy_id, regnum, value>>16);
+			return value >> 16;
 		}
+		udelay(10);
+	};
+
+	return -1;
+}
+
+u32 mdio_write(u32 phy_id, u32 regnum, u16 val)
+{
+	ulong start;
+	int timeout = CONFIG_MDIO_TIMEOUT;
+
+	//eth_info("mdio_write(addr=%d, reg=%d, val=%04x)\n", phy_id, regnum, val);
+	HWREG_W(phy_cntl_reg0, (val<<16) | (1<<13) | (regnum <<8) | phy_id);
+
+	start = get_timer(0);
+	while (get_timer(start) < timeout) {
+		if (HWREG_R(phy_cntl_reg1) & (1<<0)) {
+			return 0;
+		}
+		udelay(10);
+	};
+
+	return -1;
+}
+
+static int l2sw_mdio_read(struct mii_dev *bus, int addr, int devad, int reg)
+{
+	return mdio_read(addr, reg);
+}
+
+static int l2sw_mdio_write(struct mii_dev *bus, int addr, int devad, int reg, u16 val)
+{
+	return mdio_write(addr, reg, val);
+}
+
+static int l2sw_mdio_init(const char *name, struct udevice *priv)
+{
+	struct mii_dev *bus = mdio_alloc();
+
+	if (!bus) {
+		eth_err("Failed to allocate MDIO bus\n");
+		return -ENOMEM;
 	}
 
-	writel((int)priv->rx_desc[0], &regs->rx_lbase_addr_0);
-	writel((int)priv->rx_desc[1], &regs->rx_hbase_addr_0);
+	bus->read = l2sw_mdio_read;
+	bus->write = l2sw_mdio_write;
+	snprintf(bus->name, sizeof(bus->name), name);
+	bus->priv = (void *)priv;
+
+	return mdio_register(bus);
 }
 
-static void init_tx_desc(struct spl2sw_dev *priv)
+static int l2sw_phy_init(struct emac_eth_dev *priv, void *dev)
 {
-	struct spl2sw_regs *regs = (struct spl2sw_regs *)priv->dev->iobase;
-	int i;
+	struct phy_device *phy_dev;
 
-	for (i=0; i<TX_DESC_QUEUE_NUM; i++) {
-		priv->tx_desc_num[i] = TX_DESC_NUM;
+	//eth_info("[%s] IN\n", __func__);
 
-		priv->tx_desc[i] = &priv->tx_desc_chain[i * TX_DESC_NUM];//0x9E820000;
-		desc_init_tx_desc(priv->tx_desc[i], TX_DESC_NUM);
+	phy_dev = phy_connect(priv->bus, priv->phy_addr0, dev, priv->interface);
+	if (!phy_dev)
+		return -ENODEV;
+
+	phy_connect_dev(phy_dev, dev);
+
+	priv->phy_dev0 = phy_dev;
+	phy_config(priv->phy_dev0);
+
+	return 0;
+}
+
+static void rx_descs_init(struct emac_eth_dev *priv)
+{
+	volatile char *rxbuffs = &priv->rxbuffer[0];
+	volatile struct spl2sw_desc *rxdesc;
+	u32 i, j;
+
+	//eth_info("[%s] IN\n", __func__);
+
+	// Flush all rx buffers */
+	flush_dcache_range(DCACHE_ROUNDDN(rxbuffs), DCACHE_ROUNDUP(rxbuffs+RX_TOTAL_BUFSIZE));
+
+	for (i = 0; i < CONFIG_RX_QUEUE_NUM; i++) {
+		for (j = 0; j < CONFIG_RX_DESCR_NUM; j++) {
+			rxdesc = &priv->rx_desc[i*CONFIG_RX_DESCR_NUM+j];
+			rxdesc->addr1 = (uintptr_t)&rxbuffs[(i*CONFIG_RX_DESCR_NUM+j) * CONFIG_ETH_BUFSIZE];
+			rxdesc->addr2 = 0;
+			rxdesc->cmd2 = (j == (CONFIG_RX_DESCR_NUM - 1))? EOR_BIT|CONFIG_ETH_RXSIZE: CONFIG_ETH_RXSIZE;
+			rxdesc->cmd1 = OWN_BIT;
+		}
+		priv->rx_pos = 0;
 	}
 
-	//printf("&tx_desc  = %x\n", &priv->tx_desc[0]);
-	writel(0, &regs->tx_lbase_addr_0);
-	writel((int)priv->tx_desc[0], &regs->tx_hbase_addr_0);
+	// Flush all rx descriptors.
+	flush_dcache_range(DCACHE_ROUNDDN(priv->rx_desc), DCACHE_ROUNDUP((u32)priv->rx_desc+sizeof(priv->rx_desc)));
+	//eth_info("RX Queue: start = %08x, end = %08x\n", priv->rx_desc, &priv->rx_desc[CONFIG_RX_DESCR_NUM]);
+
+	// Setup base address for high- and low-priority rx queue.
+	HWREG_W(rx_hbase_addr_0, (uintptr_t)&priv->rx_desc[0]);
+	HWREG_W(rx_lbase_addr_0, (uintptr_t)&priv->rx_desc[CONFIG_RX_DESCR_NUM]);
 }
 
-
-static void spl2sw_hwaddr_set(struct eth_device *dev)
+static void tx_descs_init(struct emac_eth_dev *priv)
 {
-	struct spl2sw_regs *regs = (struct spl2sw_regs *)dev->iobase;
+	volatile char *txbuffs = &priv->txbuffer[0];
+	volatile struct spl2sw_desc *txdesc;
+	u32 i;
 
-	writel(dev->enetaddr[0]+(dev->enetaddr[1]<<8),&regs->w_mac_15_0_bus);
-	writel(dev->enetaddr[2]+(dev->enetaddr[3]<<8)+(dev->enetaddr[4]<<16)+(dev->enetaddr[5]<<24),&regs->w_mac_47_16);
+	//eth_info("[%s] IN\n", __func__);
+
+	memset((void*)&priv->tx_desc[0], 0, sizeof(*txdesc)*(CONFIG_TX_DESCR_NUM*CONFIG_RX_QUEUE_NUM));
+	for (i = 0; i < (CONFIG_TX_DESCR_NUM*CONFIG_RX_QUEUE_NUM); i++) {
+		txdesc = &priv->tx_desc[i];
+		txdesc->addr1 = (uintptr_t)&txbuffs[i * CONFIG_ETH_BUFSIZE];
+	}
+
+	priv->tx_pos = 0;
+
+	// Flush all tx descriptors.
+	flush_dcache_range(DCACHE_ROUNDDN(priv->tx_desc), DCACHE_ROUNDUP((u32)priv->tx_desc+sizeof(priv->tx_desc)));
+	//eth_info("TX Queue: start = %08x, end = %08x\n", priv->tx_desc, &priv->tx_desc[CONFIG_TX_DESCR_NUM]);
+
+	// Setup base address for high- and low-priority tx queue.
+	HWREG_W(tx_hbase_addr_0, (uintptr_t)&priv->tx_desc[0]);
+	HWREG_W(tx_lbase_addr_0, (uintptr_t)&priv->tx_desc[CONFIG_TX_DESCR_NUM]);
 }
 
-int spl2sw_pinmux_set(struct eth_device *dev)
+#if 0
+void mac_hw_addr_print(void)
+{
+	u32 reg, regl, regh;
+
+	// Wait for address table being idle.
+	do {
+		reg = HWREG_R(addr_tbl_srch);
+		ndelay(10);
+	} while (!(reg & MAC_ADDR_LOOKUP_IDLE));
+
+	// Search address table from start.
+	HWREG_W(addr_tbl_srch, HWREG_R(addr_tbl_srch) | MAC_BEGIN_SEARCH_ADDR);
+	mb();
+	while (1){
+		do {
+			reg = HWREG_R(addr_tbl_st);
+			ndelay(10);
+			//eth_info("addr_tbl_st = %08x\n", reg);
+		} while (!(reg & (MAC_AT_TABLE_END|MAC_AT_DATA_READY)));
+
+		if (reg & MAC_AT_TABLE_END) {
+			break;
+		}
+
+		regl = HWREG_R(MAC_ad_ser0);
+		ndelay(10);                     // delay here is necessary or you will get all 0 of MAC_ad_ser1.
+		regh = HWREG_R(MAC_ad_ser1);
+
+		//eth_info("addr_tbl_st = %08x\n", reg);
+		eth_info("AT #%u: port=0x%01x, cpu=0x%01x, vid=%u, aging=%u, proxy=%u, mc_ingress=%u, "
+			"HWaddr=%02x:%02x:%02x:%02x:%02x:%02x\n",
+			(reg>>22)&0x3ff, (reg>>12)&0x3, (reg>>10)&0x3, (reg>>7)&0x7,
+			(reg>>4)&0x7, (reg>>3)&0x1, (reg>>2)&0x1,
+			regl&0xff, (regl>>8)&0xff,
+			regh&0xff, (regh>>8)&0xff, (regh>>16)&0xff, (regh>>24)&0xff);
+
+		// Search next.
+		HWREG_W(addr_tbl_srch, HWREG_R(addr_tbl_srch) | MAC_SEARCH_NEXT_ADDR);
+	}
+}
+#endif
+
+static int _l2sw_write_hwaddr(struct emac_eth_dev *priv, u8 *mac_id)
 {
 	u32 reg;
-	struct spl2sw_regs *regs = (struct spl2sw_regs *)dev->iobase;
 
-	//MOON2_REG->sft_cfg[0] = 0x22282228;
-	//MOON2_REG->sft_cfg[1] = 0x17231723;
-	//MOON2_REG->sft_cfg[2] = 0x202C202C;
-	//MOON2_REG->sft_cfg[3] = 0x2B212B21;
-	//MOON2_REG->sft_cfg[4] = 0x2A292A29;
-	//MOON2_REG->sft_cfg[5] = 0x26252625;
-	//MOON2_REG->sft_cfg[6] = 0x24272427;
-	//MOON2_REG->sft_cfg[7] = 0x1D1F1D1F;
-	//MOON2_REG->sft_cfg[8] = 0x191E191E;
-	//MOON2_REG->sft_cfg[9] = 0x1B1A1B1A;
-	//MOON2_REG->sft_cfg[10] = 0x01000100;
+	//eth_info("[%s] IN\n", __func__);
 
-	//set clock
-	reg = MOON5_REG->sft_cfg[5];
-	MOON5_REG->sft_cfg[5] = (reg|0xF<<16|0xF);
+	HWREG_W(w_mac_15_0, mac_id[0]+(mac_id[1]<<8));
+	HWREG_W(w_mac_47_16, mac_id[2]+(mac_id[3]<<8)+(mac_id[4]<<16)+(mac_id[5]<<24));
 
-	//enable port0
-	reg=readl(&regs->port_cntl0);
-	writel(reg&(~(0x3<<24)),&regs->port_cntl0);
+	//eth_info("ethaddr=%02x:%02x:%02x:%02x:%02x:%02x\n", mac_id[0], mac_id[1],
+	//	mac_id[2], mac_id[3], mac_id[4], mac_id[5]);
 
-	//phy address
-	reg=readl(&regs->mac_force_mode);
-	writel((reg&(~(0x1f<<16)))|(PHY0_ADDR<<16), &regs->mac_force_mode);
-	reg=readl(&regs->mac_force_mode);
-	writel((reg&(~(0x1f<<24)))|(PHY1_ADDR<<24), &regs->mac_force_mode);
+	HWREG_W(wt_mac_ad0, (1<<10)|(1<<4)|1);  // Set aging=1
+	do {
+		reg = HWREG_R(wt_mac_ad0);
+		ndelay(10);
+		//eth_info("wt_mac_ad0 = 0x%08x\n", reg);
+	} while ((reg&(0x1<<1)) == 0x0);
+	//eth_info("mac_ad0 = %08x, mac_ad = %08x%04x\n", HWREG_R(wt_mac_ad0), HWREG_R(w_mac_47_16), HWREG_R(w_mac_15_0)&0xffff);
+
+	memcpy(priv->mac_addr, mac_id, ARP_HLEN);
+	//mac_hw_addr_print();
 
 	return 0;
 }
 
-void spl2sw_enable_port(struct eth_device *dev)
+static int _l2sw_remove_hwaddr(struct emac_eth_dev *priv, u8 *mac_id)
 {
 	u32 reg;
-	u8 port_map=0x0;
-	u8 cpu_port=0x0;
-	u8 age=0x0;
-	u8 proxy=0x0;
-	u8 mc_ingress=0x0;
-	u8 vlan_id=0x0;
-	struct spl2sw_regs *regs = (struct spl2sw_regs *)dev->iobase;
 
-	//phy address
-	reg=readl(&regs->mac_force_mode);
-	writel((reg&(~(0x1f<<16)))|(PHY0_ADDR<<16), &regs->mac_force_mode);
-	reg=readl(&regs->mac_force_mode);
-	writel((reg&(~(0x1f<<24)))|(PHY1_ADDR<<24), &regs->mac_force_mode);
+	//eth_info("[%s] IN\n", __func__);
 
-	//enable soc port0 crc padding
-	reg=readl(&regs->cpu_cntl);
-	writel((reg&(~(0x1<<6)))|(0x1<<8),&regs->cpu_cntl);
+	HWREG_W(w_mac_15_0, mac_id[0]+(mac_id[1]<<8));
+	HWREG_W(w_mac_47_16, mac_id[2]+(mac_id[3]<<8)+(mac_id[4]<<16)+(mac_id[5]<<24));
 
-	//enable port0
-	reg=readl(&regs->port_cntl0);
-	writel(reg&(~(0x3<<24)),&regs->port_cntl0);
+	HWREG_W(wt_mac_ad0, (1<<12)+1);
+	do {
+		reg = HWREG_R(wt_mac_ad0);
+		ndelay(10);
+		//eth_info("wt_mac_ad0 = 0x%08x\n", reg);
+	} while ((reg&(0x1<<1)) == 0x0);
+	//eth_info("mac_ad0 = %08x, mac_ad = %08x%04x\n", HWREG_R(wt_mac_ad0), HWREG_R(w_mac_47_16), HWREG_R(w_mac_15_0)&0xffff);
 
-	/*set vlan gp*/
-	writel((port_map<<12)+(cpu_port<<10)+(vlan_id<<7)+(age<<4)+(proxy<<3)+(mc_ingress<<2)+0x1,&regs->wt_mac_ad0);
-	reg=readl(&regs->wt_mac_ad0);
-	while ((reg&(0x1<<1))==0x0) {
-		printf("wt_mac_ad0 = [%x]\n", reg);
-		reg=readl(&regs->wt_mac_ad0);
-	}
-}
-
-#define DEBUG0 printf
-
-void spl2sw_dump_regs(struct eth_device *dev)
-{
-	struct spl2sw_regs *regs = (struct spl2sw_regs *)dev->iobase;
-
-	DEBUG0("moon 0.10       = %x\r\n",MOON0_REG->clken[9]);
-	DEBUG0("moon 0.20       = %x\r\n",MOON0_REG->gclken[9]);
-	DEBUG0("moon 0.30       = %x\r\n",MOON0_REG->reset[9]);
-	DEBUG0("moon 5.04       = %x\r\n",MOON5_REG->sft_cfg[4]);
-	DEBUG0("moon 5.05       = %x\r\n",MOON5_REG->sft_cfg[5]);
-	DEBUG0("moon 30.08      = %x\r\n",MOON30_REG->sft_cfg[8]);
-
-	DEBUG0("sw_int_status_0     = %x\r\n",regs->sw_int_status_0);
-	DEBUG0("sw_int_mask_0       = %x\r\n",regs->sw_int_mask_0);
-	DEBUG0("fl_cntl_th          = %x\r\n",regs->fl_cntl_th);
-	DEBUG0("cpu_fl_cntl_th      = %x\r\n",regs->cpu_fl_cntl_th);
-	DEBUG0("pri_fl_cntl         = %x\r\n",regs->pri_fl_cntl);
-	DEBUG0("vlan_pri_th         = %x\r\n",regs->vlan_pri_th);
-	DEBUG0("En_tos_bus          = %x\r\n",regs->En_tos_bus);
-	DEBUG0("Tos_map0            = %x\r\n",regs->Tos_map0);
-	DEBUG0("Tos_map1            = %x\r\n",regs->Tos_map1);
-	DEBUG0("Tos_map2            = %x\r\n",regs->Tos_map2);
-	DEBUG0("Tos_map3            = %x\r\n",regs->Tos_map3);
-	DEBUG0("Tos_map4            = %x\r\n",regs->Tos_map4);
-	DEBUG0("Tos_map5            = %x\r\n",regs->Tos_map5);
-	DEBUG0("Tos_map6            = %x\r\n",regs->Tos_map6);
-	DEBUG0("Tos_map7            = %x\r\n",regs->Tos_map7);
-	DEBUG0("global_que_status   = %x\r\n",regs->global_que_status);
-	DEBUG0("addr_tbl_srch       = %x\r\n",regs->addr_tbl_srch);
-	DEBUG0("addr_tbl_st         = %x\r\n",regs->addr_tbl_st);
-	DEBUG0("MAC_ad_ser0         = %x\r\n",regs->MAC_ad_ser0);
-	DEBUG0("MAC_ad_ser1         = %x\r\n",regs->MAC_ad_ser1);
-	DEBUG0("wt_mac_ad0          = %x\r\n",regs->wt_mac_ad0);
-	DEBUG0("w_mac_15_0_bus      = %x\r\n",regs->w_mac_15_0_bus);
-	DEBUG0("w_mac_47_16         = %x\r\n",regs->w_mac_47_16);
-	DEBUG0("PVID_config0        = %x\r\n",regs->PVID_config0);
-	DEBUG0("PVID_config1        = %x\r\n",regs->PVID_config1);
-	DEBUG0("VLAN_memset_config0 = %x\r\n",regs->VLAN_memset_config0);
-	DEBUG0("VLAN_memset_config1 = %x\r\n",regs->VLAN_memset_config1);
-	DEBUG0("port_ability        = %x\r\n",regs->port_ability);
-	DEBUG0("port_st             = %x\r\n",regs->port_st);
-	DEBUG0("cpu_cntl            = %x\r\n",regs->cpu_cntl);
-	DEBUG0("port_cntl0          = %x\r\n",regs->port_cntl0);
-	DEBUG0("port_cntl1          = %x\r\n",regs->port_cntl1);
-	DEBUG0("port_cntl2          = %x\r\n",regs->port_cntl2);
-	DEBUG0("sw_glb_cntl         = %x\r\n",regs->sw_glb_cntl);
-	DEBUG0("l2sw_rsv1           = %x\r\n",regs->l2sw_rsv1);
-	DEBUG0("led_port0           = %x\r\n",regs->led_port0);
-	DEBUG0("led_port1           = %x\r\n",regs->led_port1);
-	DEBUG0("led_port2           = %x\r\n",regs->led_port2);
-	DEBUG0("led_port3           = %x\r\n",regs->led_port3);
-	DEBUG0("led_port4           = %x\r\n",regs->led_port4);
-	DEBUG0("watch_dog_trig_rst  = %x\r\n",regs->watch_dog_trig_rst);
-	DEBUG0("watch_dog_stop_cpu  = %x\r\n",regs->watch_dog_stop_cpu);
-	DEBUG0("phy_cntl_reg0       = %x\r\n",regs->phy_cntl_reg0);
-	DEBUG0("phy_cntl_reg1       = %x\r\n",regs->phy_cntl_reg1);
-	DEBUG0("mac_force_mode      = %x\r\n",regs->mac_force_mode);
-	DEBUG0("VLAN_group_config0  = %x\r\n",regs->VLAN_group_config0);
-	DEBUG0("VLAN_group_config1  = %x\r\n",regs->VLAN_group_config1);
-	DEBUG0("flow_ctrl_th3       = %x\r\n",regs->flow_ctrl_th3);
-	DEBUG0("queue_status_0      = %x\r\n",regs->queue_status_0);
-	DEBUG0("debug_cntl          = %x\r\n",regs->debug_cntl);
-	DEBUG0("queue_status_0      = %x\r\n",regs->queue_status_0);
-	DEBUG0("debug_cntl          = %x\r\n",regs->debug_cntl);
-	DEBUG0("l2sw_rsv2           = %x\r\n",regs->l2sw_rsv2);
-	DEBUG0("mem_test_info       = %x\r\n",regs->mem_test_info);
-	DEBUG0("sw_int_status_1     = %x\r\n",regs->sw_int_status_1);
-	DEBUG0("sw_int_mask_1       = %x\r\n",regs->sw_int_mask_1);
-	DEBUG0("cpu_tx_trig         = %x\r\n",regs->cpu_tx_trig);
-	DEBUG0("tx_hbase_addr_0     = %x\r\n",regs->tx_hbase_addr_0);
-	DEBUG0("tx_lbase_addr_0     = %x\r\n",regs->tx_lbase_addr_0);
-	DEBUG0("rx_hbase_addr_0     = %x\r\n",regs->rx_hbase_addr_0);
-	DEBUG0("rx_lbase_addr_0     = %x\r\n",regs->rx_lbase_addr_0);
-	DEBUG0("tx_hw_addr_0        = %x\r\n",regs->tx_hw_addr_0);
-	DEBUG0("tx_lw_addr_0        = %x\r\n",regs->tx_lw_addr_0);
-	DEBUG0("rx_hw_addr_0        = %x\r\n",regs->rx_hw_addr_0);
-	DEBUG0("rx_lw_addr_0        = %x\r\n",regs->rx_lw_addr_0);
-	DEBUG0("cpu_port_cntl_reg_0 = %x\r\n",regs->cpu_port_cntl_reg_0);
-}
-
-static int mac_hw_stop(struct eth_device *dev)
-{
-	struct spl2sw_regs *regs = (struct spl2sw_regs *)dev->iobase;
-	int reg;
-
-	regs->sw_int_mask_0 = 0xffffffff;
-	regs->sw_int_status_0 = 0xffffffff & (~MAC_INT_PSC);
-
-	reg = regs->cpu_cntl;
-	regs->cpu_cntl = DIS_PORT_TX | reg;
-
-	reg = regs->port_cntl0;
-	regs->port_cntl0 = DIS_PORT_RX | reg;
+	//mac_hw_addr_print();
 
 	return 0;
 }
 
-
-static int spl2sw_init(struct eth_device *dev, bd_t * bis)
+static int l2sw_emac_eth_start(struct udevice *dev)
 {
-	struct spl2sw_dev *priv = dev->priv;
+	u32 reg;
 
-	mac_hw_stop(dev);
+	//eth_info("[%s] IN\n", __func__);
 
-	/* Initialize the descriptor chains */
-	init_tx_desc(priv);
-	init_rx_desc(priv);
+	// Enable cpu port 0 (6) & port 0 crc padding (8)
+	reg = HWREG_R(cpu_cntl);
+	HWREG_W(cpu_cntl, (reg & (~(0x1<<6))) | (0x1<<8));
 
-	/* enable port */
-	spl2sw_enable_port(dev);
-
-	/* set the hardware MAC address */
-	spl2sw_hwaddr_set(dev);
-
-	/* Initialize l2sw hw */
-	spl2sw_hw_init(priv);
-	printf("spl2sw_init end\n");
-	//spl2sw_dump_regs(dev);
-	//regs->sw_int_mask_0 = 0x00000000;
+	// Enable lan port0 & port 1
+	reg = HWREG_R(port_cntl0);
+	HWREG_W(port_cntl0, reg & (~(0x3<<24)));
 
 	return 0;
 }
 
-static int spl2sw_tx(struct eth_device *dev, void *packet, int length)
+static int l2sw_eth_write_hwaddr(struct udevice *dev)
 {
-	struct spl2sw_regs *regs = (struct spl2sw_regs *)dev->iobase;
-	struct spl2sw_dev *priv = dev->priv;
-	u32 currdesc = priv->tx_currdesc;
-	struct spl2sw_desc *txdesc;
-	int timeout;
+	struct eth_pdata *pdata = dev_get_platdata(dev);
+	struct emac_eth_dev *priv = dev_get_priv(dev);
 
-	//priv->txbuffer =0x9E820100;
-
-	//printf("spl2sw_tx, length = %d\n",length);
-
-	int i;
-	//char * temp;
-
-	#if 0
-	temp=packet;
-	for (i=0; i<length; i++)
-	{
-		printf("tx data idx %d [%x]\n",i ,*(temp+i) );
-
+	// Delete the old mac address.
+	//eth_info("ethaddr=%02x:%02x:%02x:%02x:%02x:%02x\n", priv->mac_addr[0], priv->mac_addr[1],
+	//	priv->mac_addr[2], priv->mac_addr[3], priv->mac_addr[4], priv->mac_addr[5]);
+	if (is_valid_ethaddr(priv->mac_addr)) {
+		_l2sw_remove_hwaddr(priv, priv->mac_addr);
 	}
-	#endif
 
-	txdesc = priv->tx_desc[TX_DESC_QUEUE_NUM - 1];
-	//DEBUG0("txdesc = %x\n",txdesc);
-
-	if (length < TX_BUF_MIN_SZ) {
-		memset(priv->txbuffer, 0, TX_BUF_MIN_SZ);
-		memcpy(priv->txbuffer, packet, length);
-		tx_desc_send_set(txdesc, priv->txbuffer, TX_BUF_MIN_SZ);
+	// Write new mac address if it is valid.
+	if (is_valid_ethaddr(pdata->enetaddr)) {
+		return _l2sw_write_hwaddr(priv, pdata->enetaddr);
 	} else {
-		tx_desc_send_set(txdesc, packet, length);
+		eth_err("Invalid mac address = %02x:%02x:%02x:%02x:%02x:%02x!\n",
+			pdata->enetaddr[0], pdata->enetaddr[1], pdata->enetaddr[2],
+			pdata->enetaddr[3], pdata->enetaddr[4], pdata->enetaddr[5]);
 	}
 
-	/* write tx trig */
-	regs->cpu_tx_trig=1;
-	//writel(0x1,&regs->cpu_tx_trig);
+	return -1;
+}
 
-	timeout = 1000000;
-	while (desc_get_owner(txdesc)) {
-	#if 0
-		DEBUG0("sw_int_status_0     = %x\r\n",regs->sw_int_status_0);
-		if ((regs->sw_int_status_0 & 0x00000080) == 0x80) {
-			for(i=0; i<RX_TOTAL_DESC_NUM; i++) {
-				printf("rx desc dump i=%d [%x]\n",i, priv->rx_desc_chain[i].cmd1);
-			}
-		}
-	#endif
+static int l2sw_emac_eth_send(struct udevice *dev, void *packet, int len)
+{
+	struct emac_eth_dev *priv = dev_get_priv(dev);
+	u32 tx_pos = priv->tx_pos;
+	volatile struct spl2sw_desc *txdesc = &priv->tx_desc[tx_pos];
+	uintptr_t desc_start = DCACHE_ROUNDDN(txdesc);
+	uintptr_t desc_end = DCACHE_ROUNDUP((u32)txdesc + sizeof(*txdesc));
+	uintptr_t data_start = DCACHE_ROUNDDN(txdesc->addr1);
+	uintptr_t data_end = DCACHE_ROUNDUP(txdesc->addr1 + len);
 
-		if (timeout-- < 0) {
-			printf("spl2sw_tx timeout\n");
-			//spl2sw_dump_regs(dev);
+	// Invalidate tx descriptor.
+	invalidate_dcache_range(desc_start, desc_end);
 
-			for (i= 0;i<12;i++) {
-				regs->queue_status_0 = (i<<16);
-				DEBUG0("sw_int_status_0  i=%d   = %x\r\n",i,regs->queue_status_0);
-
-			}
-			return -ETIMEDOUT;
-		}
-		udelay(1);
-
+	if (txdesc->cmd1 & OWN_BIT) {
+		//eth_info("Out of TX descriptors!\n");
+		return -EPERM;
 	}
 
-	//DEBUG0("spl2sw_tx done\n");
+	memcpy((void *)txdesc->addr1, packet, len);
+	if (len < TX_BUF_MIN_SZ)
+	{
+		memset((char*)txdesc->addr1+len, 0, TX_BUF_MIN_SZ-len);
+		len = TX_BUF_MIN_SZ;
+	}
 
-	priv->tx_currdesc = (currdesc + 1) & (TX_DESC_NUM - 1);
+	// Flush tx buffer.
+	flush_dcache_range(data_start, data_end);
+
+	// Invalidate tx descriptor.
+	invalidate_dcache_range(desc_start, desc_end);
+
+	// Setup command of tx descriptor.
+	txdesc->cmd2 = (tx_pos==(CONFIG_TX_DESCR_NUM-1))? EOR_BIT|(len&LEN_MASK): (len&LEN_MASK);
+	txdesc->cmd1 = OWN_BIT | FS_BIT | LS_BIT | (1<<12) | (len&LEN_MASK);
+
+	// Flush tx descriptor.
+	flush_dcache_range(desc_start, desc_end);
+
+	//eth_info("TX1: txdesc[%d], cmd1 = %08x, cmd2 = %08x\n", tx_pos, txdesc->cmd1, txdesc->cmd2);
+	//print_packet(packet, len);
+
+	// Move to next descriptor and wrap around if needed.
+	if (++tx_pos >= CONFIG_TX_DESCR_NUM)
+		tx_pos = 0;
+	priv->tx_pos = tx_pos;
+
+	// Trigger hardware to transmit.
+	HWREG_W(cpu_tx_trig, (1<<0));
+
 	return 0;
 }
 
-static int spl2sw_rx(struct eth_device *dev)
+static int l2sw_emac_eth_recv(struct udevice *dev, int flags, uchar **packetp)
 {
-	struct spl2sw_dev *priv = dev->priv;
-	u32 currdesc = priv->rx_currdesc;
-	struct spl2sw_desc *rxdesc = &priv->rx_desc_chain[currdesc];
-	int length = 0;
+	struct emac_eth_dev *priv = dev_get_priv(dev);
+	volatile struct spl2sw_desc *rxdesc;
+	u32 cmd, rx_pos;
+	int length;
+	int good_packet = 1;
+	uintptr_t desc_start, desc_end;
+	ulong data_start, data_end;
+	int i;
+	int status;
 
-	/* check if the host has the desc */
-	while (desc_get_owner(rxdesc)) {
-		currdesc = (currdesc + 1) & (RX_TOTAL_DESC_NUM - 1);
+	// Read status and clear.
+	status = HWREG_R(sw_int_status_0);
+	HWREG_W(sw_int_status_0, status);
+	//if (status != 0) {
+	//      eth_info("status = %08x\n", status);
+	//}
 
-		if (currdesc == 0)
-		{
-			priv->rx_currdesc = 0;
-			//DEBUG0("spl2sw_rx,return -1 \n");
-			return -1;
+	// Note that we only take care of high-priority queue
+	// because all packets are forwarded to it.
+	rx_pos = priv->rx_pos;
+	for (i = 0; i < CONFIG_RX_DESCR_NUM; i++) {
+		rxdesc = &priv->rx_desc[rx_pos];
+
+		// Invalidate rx descriptor queue.
+		desc_start = DCACHE_ROUNDDN(rxdesc);
+		desc_end = DCACHE_ROUNDUP((u32)rxdesc+sizeof(u32));
+		invalidate_dcache_range(desc_start, desc_end);
+		cmd = rxdesc->cmd1;
+
+		// Check OWN bit.
+		if (cmd & OWN_BIT) {
+			if (++rx_pos >= CONFIG_RX_DESCR_NUM) {
+				rx_pos = 0;
+			}
+			continue;
 		}
 
-		rxdesc = &priv->rx_desc_chain[currdesc];
+		//eth_info("RX: rx_desc[%d], cmd1 = %08x, cmd2 = %08x, addr1 = %08x\n", rx_pos, cmd, rxdesc->cmd2, rxdesc->addr1);
+
+		length = cmd & LEN_MASK;
+		if (length < 0x40) {
+			good_packet = 0;
+			eth_err("RX: Bad Packet (runt)\n");
+		}
+
+		// Invalidate received data buffer.
+		data_start = DCACHE_ROUNDDN(rxdesc->addr1);
+		data_end = DCACHE_ROUNDUP(rxdesc->addr1 + length);
+		invalidate_dcache_range(data_start, data_end);
+
+		//print_packet((char*)rxdesc->addr1, length);
+
+		// Move to next descriptor and wrap-around if needed.
+		if (++rx_pos >= CONFIG_RX_DESCR_NUM) {
+			rx_pos = 0;
+		}
+		priv->rx_pos = rx_pos;
+
+		if (good_packet) {
+			if (length > CONFIG_ETH_RXSIZE) {
+				eth_err("Received packet is too big (len = %d)\n", length);
+				return -EMSGSIZE;
+			}
+			*packetp = (uchar *)(ulong)rxdesc->addr1;
+			return length;
+		}
 	}
-	length = desc_get_rx_frame_len(rxdesc);
-	printf("spl2sw_rx length = %d\n", length);
 
-	net_process_received_packet(desc_get_buf_addr(rxdesc), length);
-
-	/* set descriptor back to owned by XGMAC */
-	desc_set_rx_owner(rxdesc);
-
-	priv->rx_currdesc = (currdesc + 1) & (RX_TOTAL_DESC_NUM - 1);
-
-	return length;
+	return -EAGAIN;
 }
 
-static void spl2sw_halt(struct eth_device *dev)
+static int l2sw_eth_free_pkt(struct udevice *dev, uchar *packet, int length)
 {
-	struct spl2sw_regs *regs = (struct spl2sw_regs *)dev->iobase;
-	struct spl2sw_dev *priv = dev->priv;
-	int value;
+	struct emac_eth_dev *priv = dev_get_priv(dev);
+	volatile struct spl2sw_desc *rxdesc;
+	uintptr_t desc_start, desc_end;
+	u32 i;
 
-	/* Disable TX/RX */
-	DEBUG0("spl2sw_halt\n");
+	i = ((int)packet - priv->rx_desc[0].addr1) / CONFIG_ETH_BUFSIZE;
+	if (i < (CONFIG_RX_DESCR_NUM * CONFIG_RX_QUEUE_NUM)) {
+		rxdesc = &priv->rx_desc[i];
 
-	writel(0xffffffff, &regs->sw_int_mask_0);
+		// Invalidate rx descriptor.
+		desc_start = DCACHE_ROUNDDN(rxdesc);
+		desc_end = DCACHE_ROUNDUP((u32)rxdesc + sizeof(u32));
+		invalidate_dcache_range(desc_start, desc_end);
 
-	value = readl(&regs->cpu_cntl);
-	value = (DIS_PORT_TX | value);
-	writel(value, &regs->cpu_cntl);
+		//eth_info("FR: rx_desc[%d], cmd1 = %08x, cmd2 = %08x, addr1 = %08x\n", i, rxdesc->cmd1, rxdesc->cmd2, rxdesc->addr1);
 
-	value = readl(&regs->port_cntl0);
-	value = (DIS_PORT_RX | value);
-	writel(value, &regs->port_cntl0);
+		// Make the current descriptor valid again.
+		rxdesc->cmd1 = OWN_BIT;
 
-	/* must set to 0, or when started up will cause issues */
-	priv->tx_currdesc = 0;
-	priv->rx_currdesc = 0;
-}
-
-
-int spl2sw_initialize(u32 id, ulong base_addr)
-{
-	struct eth_device *dev;
-	struct spl2sw_dev *priv;
-	//struct spl2sw_regs *regs = (struct spl2sw_regs *)base_addr;
-	//u32 macaddr[2];
-
-	DEBUG0("spl2sw_initialize\n");
-
-	/* check hardware version */
-	//if (readl(&regs->version) != 0x1012)
-	//      return -1;
-
-	dev = malloc(sizeof(*dev));
-	if (!dev)
-		return 0;
-	memset(dev, 0, sizeof(*dev));
-
-	//DEBUG0("spl2sw_initialize debug 1\n");
-	/* Structure must be aligned, because it contains the descriptors */
-	priv = memalign(32, sizeof(*priv));
-	if (!priv) {
-		free(dev);
-		return 0;
+		// Flush cmd1 field of descriptor.
+		flush_dcache_range(desc_start, desc_end);
 	}
-	//DEBUG0("spl2sw_initialize debug 2\n");
 
-	dev->iobase = (int)base_addr;
-	dev->priv = priv;
-	priv->dev = dev;
-	sprintf(dev->name, "spl2sw%d", id);
-
-	/* The MAC address is already configured, so read it from registers. */
-	//macaddr[1] = readl(&regs->macaddr[0].hi);
-	//macaddr[0] = readl(&regs->macaddr[0].lo);
-	//memcpy(dev->enetaddr, macaddr, 6);
-
-	memset(dev->enetaddr, 0x88, 6);
-	dev->init = spl2sw_init;
-	dev->send = spl2sw_tx;
-	dev->recv = spl2sw_rx;
-	dev->halt = spl2sw_halt;
-	//DEBUG0("spl2sw_initialize debug 3\n");
-
-	eth_register(dev);
-	//DEBUG0("spl2sw_initialize debug 4\n");
-	/* set broad pinmux */
-	spl2sw_pinmux_set(dev);
-
-	return 1;
+	return 0;
 }
+
+static void l2sw_soc_stop(void)
+{
+	u32 reg;
+
+	reg = HWREG_R(cpu_cntl);
+	HWREG_W(cpu_cntl, reg | (1<<6));
+
+	reg = HWREG_R(port_cntl0);
+	HWREG_W(port_cntl0, reg | (3<<24));
+
+	HWREG_W(sw_int_status_0, 0xffffffff);
+}
+
+static void l2sw_emac_eth_stop(struct udevice *dev)
+{
+	struct emac_eth_dev *priv = dev_get_priv(dev);
+
+	//eth_info("[%s] IN\n", __func__);
+
+	// Stop receiving and tranferring.
+	l2sw_soc_stop();
+
+	phy_shutdown(priv->phy_dev0);
+
+	//mac_hw_addr_print();
+}
+
+static void l2sw_emac_board_setup(struct emac_eth_dev *priv)
+{
+	u32 reg;
+
+	// Set polarity of TX & RX
+	reg = MOON5REG_R(mo4_l2sw_clksw_ctl);
+	MOON5REG_W(mo4_l2sw_clksw_ctl, reg | (0xf<<16) | 0xf);
+
+	// Set phy 0 address.
+	if (priv->phy_addr0 <= 31) {
+		reg = HWREG_R(mac_force_mode);
+		HWREG_W(mac_force_mode, (reg & (~(0x1f<<16))) | (priv->phy_addr0<<16));
+	}
+
+	// Set phy 1 address.
+	if (priv->phy_addr1 <= 31) {
+		reg = HWREG_R(mac_force_mode);
+		HWREG_W(mac_force_mode, (reg & (~(0x1f<<24))) | (priv->phy_addr1<<24));
+	}
+	//eth_info("mac_force_mode = %08x\n", HWREG_R(mac_force_mode));
+}
+
+static int l2sw_emac_eth_init(struct emac_eth_dev *priv, u8 *enetaddr)
+{
+	u32 reg;
+
+	//eth_info("[%s] IN\n", __func__);
+
+	// Stop receiving and tranferring.
+	l2sw_soc_stop();
+
+	HWREG_W(sw_int_mask_0, 0xffffffff);
+
+	// port 0: VLAN group 0
+	// port 1: VLAN group 0
+	HWREG_W(PVID_config0, (0<<4)+0);
+
+	// VLAN group 0: cpu0+port1+port0
+	HWREG_W(VLAN_memset_config0, (0x0<<8)+0xb);
+
+	// Forward all packets to high-priority rx queue.
+	reg = HWREG_R(pri_fl_cntl);
+	HWREG_W(pri_fl_cntl, reg | (0x3<<12));          // Packet from lan port 0 & 1 are high priority packet.
+
+	// RMC forward: broadcast
+	// LED: 60mS
+	// BC storm prev: 31 BC
+	reg = HWREG_R(sw_glb_cntl);
+	HWREG_W(sw_glb_cntl, (reg & (~((0x3<<25)|(0x3<<23)|(0x3<<4)))) | (0x0<<25)|(0x1<<23)|(0x1<<4));
+
+	// Disable cpu port0 aging (12)
+	// Disable cpu port0 learning (14)
+	// Enable UC and MC packets
+	reg = HWREG_R(cpu_cntl);
+	HWREG_W(cpu_cntl, (reg & (~((0x1<<14)|(0x3c<<0)))) | (0x1<<12));
+
+	// Write mac address.
+	_l2sw_write_hwaddr(priv, enetaddr);
+
+	// Initialize rx/tx descriptor.
+	rx_descs_init(priv);
+	tx_descs_init(priv);
+
+	// Start up PHY0 */
+	genphy_parse_link(priv->phy_dev0);
+
+	return 0;
+}
+
+static int l2sw_emac_eth_probe(struct udevice *dev)
+{
+	struct emac_eth_dev *priv = dev_get_priv(dev);
+	struct eth_pdata *pdata = dev_get_platdata(dev);
+	int ret;
+
+	l2sw_emac_board_setup(priv);
+
+	ret = l2sw_mdio_init(dev->name, dev);
+	if (ret != 0) {
+		eth_err("Failed to register mdio bus\n");
+	}
+	priv->bus = miiphy_get_dev_by_name(dev->name);
+
+	ret = l2sw_phy_init(priv, dev);
+	if (ret != 0) {
+		return ret;
+	}
+
+	l2sw_emac_eth_init(dev->priv, pdata->enetaddr);
+
+	return 0;
+}
+
+static const struct eth_ops l2sw_emac_eth_ops = {
+	.start          = l2sw_emac_eth_start,
+	.write_hwaddr   = l2sw_eth_write_hwaddr,
+	.send           = l2sw_emac_eth_send,
+	.recv           = l2sw_emac_eth_recv,
+	.free_pkt       = l2sw_eth_free_pkt,
+	.stop           = l2sw_emac_eth_stop,
+};
+
+static int l2sw_emac_eth_ofdata_to_platdata(struct udevice *dev)
+{
+	struct eth_pdata *pdata = dev_get_platdata(dev);
+	struct emac_eth_dev *priv = dev_get_priv(dev);
+	int node = dev_of_offset(dev);
+	int offset = 0;
+	int i;
+	u8 otp_mac[ARP_HLEN];
+
+	ls2w_reg_base = (void*)devfdt_get_addr_name(dev, "l2sw");
+	pdata->iobase = (int)ls2w_reg_base;
+	//eth_info("ls2w_reg_base = %08x\n", (int)ls2w_reg_base);
+	if ((int)ls2w_reg_base == -1) {
+		eth_err("Failed to get base address of L2SW!\n");
+		return -EINVAL;
+	}
+
+	moon5_reg_base = (void*)devfdt_get_addr_name(dev, "moon5");
+	//eth_info("moon5_reg_base = %08x\n", (int)moon5_reg_base);
+	if ((int)moon5_reg_base == -1) {
+		eth_err("Failed to get base address of MOON5!\n");
+		return -EINVAL;
+	}
+
+	pdata->phy_interface = -1;
+	priv->phy_addr0 = -1;
+	priv->phy_addr1 = -1;
+
+	offset = fdtdec_lookup_phandle(gd->fdt_blob, node, "phy0");
+	if (offset > 0) {
+		priv->phy_addr0 = fdtdec_get_int(gd->fdt_blob, offset, "reg", -1);
+	}
+	//eth_info("priv->phy_addr0 = %d\n", priv->phy_addr0);
+	if (priv->phy_addr0 > 31) {
+		eth_err("Failed to get address of phy0 or address out of range!\n");
+		return -EINVAL;
+	}
+
+	offset = fdtdec_lookup_phandle(gd->fdt_blob, node, "phy1");
+	if (offset > 0) {
+		priv->phy_addr1 = fdtdec_get_int(gd->fdt_blob, offset, "reg", -1);
+	}
+	//eth_info("priv->phy_addr1 = %d\n", priv->phy_addr1);
+
+	pdata->phy_interface = phy_get_interface_by_name("rmii");
+	//eth_info("phy_interface = %d\n", pdata->phy_interface);
+	if (pdata->phy_interface == -1) {
+		eth_err("Invalid PHY interface!\n");
+		return -EINVAL;
+	}
+	priv->interface = pdata->phy_interface;
+
+	priv->otp_mac_addr = fdtdec_get_int(gd->fdt_blob, node, "mac-addr1", -1);
+	//eth_info("priv->otp_mac_addr = %d\n", priv->otp_mac_addr);
+	if (priv->otp_mac_addr < 128) {
+		for (i = 0; i < ARP_HLEN; i++) {
+			read_otp_data(priv->otp_mac_addr+i, (char*)&otp_mac[i]);
+		}
+
+		if (is_valid_ethaddr(otp_mac)) {
+			memcpy(pdata->enetaddr, otp_mac, ARP_HLEN);
+		} else {
+			eth_err("Invalid mac address from OTP[%d:%d] = %02x:%02x:%02x:%02x:%02x:%02x!\n",
+				priv->otp_mac_addr, priv->otp_mac_addr+5, otp_mac[0], otp_mac[1],
+				otp_mac[2], otp_mac[3], otp_mac[4], otp_mac[5]);
+		}
+	} else if (priv->otp_mac_addr == -1) {
+		eth_err("OTP address of mac address is not defined!\n");
+	} else {
+		eth_err("Invalid OTP address of mac address!\n");
+	}
+
+	return 0;
+}
+
+static const struct udevice_id l2sw_emac_eth_ids[] = {
+	{.compatible = "sunplus,sunplus-q628-l2sw"},
+	{ }
+};
+
+U_BOOT_DRIVER(eth_sunplus_l2sw_emac) = {
+	.name                   = "eth_sunplus_l2sw_emac",
+	.id                     = UCLASS_ETH,
+	.of_match               = l2sw_emac_eth_ids,
+	.ofdata_to_platdata     = l2sw_emac_eth_ofdata_to_platdata,
+	.probe                  = l2sw_emac_eth_probe,
+	.ops                    = &l2sw_emac_eth_ops,
+	.priv_auto_alloc_size   = sizeof(struct emac_eth_dev),
+	.platdata_auto_alloc_size = sizeof(struct eth_pdata),
+	.flags                  = DM_FLAG_ALLOC_PRIV_DMA,
+};
 

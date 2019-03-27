@@ -1,57 +1,70 @@
 /*
- * Sunplusl 2swc ethernet driver for u-boot
+ * Sunplus l2sw ethernet driver for u-boot
  */
 
-#ifndef _SUNPLUS_L2SW_
-#define _SUNPLUS_L2SW_
+#ifndef __SUNPLUS_L2SW_H__
+#define __SUNPLUS_L2SW_H__
 
 #include <net.h>
-
-#include <asm/types.h>
-#include <asm/byteorder.h>
-
 #include <linux/compiler.h>
 
 
-#define PHY0_ADDR                       0x0
-#define PHY1_ADDR                       0x1
+// debug macros
+#define eth_err(fmt, arg...)            printf(fmt, ##arg)
+#if 1
+#define eth_info(fmt, arg...)           printf(fmt, ##arg)
+#else
+#define eth_info(fmt, arg...)
+#endif
 
-/* define DESC NUM*/
-#define TX_DESC_NUM                     1
-#define RX_DESC_NUM                     8
-#define RX_QUEUE0_DESC_NUM              8
-#define RX_QUEUE1_DESC_NUM              8
-#define RX_DESC_NUM_MAX                 (RX_QUEUE0_DESC_NUM > RX_QUEUE1_DESC_NUM ? RX_QUEUE0_DESC_NUM : RX_QUEUE1_DESC_NUM)
-#define RX_DESC_QUEUE_NUM               2
-#define TX_DESC_QUEUE_NUM               1
 
-#define RX_TOTAL_DESC_NUM               (RX_DESC_NUM * RX_DESC_QUEUE_NUM)
-#define TX_TOTAL_DESC_NUM               (TX_DESC_NUM * TX_DESC_QUEUE_NUM)
-
-#define ETH_BUF_SZ                      2046
-#define TX_BUF_SZ                       (ETH_BUF_SZ * TX_DESC_NUM * TX_DESC_QUEUE_NUM)
-#define RX_BUF_SZ                       (ETH_BUF_SZ * RX_DESC_NUM * RX_DESC_QUEUE_NUM)
-#define TX_BUF_MIN_SZ                   70
-
-/*define tx/rx descriptor bit*/
+// tx/rx descriptor cmd1 bits
 #define OWN_BIT                         (1<<31)
-#define EOR_BIT                         (1<<31)
 #define FS_BIT                          (1<<25)
 #define LS_BIT                          (1<<24)
-#define RXDESC_FRAME_LEN_MASK           0x000007FF
-#define RXDESC_DA_FILTER_FAIL           0x0C000000
-
-#define DIS_PORT_TX                     0x00000040
-#define DIS_PORT_RX                     (1<<24)
-
-
 #define LEN_MASK                        0x000007FF
-#define DIS_PORT_TX                     0x00000040
-#define DIS_PORT_RX                     (1<<24)
-#define MAC_INT_PSC                     (1<<19)
+
+// tx/rx descriptor cmd2 bits
+#define EOR_BIT                         (1<<31)
+
+// Address table search
+#define MAC_ADDR_LOOKUP_IDLE            (1<<2)
+#define MAC_SEARCH_NEXT_ADDR            (1<<1)
+#define MAC_BEGIN_SEARCH_ADDR           (1<<0)
+
+// Address table status
+#define MAC_HASK_LOOKUP_ADDR_MASK       (0x3ff<<22)
+#define MAC_AT_TABLE_END                (1<<1)
+#define MAC_AT_DATA_READY               (1<<0)
+
+// Register write & read
+#define HWREG_W(M, N)                   writel(N, (int)&ls2w_reg_base->M)
+#define HWREG_R(M)                      readl((int)&ls2w_reg_base->M)
+#define MOON5REG_W(M, N)                writel(N, (int)&moon5_reg_base->M)
+#define MOON5REG_R(M)                   readl((int)&moon5_reg_base->M)
+
+// Queue defines
+#define CONFIG_TX_DESCR_NUM             4
+#define CONFIG_TX_QUEUE_NUM             2
+#define CONFIG_RX_DESCR_NUM             4
+#define CONFIG_RX_QUEUE_NUM             2
+#define CONFIG_ETH_BUFSIZE              2048            /* must be dma aligned */
+#define TX_BUF_MIN_SZ                   60
+
+#define CONFIG_ETH_RXSIZE               2046            /* must fit in ETH_BUFSIZE */
+
+#define TX_TOTAL_BUFSIZE                (CONFIG_ETH_BUFSIZE * CONFIG_TX_DESCR_NUM * CONFIG_TX_QUEUE_NUM)
+#define RX_TOTAL_BUFSIZE                (CONFIG_ETH_BUFSIZE * CONFIG_RX_DESCR_NUM * CONFIG_RX_QUEUE_NUM)
+
+#define CONFIG_MDIO_TIMEOUT             (3 * CONFIG_SYS_HZ)
 
 
-/* desc struct  */
+#define DCACHE_ROUNDDN(x)               (((u32)(x))&(~(CONFIG_SYS_CACHELINE_SIZE-1)))
+#define DCACHE_ROUNDUP(x)               (DCACHE_ROUNDDN(x-1)+CONFIG_SYS_CACHELINE_SIZE)
+
+
+DECLARE_GLOBAL_DATA_PTR;
+
 struct spl2sw_desc {
 	volatile u32 cmd1;
 	volatile u32 cmd2;
@@ -59,59 +72,36 @@ struct spl2sw_desc {
 	volatile u32 addr2;
 };
 
-/* priv struct  */
+struct emac_eth_dev {
+	volatile struct spl2sw_desc rx_desc[CONFIG_RX_DESCR_NUM*CONFIG_RX_QUEUE_NUM] __aligned(ARCH_DMA_MINALIGN);
+	volatile struct spl2sw_desc tx_desc[CONFIG_TX_DESCR_NUM*CONFIG_TX_QUEUE_NUM] __aligned(ARCH_DMA_MINALIGN);
 
-struct spl2sw_dev {
-	struct spl2sw_desc rx_desc_chain[RX_TOTAL_DESC_NUM];
-	struct spl2sw_desc tx_desc_chain[TX_TOTAL_DESC_NUM];
-	struct spl2sw_desc *rx_desc[RX_DESC_QUEUE_NUM];
-	struct spl2sw_desc *tx_desc[TX_DESC_QUEUE_NUM];
-	u32    rx_desc_num[RX_DESC_QUEUE_NUM];
-	u32    tx_desc_num[TX_DESC_QUEUE_NUM];
-	char   rxbuffer[RX_BUF_SZ];
-	char   txbuffer[TX_BUF_MIN_SZ];
-	u32    tx_currdesc;
-	u32    rx_currdesc;
-	struct eth_device *dev;
-} __aligned(32);
+	volatile char rxbuffer[RX_TOTAL_BUFSIZE] __aligned(ARCH_DMA_MINALIGN);
+	volatile char txbuffer[TX_TOTAL_BUFSIZE] __aligned(ARCH_DMA_MINALIGN);
 
+	volatile u32 tx_pos;
+	volatile u32 rx_pos;
 
-/* regs define */
-#define REG_BASE                        0x9c000000
-#define RF_GRP(_grp, _reg)              ((((_grp) * 32 + (_reg)) * 4) + REG_BASE)
+	struct mii_dev *bus;
 
-struct moon0_regs {
-	unsigned int stamp;             // 0.0
-	unsigned int clken[10];         // 0.1
-	unsigned int gclken[10];        // 0.11
-	unsigned int reset[10];         // 0.21
-	unsigned int hw_cfg;            // 0.31
+	struct phy_device *phy_dev0;
+	struct phy_device *phy_dev1;
+
+	u32 interface;
+	u32 phy_addr0;
+	u32 phy_addr1;
+	u32 phy_configured;
+
+	u8 mac_addr[8];
+	u32 otp_mac_addr;
 };
-#define MOON0_REG ((volatile struct moon0_regs *)RF_GRP(0, 0))
-
-struct moon1_regs {
-	unsigned int sft_cfg[32];
-};
-#define MOON1_REG ((volatile struct moon1_regs *)RF_GRP(1, 0))
-
-struct moon2_regs {
-	unsigned int sft_cfg[32];
-};
-#define MOON2_REG ((volatile struct moon2_regs *)RF_GRP(2, 0))
 
 
-struct moon5_regs {
-	unsigned int sft_cfg[32];
-};
-#define MOON5_REG ((volatile struct moon5_regs *)RF_GRP(5, 0))
-
-struct moon30_regs {
-	unsigned int sft_cfg[32];
-};
-#define MOON30_REG ((volatile struct moon5_regs *)RF_GRP(30, 0))
-
-
-struct spl2sw_regs {
+//=================================================================================================
+/*
+ * TYPE: RegisterFile_L2SW
+ */
+struct l2sw_reg {
 	u32 sw_int_status_0;
 	u32 sw_int_mask_0;
 	u32 fl_cntl_th;
@@ -133,7 +123,7 @@ struct spl2sw_regs {
 	u32 MAC_ad_ser0;
 	u32 MAC_ad_ser1;
 	u32 wt_mac_ad0;
-	u32 w_mac_15_0_bus;
+	u32 w_mac_15_0;
 	u32 w_mac_47_16;
 	u32 PVID_config0;
 	u32 PVID_config1;
@@ -188,4 +178,17 @@ struct spl2sw_regs {
 	u32 cpu_port_cntl_reg_1;
 };
 
-#endif /* _SUNPLUS_L2SW_ */
+//=================================================================================================
+/*
+ * TYPE: RegisterFile_MOON5
+ */
+struct moon5_reg {
+	u32 mo5_thermal_ctl_0;
+	u32 mo5_thermal_ctl_1;
+	u32 mo4_thermal_ctl_2;
+	u32 mo4_thermal_ctl_3;
+	u32 mo4_tmds_l2sw_ctl;
+	u32 mo4_l2sw_clksw_ctl;
+};
+
+#endif /* __SUNPLUS_L2SW_H__ */
