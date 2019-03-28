@@ -310,14 +310,22 @@ int sp_nand_write_bblk(nand_info_t *nand, loff_t off, size_t *length,
 	uint32_t nsect, copies, i;
 	int res, ret = 0;
 	u_char *buf;
+	u_char *raw_buf;
 
 	if (off & (nand->erasesize - 1)) {
 		printf("%s: offset must be aligned to block\n", __func__);
 		return -EINVAL;
 	}
 
-	buf = malloc(nand->writesize);
-	if (!buf) {
+	/*
+	 * buf will be used by cache operation.
+	 * Should be cacheline-aligned.
+	 */
+	raw_buf = malloc(nand->writesize + 32);
+	buf = (u_char *)(((u32)raw_buf + CONFIG_SYS_CACHELINE_SIZE - 1)
+			 & ~(CONFIG_SYS_CACHELINE_SIZE - 1));
+
+	if (!raw_buf) {
 		printf("%s: can't malloc page\n", __func__);
 		return -ENOMEM;
 	}
@@ -328,7 +336,7 @@ int sp_nand_write_bblk(nand_info_t *nand, loff_t off, size_t *length,
 
 		if (*length > sect_sz) {
 			printf("%s: max bhdr length is %u\n", __func__, sect_sz);
-			free(buf);
+			free(raw_buf);
 			return -EINVAL;
 		}
 
@@ -353,7 +361,7 @@ int sp_nand_write_bblk(nand_info_t *nand, loff_t off, size_t *length,
 
 		sect_sz = sp_nand_lookup_bdata_sect_sz(nand);
 		if (!sect_sz) {
-			free(buf);
+			free(raw_buf);
 			return -EINVAL;
 		}
 
@@ -409,7 +417,7 @@ int sp_nand_write_bblk(nand_info_t *nand, loff_t off, size_t *length,
 	debug("isp_addr_next=0x%x\n", noffs);
 	setenv_hex("isp_addr_next", noffs);
 
-	free(buf);
+	free(raw_buf);
 
 	return ret;
 }
@@ -430,6 +438,7 @@ int sp_nand_read_bblk(struct mtd_info *nand, loff_t off, size_t *length,
 	uint32_t nsect, i;
 	int res, ret = 0;
 	u_char *buf;
+	u_char *raw_buf;
 	int skipped;
 
 	if (off & (nand->erasesize - 1)) {
@@ -437,15 +446,22 @@ int sp_nand_read_bblk(struct mtd_info *nand, loff_t off, size_t *length,
 		return -EINVAL;
 	}
 
-	buf = malloc(nand->writesize);
-	if (!buf) {
+	/* 
+	 * buf will be used by cache operation.
+	 * Should be cacheline-aligned.
+	 */
+	raw_buf = malloc(nand->writesize);
+	buf = (u_char *)(((u32)raw_buf + CONFIG_SYS_CACHELINE_SIZE - 1)
+			 & ~(CONFIG_SYS_CACHELINE_SIZE - 1));
+
+	if (!raw_buf) {
 		printf("%s: can't malloc page\n", __func__);
 		return -ENOMEM;
 	}
 
 	sect_sz = sp_nand_lookup_bdata_sect_sz(nand);
 	if (!sect_sz) {
-		free(buf);
+		free(raw_buf);
 		return -EINVAL;
 	}
 
@@ -480,7 +496,7 @@ int sp_nand_read_bblk(struct mtd_info *nand, loff_t off, size_t *length,
 		off += nand->writesize;
 	}
 
-	free(buf);
+	free(raw_buf);
 
 	return ret;
 }
