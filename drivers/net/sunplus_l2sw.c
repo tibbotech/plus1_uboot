@@ -16,6 +16,7 @@
 #include <malloc.h>
 #include <miiphy.h>
 #include <net.h>
+#include <asm/cache.h>
 #include "sunplus_l2sw.h"
 
 
@@ -28,6 +29,7 @@ static struct moon5_reg* moon5_reg_base = NULL;
 #if 0
 static void print_packet(char *p, int len)
 {
+	static u32 tftp_port = 0xfffff;
 	char buf[120], *packet_t;
 	u32 LenType;
 	int i;
@@ -36,12 +38,17 @@ static void print_packet(char *p, int len)
 		"SA=%02x:%02x:%02x:%02x:%02x:%02x, ",
 		(u32)p[0], (u32)p[1], (u32)p[2], (u32)p[3], (u32)p[4], (u32)p[5],
 		(u32)p[6], (u32)p[7], (u32)p[8], (u32)p[9], (u32)p[10], (u32)p[11]);
+	p += 12;        // point to LenType
 
-	LenType = (((u32)p[12])<<8) + p[13];
+	LenType = (((u32)p[0])<<8) + p[1];
 	if (LenType == 0x8100) {
-		snprintf(buf+i, sizeof(buf)-i, "TPID=%04x, Tag=%04x, LenType=%04x, len=%d (VLAN tagged packet)\n",
-			LenType, (u32)((((u32)p[14])<<8)+p[15]), (u32)((((u32)p[16])<<8)+p[17]),
-			(int)len);
+		u32 tag = (((u32)p[2])<<8)+p[3];
+		u32 type = (((u32)p[4])<<8) + p[5];
+
+		snprintf(buf+i, sizeof(buf)-i, "TPID=%04x, Tag=%04x, LenType=%04x, len=%d (VLAN tagged packet)",
+			LenType, tag, type, len);
+		LenType = type;
+		p += 4; // point to LenType
 	} else if (LenType > 1500) {
 		switch (LenType) {
 		case 0x0800:
@@ -56,14 +63,103 @@ static void print_packet(char *p, int len)
 			packet_t = "unknown";
 		}
 
-		snprintf(buf+i, sizeof(buf)-i, "Type=%04x, len=%d (%s packet)\n",
+		snprintf(buf+i, sizeof(buf)-i, "Type=%04x, len=%d (%s packet)",
 			LenType, (int)len, packet_t);
 	} else {
-		snprintf(buf+i, sizeof(buf)-i, "Len=%04x, len=%d (802.3 packet)\n",
+		snprintf(buf+i, sizeof(buf)-i, "Len=%04x, len=%d (802.3 packet)",
 			LenType, (int)len);
 	}
-
+	p += 2;
 	eth_info("%s\n", buf);
+
+	if (LenType == 0x0800) {
+		u8 proto;
+		u32 src_port, dst_port;
+		char *proto_s;
+
+		proto = p[9];
+		switch (proto) {
+		case 1:
+			proto_s = "/ICMP"; break;
+		case 6:
+			proto_s = "/TCP"; break;
+		case 17:
+			proto_s = "/UDP"; break;
+		default:
+			proto_s = ""; break;
+		}
+
+		i = snprintf(buf, sizeof(buf), "IP%s: SA=%d.%d.%d.%d, DA=%d.%d.%d.%d",
+			proto_s,
+			(u32)p[12], (u32)p[13], (u32)p[14], (u32)p[15],
+			(u32)p[16], (u32)p[17], (u32)p[18], (u32)p[19]);
+		p += 20;
+
+		src_port = (((u32)p[0])<<8) + p[1];
+		dst_port = (((u32)p[2])<<8) + p[3];
+		if (proto == 1) {
+			// An ICMP packet
+			char *icmp_s;
+
+			switch (p[0]) {
+			case 0:
+				icmp_s = "Echo Reply"; break;
+			case 3:
+				icmp_s = "Dst unreachable"; break;
+			case 8:
+				icmp_s = "Echo Request"; break;
+			default:
+				icmp_s = ""; break;
+			}
+
+			snprintf(buf+i, sizeof(buf)-i, ", %s", icmp_s);
+		} else if (proto == 6) {
+			// A TCP packet
+			i += snprintf(buf+i, sizeof(buf)-i, ", SP=%d, DP=%d", src_port, dst_port);
+			if ((dst_port == 67) || (dst_port == 68)) {
+				snprintf(buf+i, sizeof(buf)-i, " (DHCP)");
+			}
+		} else if (proto == 17) {
+			// An UDP packet
+			i += snprintf(buf+i, sizeof(buf)-i, ", SP=%d, DP=%d", src_port, dst_port);
+			p += 8;
+
+			if ((dst_port == 67) || (dst_port == 68)) {
+				snprintf(buf+i, sizeof(buf)-i, " (DHCP)");
+			}else if ((dst_port == 69) || (src_port == tftp_port) || (dst_port == tftp_port)) {
+				// A TFTP packet
+				u32 op_c;
+				u32 block_num;
+
+				op_c = (((u32)p[0])<<8) + p[1];
+				block_num = (((u32)p[2])<<8) + p[3];
+
+				switch (op_c) {
+				case 1:
+					snprintf(buf+i, sizeof(buf)-i, ", TFTP: RRQ, %s", &p[2]);
+					tftp_port = src_port;
+					break;
+				case 2:
+					snprintf(buf+i, sizeof(buf)-i, ", TFTP: WRQ, %s", &p[2]);
+					break;
+				case 3:
+					snprintf(buf+i, sizeof(buf)-i, ", TFTP: DAT, #%d", block_num);
+					break;
+				case 4:
+					snprintf(buf+i, sizeof(buf)-i, ", TFTP: ACK, #%d", block_num);
+					break;
+				case 5:
+					snprintf(buf+i, sizeof(buf)-i, ", TFTP: ERR, #%d", block_num);
+					break;
+				case 6:
+					snprintf(buf+i, sizeof(buf)-i, ", TFTP: OAK, #%d", block_num);
+					break;
+				}
+			}
+		}
+
+		eth_info("%s\n", buf);
+	}
 }
 #endif
 
@@ -305,6 +401,8 @@ static int l2sw_emac_eth_start(struct udevice *dev)
 
 	//eth_info("[%s] IN\n", __func__);
 
+	dcache_disable();
+
 	// Enable cpu port 0 (6) & port 0 crc padding (8)
 	reg = HWREG_R(cpu_cntl);
 	HWREG_W(cpu_cntl, (reg & (~(0x1<<6))) | (0x1<<8));
@@ -345,12 +443,12 @@ static int l2sw_emac_eth_send(struct udevice *dev, void *packet, int len)
 	struct emac_eth_dev *priv = dev_get_priv(dev);
 	u32 tx_pos = priv->tx_pos;
 	volatile struct spl2sw_desc *txdesc = &priv->tx_desc[tx_pos];
-	uintptr_t desc_start = DCACHE_ROUNDDN(txdesc);
-	uintptr_t desc_end = DCACHE_ROUNDUP((u32)txdesc + sizeof(*txdesc));
-	uintptr_t data_start = DCACHE_ROUNDDN(txdesc->addr1);
-	uintptr_t data_end = DCACHE_ROUNDUP(txdesc->addr1 + len);
+	uintptr_t desc_start, desc_end;
+	uintptr_t data_start, data_end;
 
 	// Invalidate tx descriptor.
+	desc_start = DCACHE_ROUNDDN(txdesc);
+	desc_end = DCACHE_ROUNDUP((u32)txdesc + sizeof(*txdesc));
 	invalidate_dcache_range(desc_start, desc_end);
 
 	if (txdesc->cmd1 & OWN_BIT) {
@@ -366,6 +464,8 @@ static int l2sw_emac_eth_send(struct udevice *dev, void *packet, int len)
 	}
 
 	// Flush tx buffer.
+	data_start = DCACHE_ROUNDDN(txdesc->addr1);
+	data_end = DCACHE_ROUNDUP(txdesc->addr1 + len);
 	flush_dcache_range(data_start, data_end);
 
 	// Invalidate tx descriptor.
@@ -378,7 +478,7 @@ static int l2sw_emac_eth_send(struct udevice *dev, void *packet, int len)
 	// Flush tx descriptor.
 	flush_dcache_range(desc_start, desc_end);
 
-	//eth_info("TX1: txdesc[%d], cmd1 = %08x, cmd2 = %08x\n", tx_pos, txdesc->cmd1, txdesc->cmd2);
+	//eth_info("TX: txdesc[%d], cmd1 = %08x, cmd2 = %08x\n", tx_pos, txdesc->cmd1, txdesc->cmd2);
 	//print_packet(packet, len);
 
 	// Move to next descriptor and wrap around if needed.
@@ -514,6 +614,8 @@ static void l2sw_emac_eth_stop(struct udevice *dev)
 
 	// Stop receiving and tranferring.
 	l2sw_soc_stop();
+
+	dcache_enable();
 
 	phy_shutdown(priv->phy_dev0);
 
