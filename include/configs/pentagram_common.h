@@ -56,14 +56,29 @@
 #define CONFIG_SYS_BAUDRATE_TABLE	{ 57600, 115200 }
 /* #define CONFIG_SUNPLUS_SERIAL */
 
+/* Main storage selection */
+#if defined(CONFIG_SP_SPINAND)
+#define SP_MAIN_STORAGE		"nand"
+#elif defined(CONFIG_MMC_SP_EMMC)
+#define SP_MAIN_STORAGE		"emmc"
+#else
+#define SP_MAIN_STORAGE		"none"
+#endif
+
 /* u-boot env parameter */
 #define CONFIG_SYS_MMC_ENV_DEV	0
 #if defined(CONFIG_SYS_ENV_8388)
 #define CONFIG_ENV_OFFSET	0x087E4400	/* LBA 0x00043f22 */
 #define CONFIG_ENV_SIZE		0x2000
 #else /* CONFIG_SYS_ENV_SC7021_EVB (and CONFIG_SYS_ENV_ZEBU) */
+#if defined(CONFIG_ENV_IS_IN_NAND)
+#define CONFIG_ENV_OFFSET		(0x300000)
+#define CONFIG_ENV_OFFSET_REDUND	(0x380000)
+#define CONFIG_ENV_SIZE			(0x80000)
+#else
 #define CONFIG_ENV_OFFSET	(0x1022 << 9)
 #define CONFIG_ENV_SIZE		(0x0400 << 9)
+#endif
 #endif
 
 #define CONFIG_CMDLINE_EDITING
@@ -98,6 +113,7 @@
 #define MTDIDS_DEFAULT		"nand0=sp_spinand.0"
 #define MTDPARTS_DEFAULT	"mtdparts=sp_spinand.0:-(whole_nand)"
 #endif
+
 /*
  * In the beginning, bootcmd will check bootmode in SRAM and the flag
  * if_zebu to choose different boot flow :
@@ -167,7 +183,7 @@
 			"run emmc_boot; " \
 		"fi; " \
 	"fi; " \
-"elif itest.l *${bootinfo_base} == " __stringify(NAND_BOOT) "; then " \
+"elif itest.l *${bootinfo_base} == " __stringify(SPINAND_BOOT) "; then " \
 	"echo [scr] nand boot; " \
 	"run nand_boot; " \
 "elif itest.l *${bootinfo_base} == " __stringify(USB_ISP) "; then " \
@@ -193,6 +209,7 @@
 "addr_tmp_header="		__stringify(TMPADDR_HEADER) "\0" \
 "if_zebu="			__stringify(CONFIG_SYS_ENV_ZEBU) "\0" \
 "if_qkboot="			__stringify(CONFIG_SYS_USE_QKBOOT_HEADER) "\0" \
+"sp_main_storage="		__stringify(SP_MAIN_STORAGE) "\0" \
 "be2le=setexpr byte *${tmpaddr} '&' 0x000000ff; " \
 	"setexpr tmpval $tmpval + $byte; " \
 	"setexpr tmpval $tmpval * 0x100; " \
@@ -300,7 +317,8 @@
 "isp_common=setenv isp_ram_addr 0x1000000; " \
 	"fatls $isp_if $isp_dev / ; " \
 	"fatload $isp_if $isp_dev $isp_ram_addr /ISPBOOOT.BIN 0x800 0x100000 && md.b $isp_ram_addr 0x200; " \
-	"setenv isp_main_storage emmc; " \
+	"setenv isp_main_storage ${sp_main_storage}; " \
+	"echo isp_main_storage ${isp_main_storage}; " \
 	"setexpr script_addr $isp_ram_addr + 0x20 && setenv script_addr 0x${script_addr} && source $script_addr; " \
 	"\0" \
 "update_usb=setenv isp_if usb && setenv isp_dev 0; " \

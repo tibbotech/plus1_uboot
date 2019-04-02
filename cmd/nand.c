@@ -649,6 +649,25 @@ static int do_nand(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		printf(" %zu bytes %s: %s\n", rwsize,
 		       read ? "read" : "written", ret ? "ERROR" : "OK");
 
+		/*
+		 * Calculate next address for ISP
+		 * When executing nand-read commmand, set it to isp_addr_nand_read_next.
+		 * When executing nand-write commmand, set it to isp_addr_nand_write_next.
+		 */
+		uint32_t noff;
+		noff = off + rwsize;
+
+		if (read)
+		{
+			debug("isp_addr_nand_read_next=0x%x", noff);
+			setenv_hex("isp_addr_nand_read_next", noff);
+		}
+		else
+		{
+			debug("isp_addr_nand_write_next=0x%x", noff);
+			setenv_hex("isp_addr_nand_write_next", noff);
+		}
+
 		return ret == 0 ? 0 : 1;
 	}
 
