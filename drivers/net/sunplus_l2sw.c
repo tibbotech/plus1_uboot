@@ -685,6 +685,10 @@ static int l2sw_emac_eth_init(struct emac_eth_dev *priv, u8 *enetaddr)
 	rx_descs_init(priv);
 	tx_descs_init(priv);
 
+	// High-active LED
+	reg = HWREG_R(led_port0);
+	HWREG_W(led_port0, reg | (1<<28));
+
 	// Start up PHY0 */
 	genphy_parse_link(priv->phy_dev0);
 
