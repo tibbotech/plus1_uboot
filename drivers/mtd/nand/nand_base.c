@@ -3587,6 +3587,7 @@ static bool find_full_id_nand(struct mtd_info *mtd, struct nand_chip *chip,
 		chip->ecc_step_ds = NAND_ECC_STEP(type);
 		chip->onfi_timing_mode_default =
 					type->onfi_timing_mode_default;
+		chip->drv_options = type->drv_options;
 
 		*busw = type->options & NAND_BUSWIDTH_16;
 

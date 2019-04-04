@@ -11,16 +11,9 @@
 #include "sp_spinand.h"
 #include "sp_bch.h"
 
-#define CFG_CMD_TIMEOUT_MS	50
+#define CFG_CMD_TIMEOUT_MS      50
 
-#if defined(CONFIG_SP_NFTL) || defined(CONFIG_SP_BCH_REPORT)
-unsigned int *sp_bch_ftl_info;
-unsigned int *Get_SP_BCH_Info(void)
-{
-	return sp_bch_ftl_info;
-}
-#endif
-
+/*
 static int get_setbits(uint32_t n)
 {
 	n = n - ((n >> 1) & 0x55555555);
@@ -34,7 +27,7 @@ int sp_bch_blank(void *ecc, int len)
 		return -EINVAL;
 
 	uint8_t *oob = ecc;
-	int mbe = 4;		/* Max. BIT errors */
+	int mbe = 4;
 	int ret = 0;
 	int i, n;
 
@@ -54,6 +47,7 @@ int sp_bch_blank(void *ecc, int len)
 
 	return ret;
 }
+*/
 
 static int sp_bch_wait(struct sp_spinand_info *info)
 {
@@ -105,10 +99,8 @@ static int sp_bch_reset(struct sp_spinand_info *info)
 		return ret;
 	}
 
-	/* reset interrupts */
-	writel(IER_DONE | IER_FAIL, &regs->ier);
-
-	/* bch interrupts flag*/
+	writel(~(IER_FAIL|IER_DONE), &regs->ier);
+	writel(SR_DONE|SR_FAIL, &regs->sr);
 	writel(ISR_BCH, &regs->isr);
 
 	return 0;
@@ -123,21 +115,19 @@ int sp_bch_init(struct mtd_info *mtd)
 	int i;
 	int oobsz;
 	int pgsz;
-	int rsvd;		/* Reserved bytes for YAFFS2 */
-	int size;		/* BCH data length per sector */
-	int bits;		/* BCH strength per sector */
-	int nrps;		/* BCH parity sector number */
-	int pssz;		/* BCH parity sector size */
-	int free;		/* BCH free bytes per sector */
+	int rsvd;               /* Reserved bytes for YAFFS2 */
+	int size;               /* BCH data length per sector */
+	int bits;               /* BCH strength per sector */
+	int nrps;               /* BCH parity sector number */
+	int pssz;               /* BCH parity sector size */
+	int free;               /* BCH free bytes per sector */
 
 	if (!mtd || !info)
 		BUG();
 
-
 	rsvd = 32;
 	oobsz = mtd->oobsize;
 	pgsz = mtd->writesize;
-
 
 	/* 1024x60 */
 	size = 1024;
@@ -255,10 +245,10 @@ int sp_bch_init(struct mtd_info *mtd)
 	}
 
 ecc_detected:
-	debug("sp_bch: ecc mode=%ux%u, cr0=0x%x\n", size, bits, info->cr0);
 	nand->ecc.size = size;
 	nand->ecc.strength = bits;
 	nand->ecc.steps = nrps;
+	info->parity_sector_size = pssz;
 
 #if 0
 	if (size == 512)
@@ -294,8 +284,6 @@ ecc_detected:
 		}
 	}
 
-	pr_info("sp_bch: oob avail=%u\n", nand->ecc.layout->oobavail);
-
 	sp_bch_reset(info);
 
 	return 0;
@@ -322,7 +310,7 @@ int sp_bch_encode(struct mtd_info *mtd, void *buf, void *ecc)
 	flush_dcache_range((ulong) buf, (ulong) buf + mtd->writesize);
 	flush_dcache_range((ulong) ecc, (ulong) ecc + mtd->oobsize);
 
-	writel(1, &regs->srr);
+	writel(SRR_RESET, &regs->srr);
 	writel((uint32_t) buf, &regs->buf);
 	writel((uint32_t) ecc, &regs->ecc);
 
@@ -346,12 +334,12 @@ int sp_bch_encode_1024x60(void *buf, void *ecc)
 
 	flush_dcache_range((ulong) buf, (ulong) buf + 1024);
 	flush_dcache_range((ulong) ecc, (ulong) ecc + 128);
-	
-	writel(1, &regs->srr);
+
+	writel(SRR_RESET, &regs->srr);
 	writel((uint32_t) buf, &regs->buf);
 	writel((uint32_t) ecc, &regs->ecc);
 
-	writel(CR0_START | CR0_ENCODE | CR0_CMODE_1024x60, &regs->cr0);
+	writel(CR0_BMODE(5)|CR0_START | CR0_ENCODE | CR0_CMODE_1024x60, &regs->cr0);
 
 	ret = sp_bch_wait(info);
 	return ret;
@@ -372,11 +360,11 @@ int sp_bch_decode_1024x60(void *buf, void *ecc)
 	flush_dcache_range((ulong) buf, (ulong) buf + 1024);
 	flush_dcache_range((ulong) ecc, (ulong) ecc + 128);
 
-	writel(1, &regs->srr);
+	writel(SRR_RESET, &regs->srr);
 	writel((uint32_t) buf, &regs->buf);
 	writel((uint32_t) ecc, &regs->ecc);
 
-	writel(CR0_START | CR0_DECODE | CR0_CMODE_1024x60, &regs->cr0);
+	writel(CR0_BMODE(5)|CR0_START | CR0_DECODE | CR0_CMODE_1024x60, &regs->cr0);
 
 	ret = sp_bch_wait(info);
 	return ret;
@@ -391,10 +379,7 @@ int sp_bch_decode(struct mtd_info *mtd, void *buf, void *ecc)
 	struct sp_bch_regs *regs;
 	uint32_t status;
 	int ret;
-#ifdef CONFIG_SP_BCH_REPORT
-	uint32_t bch_tmp;
-#define BCH_ECC_BITS(x)		(((x) >> 8) & 0x7)
-#endif
+
 	if (!mtd || !buf || !ecc || !info)
 		BUG();
 	if (!info->bch_regs)
@@ -407,10 +392,9 @@ int sp_bch_decode(struct mtd_info *mtd, void *buf, void *ecc)
 	flush_dcache_range((ulong) buf, (ulong) buf + mtd->writesize);
 	flush_dcache_range((ulong) ecc, (ulong) ecc + mtd->oobsize);
 
-	writel(1, &regs->srr);
+	writel(SRR_RESET, &regs->srr);
 	writel((uint32_t) buf, &regs->buf);
 	writel((uint32_t) ecc, &regs->ecc);
-
 	writel(CR0_START | CR0_DECODE | info->cr0, &regs->cr0);
 
 	ret = sp_bch_wait(info);
@@ -418,18 +402,64 @@ int sp_bch_decode(struct mtd_info *mtd, void *buf, void *ecc)
 
 	if (ret) {
 		printf("sp_bch: decode timeout\n");
-	} else if (status & SR_FAIL) {
-		if (sp_bch_blank(ecc, mtd->oobsize)) {
+	} else if (readl(&regs->fsr) != 0) {
+		if((status & SR_BLANK_FF)) {
 			ret = 0;
 		} else {
 			printf("sp_bch: decode failed,status:0x%x\n", status);
 			mtd->ecc_stats.failed += SR_ERR_BITS(status);
-			sp_bch_reset(info);
 			ret = -1;
 		}
+		sp_bch_reset(info);
 	} else {
 		mtd->ecc_stats.corrected += SR_ERR_BITS(status);
 	}
 
 	return ret;
 }
+
+int sp_autobch_config(struct mtd_info *mtd, void *buf, void *ecc, int enc)
+{
+	struct sp_spinand_info *info = get_spinand_info();
+	struct sp_bch_regs *regs = info->bch_regs;
+	int value;
+
+	writel(SRR_RESET, &regs->srr);
+	writel((uint32_t) buf, &regs->buf);
+	writel((uint32_t) ecc, &regs->ecc);
+
+	value = info->cr0
+		| (enc ? CR0_ENCODE : CR0_DECODE)
+		| CR0_AUTOSTART;
+	writel(value, &regs->cr0);
+
+	return 0;
+}
+
+int sp_autobch_result(struct mtd_info *mtd)
+{
+	struct sp_spinand_info *info = get_spinand_info();
+	struct sp_bch_regs *regs = info->bch_regs;
+	int ret = 0;
+	int status;
+
+	status = readl(&regs->sr);
+	if (readl(&regs->fsr) != 0) {
+		if((status & SR_BLANK_FF)) {
+			printk("sp_bch: decode All FF!\n");
+			ret = 0;
+		}  else {
+			printk("sp_bch: decode failed.\n");
+			mtd->ecc_stats.failed += SR_ERR_BITS(status);
+			ret = -1;
+		}
+		sp_bch_reset(info);
+	} else {
+		mtd->ecc_stats.corrected += SR_ERR_BITS(status);
+	}
+	return ret;
+}
+
+
+
+
