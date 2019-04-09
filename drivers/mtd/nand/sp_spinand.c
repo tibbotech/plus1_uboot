@@ -1257,7 +1257,6 @@ static int sp_spinand_waitfunc(struct mtd_info *mtd, struct nand_chip *chip)
 
 	/* write protection bit*/
 	ret |= (info->dev_protection & PROTECT_STATUS) ? 0x00 : 0x80;
-
 	return ret;
 }
 
@@ -1444,10 +1443,8 @@ static int sp_spinand_init(struct sp_spinand_info *info)
 		info->write_bitmode = SPINAND_1BIT_MODE;
 
 	info->spi_clk_div = 1;
-	if(SPINAND_GET_CLKSEL() != CONFIG_DEFAULT_CLKSEL) {
+	if (SPINAND_GET_CLKSEL() != CONFIG_DEFAULT_CLKSEL)
 		SPINAND_SET_CLKSEL(CONFIG_DEFAULT_CLKSEL);
-		udelay(10);  /* wait for clock stable */
-	}
 
 	value = spi_nand_getfeatures(info, DEVICE_FEATURE_ADDR);
 	value &= ~0x10;          /* disable internal ECC */
@@ -1458,13 +1455,17 @@ static int sp_spinand_init(struct sp_spinand_info *info)
 	if (info->nand.drv_options & SPINAND_OPT_HAS_QE_BIT)
 		value |= 0x01;   /* enable quad io */
 	spi_nand_setfeatures(info, DEVICE_FEATURE_ADDR, value);
+	if (spi_nand_getfeatures(info, DEVICE_FEATURE_ADDR) != value) {
+		pr_warn("fail to set feature(b0) => %x !\n", value);
+	}
 
 	/* close write protection */
 	spi_nand_setfeatures(info, DEVICE_PROTECTION_ADDR, 0x0);
 	info->dev_protection = spi_nand_getfeatures(info, DEVICE_PROTECTION_ADDR);
-	if(info->dev_protection) {
+	if (info->dev_protection) {
 		pr_warn("close protection fail,write and erase are invalid!\n");
 	}
+
 	pr_info("spi nand device info:\n");
 	pr_info("\tdevice name : %s\n", mtd->name);
 	pr_info("\tdevice id   : 0x%08x\n", info->id);
@@ -1501,7 +1502,7 @@ static int sp_spinand_probe(struct udevice *dev)
 	struct sp_spinand_info *info;
 
 	info = our_spinfc = dev_get_priv(dev);
-
+	pr_info("xiangpeng see %s\n", __FUNCTION__);
 	/* get spi-nand reg */
 	ret = dev_read_resource_byname(dev, "spinand_reg", &res);
 	if (ret)
