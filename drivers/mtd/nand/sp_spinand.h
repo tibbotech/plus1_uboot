@@ -24,6 +24,7 @@
 #define CONFIG_DEFAULT_TRSMODE_RAW  SPINAND_TRS_DMA
 #define CONFIG_READ_TIMING_SEL      (2)
 
+#define CONFIG_DEFAULT_CLKSEL       (14)
 #define PLLF_CTRL_REG            ((volatile u32 *)(0x9c000000 + (4*32 + 13)*4))
 #define SPINAND_SET_CLKSEL(a)    (*PLLF_CTRL_REG = (0x001e0000+(((a)&0x0f)<<1)))
 #define SPINAND_GET_CLKSEL()     (((*PLLF_CTRL_REG)>>1)&0x0f)

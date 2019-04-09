@@ -1444,7 +1444,10 @@ static int sp_spinand_init(struct sp_spinand_info *info)
 		info->write_bitmode = SPINAND_1BIT_MODE;
 
 	info->spi_clk_div = 1;
-	SPINAND_SET_CLKSEL(14);   /* 202.5MHZ */
+	if(SPINAND_GET_CLKSEL() != CONFIG_DEFAULT_CLKSEL) {
+		SPINAND_SET_CLKSEL(CONFIG_DEFAULT_CLKSEL);
+		udelay(10);  /* wait for clock stable */
+	}
 
 	value = spi_nand_getfeatures(info, DEVICE_FEATURE_ADDR);
 	value &= ~0x10;          /* disable internal ECC */
@@ -1458,8 +1461,10 @@ static int sp_spinand_init(struct sp_spinand_info *info)
 
 	/* close write protection */
 	spi_nand_setfeatures(info, DEVICE_PROTECTION_ADDR, 0x0);
-	info->dev_protection=spi_nand_getfeatures(info, DEVICE_PROTECTION_ADDR);
-
+	info->dev_protection = spi_nand_getfeatures(info, DEVICE_PROTECTION_ADDR);
+	if(info->dev_protection) {
+		pr_warn("close protection fail,write and erase are invalid!\n");
+	}
 	pr_info("spi nand device info:\n");
 	pr_info("\tdevice name : %s\n", mtd->name);
 	pr_info("\tdevice id   : 0x%08x\n", info->id);
