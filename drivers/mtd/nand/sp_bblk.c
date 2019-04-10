@@ -118,6 +118,10 @@ int sp_nand_compose_bhdr(nand_info_t *mtd, struct BootProfileHeader *hdr,
 {
 	struct nand_chip *nand = (struct nand_chip *)mtd->priv;
 	uint32_t sz_sect = sp_nand_lookup_bdata_sect_sz(mtd);
+	#ifdef CONFIG_SP_SPINAND
+	struct sp_spinand_info *sinfo = (struct sp_spinand_info *)
+		container_of(nand, struct sp_spinand_info, nand);
+	#endif
 
 	debug("%s xboot_sz=%u\n", __func__, xboot_sz);
 
@@ -145,7 +149,10 @@ int sp_nand_compose_bhdr(nand_info_t *mtd, struct BootProfileHeader *hdr,
 	hdr->PageSize      = mtd->writesize;
 	//ACWriteTiming
 	//ACWriteTiming
-	//reserved44
+	#ifdef CONFIG_SP_SPINAND
+	hdr->PlaneSelectMode = sinfo->plane_sel_mode;
+	printf("PlaneSelectMode=%x\n", hdr->PlaneSelectMode);
+	#endif
 
 	// 48
 	hdr->xboot_copies  = 2;                                 // assume xboot has 2 copies
@@ -261,7 +268,7 @@ int sp_nand_read_bsect(nand_info_t *nand,
 	} else {
 		// Skip bad blocks before read.
 		// Otherwise, always read next good block's page 0
-		while (max_skip_blk-- && 
+		while (max_skip_blk-- &&
 			nand_block_isbad(nand, off & ~(nand->erasesize - 1))) {
 			off += nand->erasesize; // next block
 			(*skipped)++;
@@ -446,7 +453,7 @@ int sp_nand_read_bblk(struct mtd_info *nand, loff_t off, size_t *length,
 		return -EINVAL;
 	}
 
-	/* 
+	/*
 	 * buf will be used by cache operation.
 	 * Should be cacheline-aligned.
 	 */
@@ -514,7 +521,7 @@ void sp_nand_info(nand_info_t *mtd)
 #endif
 	// parallel nand
 	printf("  cycle cac=%d rac=%d\n", info->cac, info->rac);
-}                  
+}
 
 static int do_sp_bblk(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {

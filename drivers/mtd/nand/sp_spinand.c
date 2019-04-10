@@ -353,7 +353,8 @@ static int spi_nand_reset(struct sp_spinand_info *info)
 
 	wait_spi_idle(info);
 
-	value = SPINAND_CHECK_OIP_EN;
+	value = SPINAND_CHECK_OIP_EN
+		| SPINAND_USR_CMD_TRIGGER;
 	writel(value, &regs->spi_auto_cfg);
 
 	return wait_spi_idle(info);
@@ -1385,6 +1386,7 @@ static int sp_spinand_init(struct sp_spinand_info *info)
 	int ret;
 
 	info->mtd = mtd;
+	mtd->priv = nand;
 	nand->IO_ADDR_R = nand->IO_ADDR_W = info->regs;
 
 	info->buff.size = CONFIG_SPINAND_BUF_SZ;
@@ -1455,16 +1457,10 @@ static int sp_spinand_init(struct sp_spinand_info *info)
 	if (info->nand.drv_options & SPINAND_OPT_HAS_QE_BIT)
 		value |= 0x01;   /* enable quad io */
 	spi_nand_setfeatures(info, DEVICE_FEATURE_ADDR, value);
-	if (spi_nand_getfeatures(info, DEVICE_FEATURE_ADDR) != value) {
-		pr_warn("fail to set feature(b0) => %x !\n", value);
-	}
 
 	/* close write protection */
 	spi_nand_setfeatures(info, DEVICE_PROTECTION_ADDR, 0x0);
 	info->dev_protection = spi_nand_getfeatures(info, DEVICE_PROTECTION_ADDR);
-	if (info->dev_protection) {
-		pr_warn("close protection fail,write and erase are invalid!\n");
-	}
 
 	pr_info("spi nand device info:\n");
 	pr_info("\tdevice name : %s\n", mtd->name);
@@ -1502,7 +1498,7 @@ static int sp_spinand_probe(struct udevice *dev)
 	struct sp_spinand_info *info;
 
 	info = our_spinfc = dev_get_priv(dev);
-	pr_info("xiangpeng see %s\n", __FUNCTION__);
+
 	/* get spi-nand reg */
 	ret = dev_read_resource_byname(dev, "spinand_reg", &res);
 	if (ret)

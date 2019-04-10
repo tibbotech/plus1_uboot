@@ -35,7 +35,7 @@ struct BootProfileHeader
 	uint32_t    PageSize;       // NAND Page size
 	uint32_t    ACWriteTiming;  // not used now
 	uint32_t    ACReadTiming;   // not used now
-	uint32_t    reserved44;
+	uint32_t    PlaneSelectMode;// special odd blocks read mode (bit 0: special sw flow en. bit 1 read mode en. bit 2~bit 5 plane select bit addr)
 
 	// 48
 	uint32_t    xboot_copies;   // Number of Xboot copies. Copies are consecutive.
