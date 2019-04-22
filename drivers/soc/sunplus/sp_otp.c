@@ -1,6 +1,7 @@
 #include <common.h>
 #include <asm/io.h>
 
+#include "sp_otp.h"
 /*
  * QAC628 OTP memory contains 8 banks with 4 32-bit words. Bank 0 starts
  * at offset 0 from the base.
@@ -18,8 +19,6 @@
 #define OTP_READ_TIMEOUT               20000
 
 #define OTPRX_2_BASE_ADR               0x9C002800
-#define OTPRX_BASE_ADR                 0x9C00AF80
-#define HB_GPIO                        0x9C00AF00
 
 /* OTP register map */
 #define OTP_PROGRAM_CONTROL            0x0C
@@ -89,10 +88,6 @@ struct otprx_sunplus {
 
 struct sunplus_otp_priv {
 	struct otprx2_sunplus *regs;
-};
-
-struct hbgpio_sunplus {
-	u32 hb_gpio_rgst_bus32[13];
 };
 
 struct sunplus_hbgpio {

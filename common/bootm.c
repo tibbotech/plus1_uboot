@@ -29,6 +29,7 @@
 #include <command.h>
 #include <bootm.h>
 #include <image.h>
+#include "secure/verify/secure_verify.h"
 
 #ifndef CONFIG_SYS_BOOTM_LEN
 /* use 8MByte as default max gunzip size */
@@ -821,6 +822,13 @@ static const void *boot_get_kernel(cmd_tbl_t *cmdtp, int flag, int argc,
 		hdr = image_get_kernel(img_addr, images->verify);
 		if (!hdr)
 			return NULL;
+		/*  verify kernel sign_data */
+		int ret = verify_kernel_signature(hdr);
+		if(ret)
+		{
+			puts(" ## verify kernel fail!!!!\n");
+			return NULL;
+		}
 		bootstage_mark(BOOTSTAGE_ID_CHECK_IMAGETYPE);
 
 		/* get os_data and os_len */
