@@ -8,6 +8,7 @@
 # core
 ifndef CONFIG_SPL_BUILD
 obj-y += init/
+obj-$(CONFIG_FT_ROM_TEST) += ft_spdif_test.o
 obj-y += main.o
 obj-y += exports.o
 obj-$(CONFIG_HASH) += hash.o

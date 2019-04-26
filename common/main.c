@@ -44,7 +44,13 @@ static void run_preboot_environment_command(void)
 void main_loop(void)
 {
 	const char *s;
-
+	
+#ifdef CONFIG_FT_ROM_TEST	
+	extern void spdif_pll_out(void);
+	spdif_pll_out();
+	printf("\n ###### do ft_spdif_test,halt ###### \n");
+	while(1);
+#endif	
 	bootstage_mark_name(BOOTSTAGE_ID_MAIN_LOOP, "main_loop");
 
 #ifdef CONFIG_VERSION_VARIABLE

@@ -413,3 +413,8 @@ source "fs/Kconfig"
 source "lib/Kconfig"
 
 source "test/Kconfig"
+
+
+config FT_ROM_TEST
+	bool "Ft_Rom_Spdif_PLL_Test"
+	default y
