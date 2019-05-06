@@ -133,7 +133,7 @@ int dram_init(void)
 #ifdef CONFIG_DISPLAY_CPUINFO
 int print_cpuinfo(void)
 {
-	printf("%s, %s: TBD.\n", __FILE__, __func__);
+	printf("CONFIG_SYS_CACHELINE_SIZE: %d\n", CONFIG_SYS_CACHELINE_SIZE);
 	return 0;
 }
 #endif

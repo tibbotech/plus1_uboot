@@ -328,7 +328,8 @@ int sp_nand_write_bblk(nand_info_t *nand, loff_t off, size_t *length,
 	 * buf will be used by cache operation.
 	 * Should be cacheline-aligned.
 	 */
-	raw_buf = malloc(nand->writesize + 32);
+	printf("%s: alloc size %d\n", __func__, nand->writesize + CONFIG_SYS_CACHELINE_SIZE);
+	raw_buf = malloc(nand->writesize + CONFIG_SYS_CACHELINE_SIZE);
 	buf = (u_char *)(((u32)raw_buf + CONFIG_SYS_CACHELINE_SIZE - 1)
 			 & ~(CONFIG_SYS_CACHELINE_SIZE - 1));
 
@@ -348,10 +349,10 @@ int sp_nand_write_bblk(nand_info_t *nand, loff_t off, size_t *length,
 		}
 
 		// buf = data + 0xff .... 0xff
+		printf("%s: memcpy size %d, off=0x%x\n", __func__, *length,
+		       (uint32_t)off);
 		memcpy(buf, data, *length);
 		memset(buf + *length, 0xff, nand->writesize - *length);
-
-		printf("%s: write bhdr off=0x%x\n", __func__, (uint32_t)off);
 
 		// write bhdr every 4 pages
 		for (i = 0; i < pgnr; i += 4) {
@@ -380,8 +381,8 @@ int sp_nand_write_bblk(nand_info_t *nand, loff_t off, size_t *length,
 		if (copies == 0)
 			copies = 1;
 
-		printf("%s: write bblk off=0x%x nsect=%u copies=%u\n",
-				__func__, (uint32_t)off, nsect, copies);
+		printf("%s: write bblk off=0x%x nsect=%u copies=%u sect_sz=%d\n",
+				__func__, (uint32_t)off, nsect, copies, sect_sz);
 
 		while (copies--) {
 			for (i = 0; i < nsect; i++) {
@@ -457,7 +458,9 @@ int sp_nand_read_bblk(struct mtd_info *nand, loff_t off, size_t *length,
 	 * buf will be used by cache operation.
 	 * Should be cacheline-aligned.
 	 */
-	raw_buf = malloc(nand->writesize);
+	printf("%s: alloc size %d\n", __func__,
+	       nand->writesize + CONFIG_SYS_CACHELINE_SIZE);
+	raw_buf = malloc(nand->writesize + CONFIG_SYS_CACHELINE_SIZE);
 	buf = (u_char *)(((u32)raw_buf + CONFIG_SYS_CACHELINE_SIZE - 1)
 			 & ~(CONFIG_SYS_CACHELINE_SIZE - 1));
 
@@ -467,6 +470,7 @@ int sp_nand_read_bblk(struct mtd_info *nand, loff_t off, size_t *length,
 	}
 
 	sect_sz = sp_nand_lookup_bdata_sect_sz(nand);
+	printf("%s: sect size %d\n", __func__, sect_sz);
 	if (!sect_sz) {
 		free(raw_buf);
 		return -EINVAL;
