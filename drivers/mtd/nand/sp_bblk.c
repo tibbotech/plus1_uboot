@@ -13,14 +13,6 @@ extern loff_t g_nand_last_wr_offs; /* defined in drivers/mtd/nand/nand_util.c */
 
 #undef DEBUG_SP_BBLK
 
-int setenv_hex(const char *varname, ulong value)
-{
-	char str[17];
-
-	sprintf(str, "%lx", value);
-	return env_set(varname, str);
-}
-
 static unsigned short tcpsum(const unsigned char *buf, unsigned size)
 {
 	unsigned sum = 0;
@@ -423,7 +415,7 @@ int sp_nand_write_bblk(nand_info_t *nand, loff_t off, size_t *length,
 		noffs = (off + nand->erasesize) & ~(nand->erasesize - 1);
 	}
 	debug("isp_addr_next=0x%x\n", noffs);
-	setenv_hex("isp_addr_next", noffs);
+	env_set_hex("isp_addr_next", noffs);
 
 	free(raw_buf);
 
