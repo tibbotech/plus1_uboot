@@ -14,14 +14,6 @@
 #include <malloc.h>
 #include "sp_mmc.h"
 
-
-#define SP_MMC_SUPPORT_DDR_MODE
-#ifdef SP_MMC_SUPPORT_DDR_MODE
-#define SP_MMC_DDR_READ_CRC_STATUS_DLY 0
-#define SP_MMC_DDR_WRITE_DLY 0
-#endif
-
-
 #define MAX_SDDEVICES   2
 
 #define SPMMC_CLK_SRC CLOCK_270M    /* Host controller's clk source */
@@ -31,7 +23,6 @@
 #define SPEMMC_MAX_CLK CLOCK_45M     /* Max supported emmc Card frequency */
 
 #define MAX_DLY_CLK  7
-#define MAX_DLY_CLK_MASK  7
 
 
 /*
@@ -43,16 +34,6 @@
 		? (SPMMC_CLK_SRC / (0xFFF + 1)) \
 		: CLOCK_150K)
 #define SPEMMC_MIN_CLK  CLOCK_200K
-#define SPMMC_READ_DELAY  3		/* delay for sampling data */
-#define SPMMC_WRITE_DELAY 3		/* delay for output data   */
-
-#define SPEMMC_READ_DELAY  0		/* delay for sampling data */
-#define SPEMMC_WRITE_DELAY 1		/* delay for output data   */
-#define MAX_EMMC_RW_RETRY_TIMES 	7
-#define EMMC_WRITE_TIMEOUT_MULT     10
-
-#define DUMMY_COCKS_AFTER_DATA     8
-#define MAX_SD_RW_RETRY_TIMES 1
 
 #define SP_MMC_MAX_RSP_LEN 16
 #define SP_MMC_SWAP32(x)		((((x) & 0x000000ff) << 24) | \
@@ -300,7 +281,7 @@ static void sp_mmc_set_clock(struct mmc *mmc, uint clock)
 	struct sp_mmc_hw_ops *ops = host->ops;
 	uint clkrt, sys_clk;
 	/* uint act_clock; */
-	uint rd_dly = SPMMC_READ_DELAY, wr_dly = SPMMC_WRITE_DELAY;
+	uint wr_dly;
 	if (clock < mmc->cfg->f_min)
 		clock = mmc->cfg->f_min;
 	if (clock > mmc->cfg->f_max)
@@ -331,25 +312,20 @@ static void sp_mmc_set_clock(struct mmc *mmc, uint clock)
 	 * high speed controller send data at rise edge, card sample data at rise edge
 	 * so we need to tunel write delay (clkrt + 1)/2  clks at high speed to ensure card sample right data
 	 */
-	rd_dly = (clkrt + 1) / 2 > MAX_DLY_CLK ? MAX_DLY_CLK:(clkrt + 1) / 2;
+	wr_dly = (clkrt + 1) / 2 > MAX_DLY_CLK ? MAX_DLY_CLK:(clkrt + 1) / 2;
+	host->timing_info.wr_dat_dly = wr_dly;
+	host->timing_info.wr_cmd_dly = wr_dly;
 
 	/* clock >  25Mhz : High Speed Mode
 	 *       <= 25Mhz : Default Speed Mode
 	 */
 	if (mmc->clock > 25000000) {
 		ops->highspeed_en(host, true);
-		wr_dly = rd_dly;
 	} else {
 		ops->highspeed_en(host, false);
 	}
-	if (SPMMC_DEVICE_TYPE_EMMC == host->dev_info.type) {
-		wr_dly = host->wrdly;
-		rd_dly = host->rddly;
-	}
 	/* Write delay: Controls CMD, DATA signals timing to SD Card */
-	ops->tunel_write_dly(host, wr_dly);
-	/* Read delay: Controls timing to sample SD card's CMD, DATA signals */
-	ops->tunel_read_dly(host, rd_dly);
+	ops->tunel_write_dly(host, &host->timing_info);
 }
 
 
@@ -384,8 +360,11 @@ static void sp_mmc_check_sdstatus_errors(struct sp_mmc_host *host, struct mmc_da
 	sp_mmc_hw_ops *ops = host->ops;
 	int val;
 	val = ops->check_error(host, data ? true : false);
-	if (ret)
+	if (ret) {
 		*ret = val;
+		ops->tunel_read_dly(host, &host->timing_info);
+		ops->tunel_write_dly(host, &host->timing_info);
+	}
 	return;
 }
 
@@ -451,7 +430,7 @@ void send_stop_cmd(struct sp_mmc_host *host)
 	sp_mmc_prep_cmd_rsp(host, &stop);
 	sp_mmc_trigger_sdstate(host);
 	sp_mmc_get_rsp(host, &stop); /* Makes sure host returns to a idle or error state */
-	sp_mmc_check_sdstatus_errors(host, NULL, NULL);
+	/* sp_mmc_check_sdstatus_errors(host, NULL, NULL); */
 }
 
 /*
@@ -479,9 +458,7 @@ sp_mmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
 	sp_mmc_hw_ops *ops = host->ops;
 
 	int ret = 0; /* Return 0 means success, returning other stuff means error */
-	int loop;
 	int i = 0;
-	uint rddly = host->rddly;
 
 	DPRINTK("cmd %d with data %p\n", cmd->cmdidx, data);
 	host->current_cmd = cmd;
@@ -489,12 +466,7 @@ sp_mmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
 	if (MMC_CMD_STOP_TRANSMISSION == cmd->cmdidx)
 		return 0;
 
-	if (SPMMC_DEVICE_TYPE_EMMC == host->dev_info.type)
-		loop = MAX_EMMC_RW_RETRY_TIMES;
-	else
-		loop = MAX_SD_RW_RETRY_TIMES;
-
-	for (i = 0; i < loop; ++i)
+	for (i = 0; i < CMD_MAX_RETRY; ++i)
 	{
 		sp_sd_trace();
 		/* post process send command requests, trigger transaction */
@@ -514,13 +486,6 @@ sp_mmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
 		} else {
 			sp_sd_trace();
 			sp_mmc_prep_data_info(host, cmd, data);
-
-#ifdef SP_MMC_SUPPORT_DDR_MODE
-			if (mmc->ddr_mode && (data->flags & MMC_DATA_WRITE)) {
-				ops->tunel_read_dly(host, SP_MMC_DDR_READ_CRC_STATUS_DLY);
-				ops->tunel_write_dly(host, SP_MMC_DDR_WRITE_DLY);
-			}
-#endif
 			sp_mmc_trigger_sdstate(host);
 
 			/* Host's "read data start bit timeout counter" is broken, use
@@ -533,43 +498,19 @@ sp_mmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
 
 			sp_mmc_get_rsp(host, cmd); /* Makes sure host returns to a idle or error state */
 			sp_mmc_check_sdstatus_errors(host, data, &ret);
-
-#ifdef SP_MMC_SUPPORT_DDR_MODE
-			if (mmc->ddr_mode && (data->flags & MMC_DATA_WRITE)) {
-					ops->tunel_read_dly(host, host->rddly);
-					ops->tunel_write_dly(host, host->wrdly);
-			}
-#endif
 		}
 
-		if (SPMMC_DEVICE_TYPE_EMMC == host->dev_info.type) {
-			if (ret && ((MMC_CMD_READ_MULTIPLE_BLOCK == cmd->cmdidx)
-				|| (MMC_CMD_WRITE_MULTIPLE_BLOCK == cmd->cmdidx))) {
+		if (!ret) {
+			break;
+		} else {
+			if ((MMC_CMD_READ_MULTIPLE_BLOCK == cmd->cmdidx)
+			    || (MMC_CMD_WRITE_MULTIPLE_BLOCK == cmd->cmdidx)) {
 				send_stop_cmd(host);
 			}
-
-			if (ret == -EILSEQ ) {
-				sp_sd_trace();
-				host->rddly++;
-				host->rddly &= MAX_DLY_CLK_MASK;
-				ops->tunel_read_dly(host, host->rddly);
-			} else if (ret == -ETIMEDOUT) {
-				sp_sd_trace();
-				host->wrdly++;
-				host->wrdly &= MAX_DLY_CLK_MASK;
-				ops->tunel_write_dly(host, host->wrdly);
-				/* MMC_CMD_SEND_OP_COND response timeout need to re-init */
-				if (cmd->cmdidx == MMC_CMD_SEND_OP_COND)
-					break;
-			} else {
+			/* MMC_CMD_SEND_OP_COND response timeout need to re-init */
+			if (cmd->cmdidx == MMC_CMD_SEND_OP_COND)
 				break;
-			}
 		}
-	}
-
-	if (ret && (SPMMC_DEVICE_TYPE_EMMC == host->dev_info.type) && (loop == i)) { /*  reset rddly */
-		host->rddly = rddly;
-		ops->tunel_read_dly(host, host->rddly);
 	}
 
 	return ret;
@@ -689,22 +630,21 @@ static int sp_sd_hw_set_clock(struct sp_mmc_host *host, uint div)
 	return 0;
 }
 
-static int sp_sd_hw_tunel_read_dly (sp_mmc_host *host, uint dly)
+static int sp_sd_hw_tunel_read_dly (sp_mmc_host *host, sp_mmc_timing_info *dly)
 {
-	host->base->sd_rd_dly_sel = dly;
-
+	host->base->sd_rd_dly_sel = dly->rd_dly;
 	return 0;
 }
 
-static int sp_sd_hw_tunel_write_dly  (sp_mmc_host *host, uint dly)
+static int sp_sd_hw_tunel_write_dly  (sp_mmc_host *host, sp_mmc_timing_info *dly)
 {
-	host->base->sd_wr_dly_sel = dly;
+	host->base->sd_wr_dly_sel = dly->wr_dly;
 	return 0;
 }
 
-static int sp_sd_hw_tunel_clock_dly  (sp_mmc_host *host, uint dly)
+static int sp_sd_hw_tunel_clock_dly  (sp_mmc_host *host, sp_mmc_timing_info *dly)
 {
-	host->base->sd_clk_dly_sel = dly;
+	host->base->sd_clk_dly_sel = dly->clk_dly;
 	return 0;
 }
 
@@ -926,22 +866,27 @@ int sp_sd_hw_check_error (sp_mmc_host *host, bool with_data)
 
 	if (host->base->sdstate_new & SDSTATE_NEW_ERROR_TIMEOUT) {
 		/* Response related errors */
-		if (host->base->sdstatus & SP_SDSTATUS_WAIT_RSP_TIMEOUT)
+		if (host->base->sdstatus & SP_SDSTATUS_WAIT_RSP_TIMEOUT) {
+			host->timing_info.wr_dly++;
 			ret = -ETIMEDOUT;
-		if (host->base->sdstatus & SP_SDSTATUS_RSP_CRC7_ERROR)
+		} else if (host->base->sdstatus & SP_SDSTATUS_RSP_CRC7_ERROR) {
+			host->timing_info.rd_dly++;
 			ret = -EILSEQ;
-
-		/* Data transaction related errors */
-		if (with_data) {
+		} else if (with_data) {
 			/* Data transaction related errors */
-			if (host->base->sdstatus & SP_SDSTATUS_WAIT_STB_TIMEOUT)
+			if (host->base->sdstatus & SP_SDSTATUS_WAIT_STB_TIMEOUT) {
+				host->timing_info.rd_dly++;
 				ret = -ETIMEDOUT;
-			if (host->base->sdstatus & SP_SDSTATUS_WAIT_CARD_CRC_CHECK_TIMEOUT)
+			} else if (host->base->sdstatus & SP_SDSTATUS_WAIT_CARD_CRC_CHECK_TIMEOUT) {
+				host->timing_info.rd_dly++;
 				ret = -ETIMEDOUT;
-			if (host->base->sdstatus & SP_SDSTATUS_CRC_TOKEN_CHECK_ERROR)
+			} else if (host->base->sdstatus & SP_SDSTATUS_CRC_TOKEN_CHECK_ERROR) {
+				host->timing_info.wr_dly++;
 				ret = -EILSEQ;
-			if (host->base->sdstatus & SP_SDSTATUS_RDATA_CRC16_ERROR)
+			} else if (host->base->sdstatus & SP_SDSTATUS_RDATA_CRC16_ERROR) {
+				host->timing_info.rd_dly++;
 				ret = -EILSEQ;
+			}
 
 			Sd_Bus_Reset_Channel(host);
 		}
@@ -958,7 +903,6 @@ int sp_sd_hw_check_error (sp_mmc_host *host, bool with_data)
 
 	return ret;
 }
-
 
 /* emmc */
 /* Initialize eMMC controller */
@@ -998,22 +942,25 @@ static int sp_emmc_hw_set_clock(struct sp_mmc_host *host, uint div)
 }
 
 
-static int sp_emmc_hw_tunel_read_dly (sp_mmc_host *host, uint dly)
+static int sp_emmc_hw_tunel_read_dly (sp_mmc_host *host, sp_mmc_timing_info *dly)
 {
-	host->ebase->sd_rd_dly_sel = dly;
+	host->ebase->sd_rd_rsp_dly_sel = dly->rd_rsp_dly;
+	host->ebase->sd_rd_dat_dly_sel = dly->rd_dat_dly;
+	host->ebase->sd_rd_crc_dly_sel = dly->rd_crc_dly;
 	return 0;
 }
 
-static int sp_emmc_hw_tunel_write_dly  (sp_mmc_host *host, uint dly)
+static int sp_emmc_hw_tunel_write_dly  (sp_mmc_host *host, sp_mmc_timing_info *dly)
 {
-	host->ebase->sd_wr_dly_sel = dly;
+	host->ebase->sd_wr_dat_dly_sel = dly->wr_dat_dly;
+	host->ebase->sd_wr_cmd_dly_sel = dly->wr_cmd_dly;
 	return 0;
 }
 
-static int sp_emmc_hw_tunel_clock_dly (sp_mmc_host *host, uint dly)
+static int sp_emmc_hw_tunel_clock_dly (sp_mmc_host *host, sp_mmc_timing_info *dly)
 {
 	sp_sd_trace();
-	host->ebase->sd_clk_dly_sel = dly;
+	host->ebase->sd_clk_dly_sel = dly->clk_dly;
 	return 0;
 }
 
@@ -1375,22 +1322,27 @@ int sp_emmc_hw_check_error (sp_mmc_host *host, bool with_data)
 
 	if (host->ebase->sdstate_new & SDSTATE_NEW_ERROR_TIMEOUT) {
 		/* Response related errors */
-		if (host->ebase->sdstatus & SP_SDSTATUS_WAIT_RSP_TIMEOUT)
+		if (host->ebase->sdstatus & SP_SDSTATUS_WAIT_RSP_TIMEOUT) {
+			host->timing_info.wr_cmd_dly++;
 			ret = -ETIMEDOUT;
-		if (host->ebase->sdstatus & SP_SDSTATUS_RSP_CRC7_ERROR)
+		} else if (host->ebase->sdstatus & SP_SDSTATUS_RSP_CRC7_ERROR) {
+			host->timing_info.rd_rsp_dly++;
 			ret = -EILSEQ;
-
-		/* Data transaction related errors */
-		if (with_data) {
+		} else if (with_data) {
 			/* Data transaction related errors */
-			if (host->ebase->sdstatus & SP_SDSTATUS_WAIT_STB_TIMEOUT)
+			if (host->ebase->sdstatus & SP_SDSTATUS_WAIT_STB_TIMEOUT) {
+				host->timing_info.rd_dat_dly++;
 				ret = -ETIMEDOUT;
-			if (host->ebase->sdstatus & SP_SDSTATUS_WAIT_CARD_CRC_CHECK_TIMEOUT)
+			} else if (host->ebase->sdstatus & SP_SDSTATUS_WAIT_CARD_CRC_CHECK_TIMEOUT) {
+				host->timing_info.rd_dat_dly++;
 				ret = -ETIMEDOUT;
-			if (host->ebase->sdstatus & SP_SDSTATUS_CRC_TOKEN_CHECK_ERROR)
+			} else if (host->ebase->sdstatus & SP_SDSTATUS_CRC_TOKEN_CHECK_ERROR) {
+				host->timing_info.wr_dat_dly++;
 				ret = -EILSEQ;
-			if (host->ebase->sdstatus & SP_SDSTATUS_RDATA_CRC16_ERROR)
+			} else if (host->ebase->sdstatus & SP_SDSTATUS_RDATA_CRC16_ERROR) {
+				host->timing_info.rd_dat_dly++;
 				ret = -EILSEQ;
+			}
 
 			Sd_Bus_Reset_Channel(host);
 		}
@@ -1489,8 +1441,6 @@ static int sp_mmc_probe(struct udevice *dev)
 	}
 
 	if(SPMMC_DEVICE_TYPE_EMMC == host->dev_info.type) {
-		host->rddly		= SPEMMC_READ_DELAY;
-		host->wrdly		= SPEMMC_WRITE_DELAY;
 		cfg->host_caps	=  MMC_MODE_8BIT | MMC_MODE_4BIT | MMC_MODE_HS_52MHz | MMC_MODE_HS;
 		cfg->voltages	= MMC_VDD_32_33 | MMC_VDD_33_34;
 		cfg->f_min		= SPEMMC_MIN_CLK;
@@ -1499,7 +1449,7 @@ static int sp_mmc_probe(struct udevice *dev)
 		cfg->b_max		= CONFIG_SYS_MMC_MAX_BLK_COUNT;
 		cfg->name		= "emmc";
 		ops = &emmc_hw_ops;
-		//cfg->host_caps |= MMC_MODE_DDR_52MHz;
+		/* cfg->host_caps |= MMC_MODE_DDR_52MHz; */
 		host->dmapio_mode = SP_MMC_DMA_MODE;
 	}
 	else {
