@@ -14,7 +14,7 @@ else
 	echo "toolchain is not ready!"
 	echo "Adding toolchain path to your \$PATH"
 	echo ""
-	export PATH="../../build/tools/arm-linux-gnueabihf/bin/:$PATH"
+	export PATH="../../crossgcc/arm-linux-gnueabihf/bin/:$PATH"
 fi
 
 # check if config is ok or not
