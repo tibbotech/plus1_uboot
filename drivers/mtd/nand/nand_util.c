@@ -689,6 +689,7 @@ int nand_write_skip_bad(struct mtd_info *mtd, loff_t offset, size_t *length,
 		g_nand_last_wr_offs = (offset - write_size);
 #endif
 	}
+	*length = used_for_write;
 
 	return 0;
 }
@@ -791,6 +792,7 @@ int nand_read_skip_bad(struct mtd_info *mtd, loff_t offset, size_t *length,
 		offset       += read_length;
 		p_buffer     += read_length;
 	}
+	*length = used_for_read;
 
 	return 0;
 }
