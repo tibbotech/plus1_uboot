@@ -44,6 +44,7 @@ typedef struct {
 #define PENTAGRAM_WDTMR_ADDR	(PENTAGRAM_BASE_ADDR + (12 << 7))	/* Either Group 12 or 96 */
 #define PENTAGRAM_TIMER_ADDR	(PENTAGRAM_BASE_ADDR + (99 << 7))
 #define PENTAGRAM_RTC_ADDR	(PENTAGRAM_BASE_ADDR + (116 << 7))
+#define PENTAGRAM_OTP_ADDR	(PENTAGRAM_BASE_ADDR + (350<<7))
 
 #define WATCHDOG_CMD_CNT_WR_UNLOCK	0xAB00
 #define WATCHDOG_CMD_CNT_WR_LOCK	0xAB01
@@ -123,17 +124,50 @@ void reset_cpu(ulong ignored)
 	 * 	 => Use eMMC for this test.
 	 */
 }
-
+#ifdef CONFIG_BOOTARGS_WITH_MEM
+// get dram size by otp
+int dram_get_size(void)
+{
+	volatile unsigned int *ptr;
+	ptr = (volatile unsigned int *)(PENTAGRAM_OTP_ADDR + (7 << 2));//G[350.7]
+	int dramsize_Flag = ((*ptr)>>16)&0x03;
+	int dramsize;
+	switch(dramsize_Flag)
+	{
+		case 0x00:
+			dramsize = 64<<20;
+			break;
+		case 0x01:
+			dramsize = 128<<20;
+			break;
+		case 0x02:
+			dramsize = 256<<20;
+			break;
+		case 0x03:
+			dramsize = 512<<20;
+			break;
+		default:
+			dramsize = 512<<20;
+	}
+	printf("dram size is %dM\n",dramsize>>20);
+	return dramsize;
+}
+#endif
 int dram_init(void)
 {
+#ifdef CONFIG_BOOTARGS_WITH_MEM
+	int dramsize = dram_get_size();
+	gd->ram_size = dramsize;
+#else
 	gd->ram_size = CONFIG_SYS_SDRAM_SIZE;
+#endif
 	return 0;
 }
 
 #ifdef CONFIG_DISPLAY_CPUINFO
 int print_cpuinfo(void)
 {
-	printf("%s, %s: TBD.\n", __FILE__, __func__);
+	printf("CONFIG_SYS_CACHELINE_SIZE: %d\n", CONFIG_SYS_CACHELINE_SIZE);
 	return 0;
 }
 #endif

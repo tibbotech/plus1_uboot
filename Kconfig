@@ -418,3 +418,9 @@ source "test/Kconfig"
 config FT_ROM_TEST
 	bool "Ft_Rom_Spdif_PLL_Test"
 	default y
+config BOOTARGS_WITH_MEM
+	bool "bootargs with memory get from OTP"
+	default n
+	help
+	  Ramsize in kernel is get from uboot by bootargs,memory config is 
+	  set in OTP 247:240

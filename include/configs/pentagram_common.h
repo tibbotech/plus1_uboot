@@ -114,6 +114,10 @@
 #define MTDPARTS_DEFAULT	"mtdparts=sp_spinand.0:-(whole_nand)"
 #endif
 
+#ifdef CONFIG_BOOTARGS_WITH_MEM
+#define DEFAULT_BOOTARGS	"console=ttyS0,115200 root=/dev/ram rw loglevel=8 earlyprintk"
+#endif
+
 /*
  * In the beginning, bootcmd will check bootmode in SRAM and the flag
  * if_zebu to choose different boot flow :
