@@ -336,7 +336,8 @@
 "update_common=setenv isp_ram_addr 0x1000000; " \
 	"setenv isp_update_file_name ISP_UPDT.BIN; " \
 	"fatload $isp_if $isp_dev $isp_ram_addr /$isp_update_file_name 0x800 && md.b $isp_ram_addr 0x200; " \
-	"setenv isp_main_storage emmc ; " \
+	"setenv isp_main_storage ${sp_main_storage}; " \
+	"echo isp_main_storage ${isp_main_storage}; " \
 	"setenv isp_image_header_offset 0; " \
 	"setexpr script_addr $isp_ram_addr + 0x20 && setenv script_addr 0x${script_addr} && source $script_addr; " \
 	"\0"
