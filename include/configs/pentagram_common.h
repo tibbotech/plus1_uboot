@@ -114,10 +114,10 @@
 #define MTDPARTS_DEFAULT	"mtdparts=sp_spinand.0:-(whole_nand)"
 #endif
 
-/* TFTP server IP and board IP for TFTP ISP.
- * You should modify CONFIG_IPADDR to the address which you are assigned to */
-#define CONFIG_SERVERIP		172.18.12.62
-#define CONFIG_IPADDR		00:22:60:00:88:21
+/* TFTP server IP and board MAC address settings for TFTP ISP.
+ * You should modify BOARD_MAC_ADDR to the address which you are assigned to */
+#define TFTP_SERVER_IP		172.18.12.62
+#define BOARD_MAC_ADDR		00:22:60:00:88:21
 
 /*
  * In the beginning, bootcmd will check bootmode in SRAM and the flag
@@ -215,7 +215,8 @@
 "if_zebu="			__stringify(CONFIG_SYS_ENV_ZEBU) "\0" \
 "if_qkboot="			__stringify(CONFIG_SYS_USE_QKBOOT_HEADER) "\0" \
 "sp_main_storage="		SP_MAIN_STORAGE "\0" \
-"serverip=" 			__stringify(CONFIG_SERVERIP) "\0" \
+"serverip=" 			__stringify(TFTP_SERVER_IP) "\0" \
+"macaddr="			__stringify(BOARD_MAC_ADDR) "\0" \
 "be2le=setexpr byte *${tmpaddr} '&' 0x000000ff; " \
 	"setexpr tmpval $tmpval + $byte; " \
 	"setexpr tmpval $tmpval * 0x100; " \
@@ -346,7 +347,7 @@
 	"setexpr script_addr $isp_ram_addr + 0x20 && setenv script_addr 0x${script_addr} && source $script_addr; " \
 	"\0" \
 "update_tftp=setenv isp_ram_addr 0x1000000; " \
-	"setenv ethaddr " __stringify(CONFIG_IPADDR) " && printenv ethaddr && printenv serverip; " \
+	"setenv ethaddr ${macaddr} && printenv ethaddr && printenv serverip; " \
 	"dhcp $isp_ram_addr $serverip:TFTP0000.BIN; " \
 	"setenv isp_main_storage ${sp_main_storage} && printenv isp_main_storage; " \
 	"setexpr script_addr $isp_ram_addr + 0x00 && setenv script_addr 0x${script_addr}; " \
