@@ -118,6 +118,8 @@
  * You should modify BOARD_MAC_ADDR to the address which you are assigned to */
 #define TFTP_SERVER_IP		172.18.12.62
 #define BOARD_MAC_ADDR		00:22:60:00:88:21
+#define USER_NAME			""
+
 
 /*
  * In the beginning, bootcmd will check bootmode in SRAM and the flag
@@ -317,6 +319,11 @@
 	"setexpr sz_kernel ${sz_kernel} + 0x200; setexpr sz_kernel ${sz_kernel} / 0x200; " \
 	"mmc read ${addr_dst_kernel} ${addr_src_kernel} ${sz_kernel}; " \
 	"sp_go ${addr_dst_kernel} ${addr_dst_dtb}\0" \
+"tftp_boot=setenv ethaddr ${macaddr} && printenv ethaddr && printenv serverip; " \
+	"dhcp ${addr_dst_dtb} ${serverip}:dtb" USER_NAME "; " \
+	"dhcp ${addr_dst_kernel} ${serverip}:uImage" USER_NAME "; " \
+	"bootm ${addr_dst_kernel} - ${addr_dst_dtb}; " \
+	"\0" \
 "isp_usb=setenv isp_if usb && setenv isp_dev 0; " \
 	"$isp_if start; " \
 	"run isp_common; " \
