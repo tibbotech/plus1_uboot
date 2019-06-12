@@ -61,6 +61,8 @@
 #define SP_MAIN_STORAGE		"nand"
 #elif defined(CONFIG_MMC_SP_EMMC)
 #define SP_MAIN_STORAGE		"emmc"
+#elif defined(BOOT_KERNEL_FROM_TFTP)
+#define SP_MAIN_STORAGE		"tftp"
 #else
 #define SP_MAIN_STORAGE		"none"
 #endif
@@ -116,10 +118,11 @@
 
 /* TFTP server IP and board MAC address settings for TFTP ISP.
  * You should modify BOARD_MAC_ADDR to the address which you are assigned to */
+#if !defined(BOOT_KERNEL_FROM_TFTP)
 #define TFTP_SERVER_IP		172.18.12.62
-#define BOARD_MAC_ADDR		00:22:60:00:88:21
-#define USER_NAME			""
-
+#define BOARD_MAC_ADDR		00:22:60:00:88:20
+#define USER_NAME		_username
+#endif
 
 /*
  * In the beginning, bootcmd will check bootmode in SRAM and the flag
@@ -172,6 +175,9 @@
 		"if itest ${if_qkboot} == 1; then " \
 			"echo [scr] qk romter boot; " \
 			"run qk_romter_boot; " \
+		"elif itest.s ${sp_main_storage} == tftp; then " \
+			"echo [scr] tftp_boot; " \
+			"run tftp_boot; " \
 		"else " \
 			"echo [scr] romter boot; " \
 			"run romter_boot; " \
@@ -320,8 +326,8 @@
 	"mmc read ${addr_dst_kernel} ${addr_src_kernel} ${sz_kernel}; " \
 	"sp_go ${addr_dst_kernel} ${addr_dst_dtb}\0" \
 "tftp_boot=setenv ethaddr ${macaddr} && printenv ethaddr && printenv serverip; " \
-	"dhcp ${addr_dst_dtb} ${serverip}:dtb" USER_NAME "; " \
-	"dhcp ${addr_dst_kernel} ${serverip}:uImage" USER_NAME "; " \
+	"dhcp ${addr_dst_dtb} ${serverip}:dtb" __stringify(USER_NAME) "; " \
+	"dhcp ${addr_dst_kernel} ${serverip}:uImage" __stringify(USER_NAME) "; " \
 	"bootm ${addr_dst_kernel} - ${addr_dst_dtb}; " \
 	"\0" \
 "isp_usb=setenv isp_if usb && setenv isp_dev 0; " \
