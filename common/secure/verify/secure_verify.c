@@ -59,6 +59,12 @@ int verify_kernel_signature(const image_header_t  *hdr)
 	unsigned int data_size=0;
 	if(hdr == NULL)
 		goto out;
+	
+	if ((read_sb_flag() & 0x01) == 0) {
+		puts("\n ******OTP Secure Boot is OFF ,return success******\n");
+		return 0;
+	}
+	
 	/* Load public key */
 	imgsize = image_get_data_size(hdr);
 	
@@ -103,12 +109,9 @@ int verify_kernel_signature(const image_header_t  *hdr)
 #else
 	tv2 = get_timer(tv1);
 #endif
-	printf("\n time %dms\n",tv2);	
+	printf("\n time %dms\n",tv2);
+
 out:
-	if ((ret != 0) && (!(read_sb_flag() & 0x01))) {
-		puts("\n ******OTP Secure Boot is OFF ******\n");
-		return 0;
-	}
 	return ret;
 }
 
