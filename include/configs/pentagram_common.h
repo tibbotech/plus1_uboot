@@ -325,7 +325,8 @@
 	"setexpr sz_kernel ${sz_kernel} + 0x200; setexpr sz_kernel ${sz_kernel} / 0x200; " \
 	"mmc read ${addr_dst_kernel} ${addr_src_kernel} ${sz_kernel}; " \
 	"sp_go ${addr_dst_kernel} ${addr_dst_dtb}\0" \
-"tftp_boot=setenv ethaddr ${macaddr} && printenv ethaddr && printenv serverip; " \
+"tftp_boot=setenv ethaddr ${macaddr} && printenv ethaddr; " \
+	"printenv serverip; " \
 	"dhcp ${addr_dst_dtb} ${serverip}:dtb" __stringify(USER_NAME) "; " \
 	"dhcp ${addr_dst_kernel} ${serverip}:uImage" __stringify(USER_NAME) "; " \
 	"bootm ${addr_dst_kernel} - ${addr_dst_dtb}; " \
@@ -360,7 +361,8 @@
 	"setexpr script_addr $isp_ram_addr + 0x20 && setenv script_addr 0x${script_addr} && source $script_addr; " \
 	"\0" \
 "update_tftp=setenv isp_ram_addr 0x1000000; " \
-	"setenv ethaddr ${macaddr} && printenv ethaddr && printenv serverip; " \
+	"setenv ethaddr ${macaddr} && printenv ethaddr; " \
+	"printenv serverip; " \
 	"dhcp $isp_ram_addr $serverip:TFTP0000.BIN; " \
 	"setenv isp_main_storage ${sp_main_storage} && printenv isp_main_storage; " \
 	"setexpr script_addr $isp_ram_addr + 0x00 && setenv script_addr 0x${script_addr}; " \
