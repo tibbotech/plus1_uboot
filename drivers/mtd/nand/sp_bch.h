@@ -67,7 +67,7 @@ struct sp_bch_regs {
 #define SR_BLANK_00               BIT(28)       /* data are all 0x00 */
 #define SR_BLANK_FF               BIT(24)       /* data are all 0xff */
 
-int sp_bch_init(struct mtd_info *mtd);
+int sp_bch_init(struct mtd_info *mtd, int *parity_sector_sz);
 int sp_bch_encode(struct mtd_info *mtd, void *buf, void *ecc);
 int sp_bch_decode(struct mtd_info *mtd, void *buf, void *ecc);
 

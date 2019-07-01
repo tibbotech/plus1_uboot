@@ -1,9 +1,3 @@
-#ifdef CONFIG_LOGLEVEL
-#undef CONFIG_LOGLEVEL
-#endif
-#define CONFIG_LOGLEVEL   7
-//#include <linux/printk.h>
-
 #include <common.h>
 #include <malloc.h>
 #include <asm/io.h>
@@ -53,9 +47,8 @@ extern const struct nand_flash_dev sp_spinand_ids[];
 
 void dump_spi_regs(struct sp_spinand_info *info)
 {
-	struct sp_spinand_regs *regs = info->regs;
-	u32 *p = (u32 *)regs;
-	int i, value;
+	u32 *p = (u32 *)info->regs;
+	int i;
 	const char *reg_name[] = {
 		"spi_ctrl",
 		"spi_timing",
@@ -79,9 +72,8 @@ void dump_spi_regs(struct sp_spinand_info *info)
 		"spi_page_size",
 	};
 
-	for (i=0; i<20; i++, p++) {
-		value = readl(p);
-		pr_info("%s = 0x%08X\n", reg_name[i], value);
+	for (i=0; i<sizeof(reg_name)/sizeof(reg_name[0]); i++, p++) {
+		SPINAND_LOGI("%s = 0x%08X\n", reg_name[i], readl(p));
 	}
 }
 
@@ -168,7 +160,7 @@ int wait_spi_idle(struct sp_spinand_info *info)
 	} while(get_timer(now) < CONFIG_SPINAND_TIMEOUT);
 
 	if (ret < 0) {
-		pr_warn("%s timeout \n", __FUNCTION__);
+		SPINAND_LOGE("%s timeout \n", __FUNCTION__);
 		//dump_spi_regs(info);
 	}
 
@@ -202,8 +194,8 @@ int spi_nand_trigger_and_wait_dma(struct sp_spinand_info *info)
 	} while(get_timer(now) < timeout_ms);
 
 	if(ret < 0) {
+		SPINAND_LOGE("%s timeout\n", __FUNCTION__);
 		//dump_spi_regs(info);
-		pr_warn("%s timeout\n", __FUNCTION__);
 	}
 
 	return ret;
@@ -236,8 +228,8 @@ int spi_nand_trigger_and_wait_pio(struct sp_spinand_info *info)
 	} while(get_timer(now) < timeout_ms);
 
 	if(ret < 0) {
+		SPINAND_LOGE("%s timeout\n", __FUNCTION__);
 		//dump_spi_regs(info);
-		pr_warn("%s timeout\n", __FUNCTION__);
 	}
 
 	return ret;
@@ -330,7 +322,7 @@ static int spi_nand_reset(struct sp_spinand_info *info)
 		| SPINAND_USRCMD_ADDRSZ(0);
 	writel(value, &regs->spi_ctrl);
 
-	value = SPINAND_READ_TIMING(CONFIG_READ_TIMING_SEL);
+	value = SPINAND_READ_TIMING(CONFIG_SPINAND_READ_TIMING_SEL);
 	writel(value ,&regs->spi_timing);
 
 	value = SPINAND_LITTLE_ENDIAN
@@ -367,7 +359,7 @@ static void spi_nand_readid(struct sp_spinand_info *info, u32 addr, u8 *data)
 
 	/*read 3 byte cycle same to 8388 */
 	value = SPINAND_SEL_CHIP_A
-	        | SPINAND_SCK_DIV(7)
+		| SPINAND_SCK_DIV(info->spi_clk_div)
 	        | SPINAND_USR_CMD(SPINAND_CMD_READID)
 	        | SPINAND_CTRL_EN
 	        | SPINAND_USRCMD_DATASZ(3)
@@ -408,7 +400,7 @@ static int spi_nand_blkerase(struct sp_spinand_info *info, u32 row)
 
 	value = SPINAND_SEL_CHIP_A
 		| SPINAND_AUTOWEL_EN
-		| SPINAND_SCK_DIV(7)
+		| SPINAND_SCK_DIV(info->spi_clk_div)
 		| SPINAND_USR_CMD(SPINAND_CMD_BLKERASE)
 		| SPINAND_CTRL_EN
 		| SPINAND_USRCMD_DATASZ(0)
@@ -1010,7 +1002,7 @@ static int spi_nand_pageread_autobch(struct sp_spinand_info *info, u32 io_mode,
 	value = SPINAND_BCH_DATA_LEN(info->parity_sector_size)
 		| SPINAND_BCH_BLOCKS(info->nand.ecc.steps - 1)
 		| SPINAND_BCH_AUTO_EN;
-	value |= ((info->cr0 >> 11) & 0x01) ?
+	value |= (info->parity_sector_size & 31) ?
 			SPINAND_BCH_ALIGN_16B : SPINAND_BCH_ALIGN_32B;
 	value |= (info->nand.ecc.size == 1024) ?
 			SPINAND_BCH_1K_MODE : SPINAND_BCH_512B_MODE;
@@ -1083,7 +1075,7 @@ static int spi_nand_pagewrite_autobch(struct sp_spinand_info *info, u32 io_mode,
 	value = SPINAND_BCH_DATA_LEN(info->parity_sector_size)
 		| SPINAND_BCH_BLOCKS(info->nand.ecc.steps - 1)
 		| SPINAND_BCH_AUTO_EN;
-	value |= ((info->cr0 >> 11) & 0x01) ?
+	value |= (info->parity_sector_size & 31) ?
 			SPINAND_BCH_ALIGN_16B : SPINAND_BCH_ALIGN_32B;
 	value |= (info->nand.ecc.size == 1024) ?
 			SPINAND_BCH_1K_MODE : SPINAND_BCH_512B_MODE;
@@ -1218,7 +1210,7 @@ static void sp_spinand_cmdfunc(struct mtd_info *mtd, u32 cmd, int col, int row)
 		/* these cmds are p-nand related, ignore them */
 		break;
 	default:
-		pr_warn("sp_spinand: unknown command=0x%02x.\n", cmd);
+		SPINAND_LOGE("sp_spinand: unknown command=0x%02x.\n", cmd);
 		break;
 	}
 }
@@ -1271,11 +1263,11 @@ static void sp_spinand_read_buf(struct mtd_info *mtd, u8 *buf, int len)
 		case NAND_CMD_READOOB:
 		case NAND_CMD_READ0: {
 			u32 size = info->page_size + info->oob_size - info->col;
-			sp_spinand_read_raw(info, info->row, info->col, size);
 			#ifndef CONFIG_SPINAND_USE_SRAM
 			invalidate_dcache_range( (unsigned long)info->buff.virt,
 				(unsigned long)info->buff.virt + size);
 			#endif
+			sp_spinand_read_raw(info, info->row, info->col, size);
 			break;
 		}
 		case NAND_CMD_READID:
@@ -1323,6 +1315,11 @@ static int sp_spinand_read_page(struct mtd_info *mtd, struct nand_chip *chip,
 	dma_addr_t oob_pa = data_pa + mtd->writesize;
 	int ret;
 
+	#ifndef CONFIG_SPINAND_USE_SRAM
+	invalidate_dcache_range( (unsigned long)data_va,
+		(unsigned long)data_va + mtd->writesize + mtd->oobsize);
+	#endif
+
 	if (info->trs_mode == SPINAND_TRS_DMA_AUTOBCH) {
 		ret = spi_nand_pageread_autobch(info,
 			info->read_bitmode, page, (u8*)data_pa);
@@ -1334,14 +1331,9 @@ static int sp_spinand_read_page(struct mtd_info *mtd, struct nand_chip *chip,
 	}
 
 	if (ret < 0) {
-		pr_warn("sp_spinand: bch decode failed at page=%d\n", page);
+		SPINAND_LOGE("sp_spinand: bch decode failed at page=%d\n",page);
 		return ret;
 	}
-
-	#ifndef CONFIG_SPINAND_USE_SRAM
-	invalidate_dcache_range( (unsigned long)data_va,
-		(unsigned long)data_va + mtd->writesize + mtd->oobsize);
-	#endif
 
 	memcpy(buf, data_va, mtd->writesize);
 	if (oob_required)
@@ -1394,12 +1386,19 @@ static int sp_spinand_init(struct sp_spinand_info *info)
 	info->buff.virt = (u8*)CONFIG_SPINAND_SRAM_ADDR;
 	#else
 	u8 *buf = (u8*)malloc(info->buff.size + CONFIG_SYS_CACHELINE_SIZE);
+	if (!buf) {
+		ret = -ENOMEM;
+		goto err_out;
+	}
 	/* the buff should be cacheline-aligned */
+	info->buff.virt_base = buf;
 	buf = buf + CONFIG_SYS_CACHELINE_SIZE - 1;
 	info->buff.virt = (u8*)((u32)buf & (~(CONFIG_SYS_CACHELINE_SIZE-1)));
 	#endif
+
 	info->buff.phys = (dma_addr_t)info->buff.virt;
-	pr_info("sp_spinand: buff=0x%p@0x%08x size=%u\n", info->buff.virt,
+	SPINAND_LOGI("%s in\n", __FUNCTION__);
+	SPINAND_LOGI("buff=0x%p@0x%08x size=%u\n", info->buff.virt,
 		info->buff.phys, info->buff.size);
 
 	info->nand.select_chip = sp_spinand_select_chip;
@@ -1417,16 +1416,23 @@ static int sp_spinand_init(struct sp_spinand_info *info)
 	info->nand.ecc.layout = &info->ecc_layout;
 	info->nand.ecc.mode = NAND_ECC_HW;
 
-	if (spi_nand_reset(info) < 0)
-		return -EIO;
+	SPINAND_SET_CLKSRC(CONFIG_SPINAND_CLK_SRC);
+	info->spi_clk_div = CONFIG_SPINAND_CLK_DIV;
+
+	if (spi_nand_reset(info) < 0) {
+		SPINAND_LOGE("reset fail!\n");
+		ret = -EIO;
+		goto err_out;
+	}
 
 	/* Read ID */
 	spi_nand_readid(info, 0, (u8*)&info->id);
 
 	ret = nand_scan_ident(mtd, 1, (struct nand_flash_dev *)sp_spinand_ids);
 	if (ret < 0) {
-		pr_warn("sp_spinand: Unsupport device(id=0x%08x)!\n", info->id);
-		return ret;
+		SPINAND_LOGE("unsupport device(id=0x%08x)!\n", info->id);
+		ret = ENXIO;
+		goto err_out;
 	}
 
 	if (info->nand.drv_options & SPINAND_OPT_HAS_TWO_PLANE) {
@@ -1436,17 +1442,28 @@ static int sp_spinand_init(struct sp_spinand_info *info)
 	}
 	info->page_size = mtd->writesize;
 	info->oob_size = mtd->oobsize;
+	info->dev_name = mtd->name;
 
-	info->trs_mode = CONFIG_DEFAULT_TRSMODE;
-	info->raw_trs_mode = CONFIG_DEFAULT_TRSMODE_RAW;
-	info->read_bitmode = SPINAND_4BIT_MODE;
-	info->write_bitmode = SPINAND_4BIT_MODE;
+	info->trs_mode = CONFIG_SPINAND_TRSMODE;
+	info->raw_trs_mode = CONFIG_SPINAND_TRSMODE_RAW;
+
+	info->read_bitmode = CONFIG_SPINAND_READ_BITMODE;
+	if ((info->read_bitmode == SPINAND_4BIT_MODE)
+		&& (info->nand.drv_options & SPINAND_OPT_NO_4BIT_READ))
+		info->read_bitmode = SPINAND_2BIT_MODE;
+	if ((info->read_bitmode == SPINAND_2BIT_MODE)
+		&& (info->nand.drv_options & SPINAND_OPT_NO_2BIT_READ))
+		info->read_bitmode = SPINAND_1BIT_MODE;
+
+	info->write_bitmode = CONFIG_SPINAND_WRITE_BITMODE;
 	if (info->nand.drv_options & SPINAND_OPT_NO_4BIT_PROGRAM)
 		info->write_bitmode = SPINAND_1BIT_MODE;
 
-	info->spi_clk_div = 1;
-	if (SPINAND_GET_CLKSEL() != CONFIG_DEFAULT_CLKSEL)
-		SPINAND_SET_CLKSEL(CONFIG_DEFAULT_CLKSEL);
+	if (info->nand.drv_options & SPINAND_OPT_ECCEN_IN_F90_4) {
+		value = spi_nand_getfeatures(info, 0x90);
+		value &= ~0x01;
+		spi_nand_setfeatures(info, 0x90, value);
+	}
 
 	value = spi_nand_getfeatures(info, DEVICE_FEATURE_ADDR);
 	value &= ~0x10;          /* disable internal ECC */
@@ -1462,33 +1479,41 @@ static int sp_spinand_init(struct sp_spinand_info *info)
 	spi_nand_setfeatures(info, DEVICE_PROTECTION_ADDR, 0x0);
 	info->dev_protection = spi_nand_getfeatures(info, DEVICE_PROTECTION_ADDR);
 
-	pr_info("spi nand device info:\n");
-	pr_info("\tdevice name : %s\n", mtd->name);
-	pr_info("\tdevice id   : 0x%08x\n", info->id);
-	pr_info("\toptions     : 0x%08x\n", nand->options);
-	pr_info("\tdrv options : 0x%08x\n", nand->drv_options);
-	pr_info("\tblock size  : %d\n", mtd->erasesize);
-	pr_info("\tpage size   : %d\n", mtd->writesize);
-	pr_info("\toob size    : %d\n", mtd->oobsize);
-
-	ret = sp_bch_init(mtd);
+	ret = sp_bch_init(mtd, (int*)&info->parity_sector_size);
 	if (ret < 0) {
-		pr_err("sp_spinand: initialize BCH controller fail!\n");
-		return ret;
+		SPINAND_LOGE("initialize BCH controller fail!\n");
+		goto err_out;
 	}
 
-	pr_info("\toob avail   : %d\n", nand->ecc.layout->oobavail);
-	pr_info("\tecc size    : %d\n", nand->ecc.size);
-	pr_info("\tecc strength: %d\n", nand->ecc.strength);
-	pr_info("\tecc steps   : %d\n", nand->ecc.steps);
-	pr_info("\tecc options : 0x%08x\n", nand->ecc.options);
+	SPINAND_LOGI("\tdevice name : %s\n", mtd->name);
+	SPINAND_LOGI("\tdevice id   : 0x%08x\n", info->id);
+	SPINAND_LOGI("\toptions     : 0x%08x\n", nand->options);
+	SPINAND_LOGI("\tdrv options : 0x%08x\n", nand->drv_options);
+	SPINAND_LOGI("\tblock size  : %d\n", mtd->erasesize);
+	SPINAND_LOGI("\tpage size   : %d\n", mtd->writesize);
+	SPINAND_LOGI("\toob size    : %d\n", mtd->oobsize);
+	SPINAND_LOGI("\toob avail   : %d\n", nand->ecc.layout->oobavail);
+	SPINAND_LOGI("\tecc size    : %d\n", nand->ecc.size);
+	SPINAND_LOGI("\tecc strength: %d\n", nand->ecc.strength);
+	SPINAND_LOGI("\tecc steps   : %d\n", nand->ecc.steps);
 	ret = nand_scan_tail(mtd);
-	if (ret < 0)
-		return ret;
+	if (ret < 0) {
+		goto err_out;
+	}
 
 	nand_register(0, mtd);
 
 	return 0;
+
+err_out:
+	#ifndef CONFIG_SPINAND_USE_SRAM
+	if (info->buff.virt_base) {
+		free(info->buff.virt_base);
+		info->buff.virt_base = NULL;
+	}
+	#endif
+
+	return ret;
 }
 
 static int sp_spinand_probe(struct udevice *dev)
@@ -1505,7 +1530,7 @@ static int sp_spinand_probe(struct udevice *dev)
 		return ret;
 
 	info->regs = devm_ioremap(dev, res.start, resource_size(&res));
-	pr_info("\nsp_spinand: regs@0x%p\n", info->regs);
+	SPINAND_LOGI("\nsp_spinand: regs@0x%p\n", info->regs);
 
 	/* get bch reg */
 	ret = dev_read_resource_byname(dev, "bch_reg", &res);
@@ -1513,7 +1538,7 @@ static int sp_spinand_probe(struct udevice *dev)
 		return ret;
 
 	info->bch_regs = devm_ioremap(dev, res.start, resource_size(&res));
-	pr_info("sp_bch    : regs@0x%p\n", info->bch_regs);
+	SPINAND_LOGI("sp_bch    : regs@0x%p\n", info->bch_regs);
 
 	ret = sp_spinand_init(info);
 	return ret;
@@ -1545,7 +1570,7 @@ void board_spinand_init(void)
 					  &dev);
 
 	if (ret && ret != -ENODEV)
-		pr_warn("Failed to initialize sunplus SPI NAND controller.(error %d)\n", ret);
+		SPINAND_LOGW("initialize sunplus SPI NAND controller fail!\n");
 }
 
 void pattern_generate(u32 data, u8 *buf, u32 size)
@@ -1565,7 +1590,7 @@ int pattern_check(u32 data, u8 *buf, u32 size)
 	u8 *p = (u8*)&data;
 	for(i=0; i<size; i++) {
 		if(buf[i] != *(p+(i&0x03))) {
-			pr_warn("data mismatch at %d\n", i);
+			printk("data mis-match at :0x%08x\n", data);
 			return -1;
 		}
 		if((i&0x03) == 0x03)
@@ -1574,15 +1599,109 @@ int pattern_check(u32 data, u8 *buf, u32 size)
 	return 0;
 }
 
+
+static int sp_spinand_test_rw(u32 addr, u32 size, u32 seed)
+{
+	struct sp_spinand_info *info = get_spinand_info();
+	struct mtd_info *mtd = info->mtd;
+	nand_erase_options_t erase_opts;
+	u32 block_size = mtd->erasesize;
+	u32 block_num = (size + block_size - 1) / block_size;
+	u32 start_block = addr / block_size;
+	u32 actual_size;
+	u32 now_seed;
+	u32 i, j;
+	int ret;
+	u8 *buf;
+
+	buf = (u8 *)malloc(block_size);
+	if (!buf) {
+		printk("no memory!\n");
+		goto err_out;
+	}
+
+	printk("start block:%d, block_num:%d, seed:%d\n", start_block, block_num, seed);
+
+	for (i=0,j=start_block; i<block_num; i++,j++) {
+		while (nand_block_isbad(mtd, (loff_t)j*block_size))
+			j++;
+
+		printk("\rerase block:%d ", j);
+
+		memset(&erase_opts, 0, sizeof(erase_opts));
+		erase_opts.quiet = 1;
+		erase_opts.offset = (loff_t)j * block_size;
+		erase_opts.length = block_size;
+		ret = nand_erase_opts(mtd, &erase_opts);
+		if (ret) {
+			printk("=> fail\n");
+			goto err_out;
+		}
+	}
+	printk("\rerase blocks => success\n");
+
+	now_seed = seed;
+	for (i=0,j=start_block; i<block_num; i++,j++) {
+		/* skip bad block */
+		while (nand_block_isbad(mtd, (loff_t)j*block_size))
+			j++;
+
+		printk("\rwrite block:%d ",j);
+
+		/* prepare the pattern */
+		now_seed += (i * block_size) / 4;
+		pattern_generate(now_seed, buf, block_size);
+
+		/* write block */
+		actual_size = block_size;
+		ret = nand_write(mtd, (loff_t)j*block_size, &actual_size, buf);
+		if (ret) {
+			printk("=> fail\n");
+			goto err_out;
+		}
+	}
+	printk("\rwrite blocks => success\n");
+
+
+	now_seed = seed;
+	for (i=0,j=start_block; i<block_num; i++,j++) {
+		now_seed += (i * block_size) / 4;
+
+		/* skip bad block */
+		while (nand_block_isbad(mtd, (loff_t)j*block_size))
+			j++;
+
+		printk("\rread block:%d ",j);
+
+		actual_size = block_size;
+		ret = nand_read(mtd, (loff_t)j*block_size, &actual_size, buf);
+		if (ret) {
+			printk("=> fail\n");
+			goto err_out;
+		}
+
+		if (pattern_check(now_seed, buf, block_size) == -1) {
+			printk("=> data mis-match\n");
+			goto err_out;
+		}
+	}
+	printk("\rread blocks => success\n");
+
+	free(buf);
+	return 0;
+
+err_out:
+	if (buf)
+		free(buf);
+
+	return 0;
+}
+
 static int sp_spinand_test_speed(void)
 {
 	#define TEST_BLOCK_NUM (10)
 	const char *trs_mode[] = {"pio", "pio+auto", "dma", "dma+autobch"};
 	const char *io_mode[] = {"x1", "x2", "x4", "dualIO", "quadIO"};
-	const u32 clk_div[] = {0, 2, 4, 6, 8, 16, 24, 32};
-	const u32 clk_sel[] = {
-		0,      0,      0,      0,      67500,  81000,  94500,  108000,
-		121500,	135000, 148500, 162000, 175500, 189000, 202500, 0};
 	struct sp_spinand_info *info = get_spinand_info();
 	struct mtd_info *mtd = info->mtd;
 	nand_erase_options_t erase_opts;
@@ -1592,52 +1711,52 @@ static int sp_spinand_test_speed(void)
 	unsigned long speed;
 	unsigned long average;
 	unsigned long data_size = mtd->erasesize * TEST_BLOCK_NUM;
-	u32 clksel = SPINAND_GET_CLKSEL();
-	u32 freq;
 	u32 actual_size;
-	u8  *buf = (u8*)0;
-	u32 i, j;
+	u8  *buf;
+	s32 i, j;
 	int ret;
 
 	for(i=0,j=3; i<TEST_BLOCK_NUM; i++,j++) {
-		while(nand_block_isbad(mtd, j*mtd->erasesize))
+		while (nand_block_isbad(mtd, (loff_t)j * mtd->erasesize))
 			j++;
 		test_block_table[i] = j*mtd->erasesize;
 	}
 
+	buf = (u8 *)malloc(data_size);
+	if(!buf) {
+		printk("no memory!\n");
+		goto err_out;
+	}
+
 	pattern_generate(0, buf, data_size);
 
-	freq = clk_sel[clksel]/clk_div[info->spi_clk_div];
-	pr_info("[freq=%d.%d MHZ, "
-		"clk_sel:%d, "
+	printk( "[clk_sel:%d, "
 		"clk_div:%d, "
 		"trs_mode:%s, "
 		"read_io:%s, "
 		"write_io:%s]\n",
-		freq/1000,
-		freq%1000,
-		clksel,
+		SPINAND_GET_CLKSRC(),
 		info->spi_clk_div,
 		trs_mode[info->trs_mode],
 		io_mode[info->read_bitmode],
 		io_mode[info->write_bitmode]);
-	pr_info("Erase: ");
+	printk("Erase: ");
 	now_time = get_timer(0);
-	for(i=0,j=TEST_BLOCK_NUM; i<TEST_BLOCK_NUM; i++) {
+	for (i=0; i<TEST_BLOCK_NUM; i++) {
 		memset(&erase_opts, 0, sizeof(erase_opts));
 		erase_opts.quiet = 1;
 		erase_opts.offset = test_block_table[i];
 		erase_opts.length = mtd->erasesize;
 		ret = nand_erase_opts(mtd, &erase_opts);
 		if(ret) {
-			pr_info("failed at 0x%08x\n", test_block_table[i]);
-			return -1;
+			printk("failed at 0x%08x\n", test_block_table[i]);
+			goto err_out;
 		}
 	}
 	used_time = get_timer(now_time);
 	average = used_time * 100 / TEST_BLOCK_NUM;
 	speed = ((data_size>>10) * 1000 * 100 / used_time) >> 10; //unit:100MB/s
-	pr_info("total_size=%ld Byte, "
+	printk("total_size=%ld Byte, "
 		"total_time:%ld ms, "
 		"average:%ld.%ld ms/block, "
 		"speed:%ld.%ld MB/s\n",
@@ -1646,21 +1765,21 @@ static int sp_spinand_test_speed(void)
 		average/100, average%100,
 		speed/100, speed%100);
 
-	pr_info("Write: ");
+	printk("Write: ");
 	now_time = get_timer(0);
-	for(i=0,j=TEST_BLOCK_NUM; i<TEST_BLOCK_NUM; i++) {
+	for (i=0; i<TEST_BLOCK_NUM; i++) {
 		actual_size = mtd->erasesize;
 		ret = nand_write(mtd, test_block_table[i],
 				&actual_size, buf+mtd->erasesize*i);
 		if(ret) {
-			pr_info("failed at 0x%08x\n", test_block_table[i]);
-			return -1;
+			printk("failed at 0x%08x\n", test_block_table[i]);
+			goto err_out;
 		}
 	}
 	used_time = get_timer(now_time);
 	average = used_time * 100 / TEST_BLOCK_NUM;
 	speed = ((data_size>>10) * 1000 * 100 / used_time) >> 10; //unit:100MB/s
-	pr_info("total_size=%ld Byte, "
+	printk("total_size=%ld Byte, "
 		"total_time:%ld ms, "
 		"average:%ld.%ld ms/block, "
 		"speed:%ld.%ld MB/s\n",
@@ -1671,26 +1790,26 @@ static int sp_spinand_test_speed(void)
 
 	memset(buf, 0, data_size);
 
-	pr_info("Read: ");
+	printk("Read: ");
 	now_time = get_timer(0);
-	for(i=0,j=TEST_BLOCK_NUM; i<TEST_BLOCK_NUM; i++) {
+	for (i=0; i<TEST_BLOCK_NUM; i++) {
 		actual_size = mtd->erasesize;
 		ret = nand_read(mtd, test_block_table[i],
 				&actual_size, buf+mtd->erasesize*i);
 		if(ret) {
-			pr_info("failed at :0x%08x\n\n",test_block_table[i]);
-			return -1;
+			printk("failed at :0x%08x\n\n",test_block_table[i]);
+			goto err_out;
 		}
 	}
 	used_time = get_timer(now_time);
 
 	if(pattern_check(0, buf, data_size)) {
-		pr_info("failed for data mismatch\n\n");
-		return -1;
+		printk("failed for data mismatch\n\n");
+		goto err_out;
 	}
 	average = used_time * 100 / TEST_BLOCK_NUM;
 	speed = ((data_size>>10) * 1000 * 100 / used_time) >> 10; //unit:100MB/s
-	pr_info("total_size=%ld Byte, "
+	printk("total_size=%ld Byte, "
 		"total_time:%ld ms, "
 		"average:%ld.%ld ms/block, "
 		"speed:%ld.%ld MB/s\n\n",
@@ -1699,7 +1818,13 @@ static int sp_spinand_test_speed(void)
 		average/100, average%100,
 		speed/100, speed%100);
 
+	free(buf);
 	return 0;
+
+err_out:
+	if(buf)
+		free(buf);
+	return -1;
 }
 
 static int sp_spinand_test_stress(void)
@@ -1713,15 +1838,23 @@ static int sp_spinand_test_stress(void)
 	u32 actual_size;
 	u32 progress;
 	u32 offset;
-	u8  *src_buf = (u8*)0;
-	u8  *dst_buf = src_buf + data_size;
-	u8  *block_table = dst_buf + data_size;
+	u8  *src_buf;
+	u8  *dst_buf;
+	u8  *block_table;
 	u32 i, j, k;
 	int ret;
 
+	src_buf = (u8 *)malloc(data_size*2 +blocks*4);
+	if(!src_buf) {
+		printk("no memory!\n");
+		return -1;
+	}
+	dst_buf = src_buf + data_size;
+	block_table = dst_buf + data_size;
+
 	pattern_generate(0, src_buf, data_size);
 
-	for(k=0; ; k++) {
+	for (k=0; k<100000; k++) {
 		memset(block_table, 0, blocks);
 		for(i=0,j=0,progress=0; i<blocks; i++) {
 			/* erase */
@@ -1749,8 +1882,7 @@ static int sp_spinand_test_stress(void)
 			/* read */
 			actual_size = mtd->erasesize;
 			ret = nand_read(mtd, offset, &actual_size, dst_buf);
-			if (ret
-				|| actual_size != mtd->erasesize
+			if (ret	|| actual_size != mtd->erasesize
 				|| pattern_check(0, dst_buf, data_size)<0) {
 				block_table[i] = 0xff;
 				j++;
@@ -1759,18 +1891,20 @@ static int sp_spinand_test_stress(void)
 			block_table[i] = 1;
 			if(progress != i*100/blocks) {
 				progress = i*100/blocks;
-				pr_info("\rprgress : %d%%", progress);
+				printk("\rprgress : %d%%", progress);
 			}
 		}
-		pr_info("\r==> %d round, %d block fail\n", k, j);
+		printk("\r==> %d round, %d block fail\n", k, j);
 		if(j > 0) {
-			pr_info("bad blocks:\n");
+			printk("bad blocks:\n");
 			for (i=0; i < blocks; i++) {
 				if(block_table[i] == 0xff)
-					pr_info("0x%08x\n", i*mtd->erasesize);
+					printk("0x%08x\n", i*mtd->erasesize);
 			}
 		}
 	}
+
+	free(src_buf);
 
 	return 0;
 }
@@ -1783,10 +1917,17 @@ static int sp_spinand_test_stress1(u32 block)
 	u32 row_addr = mtd->erasesize * block;
 	u32 data_size = mtd->erasesize;
 	u32 actual_size;
-	u8  *src_buf = (u8*)0;
-	u8  *dst_buf = src_buf + data_size;
+	u8  *src_buf;
+	u8  *dst_buf;
 	u32 k;
 	int ret;
+
+	src_buf = (u8 *)malloc(data_size * 2);
+	if(!src_buf) {
+		printk("no memory!\n");
+		return -1;
+	}
+	dst_buf = src_buf + data_size;
 
 	pattern_generate(0, src_buf, data_size);
 
@@ -1798,7 +1939,7 @@ static int sp_spinand_test_stress1(u32 block)
 		erase_opts.length = mtd->erasesize;
 		ret = nand_erase_opts(mtd, &erase_opts);
 		if(ret) {
-			pr_info("\nErase fail at 0x%08x\n", row_addr);
+			printk("\nErase fail at 0x%08x\n", row_addr);
 			break;
 		}
 
@@ -1806,26 +1947,28 @@ static int sp_spinand_test_stress1(u32 block)
 		actual_size = mtd->erasesize;
 		ret = nand_write(mtd,  row_addr, &actual_size, src_buf);
 		if (ret || actual_size!=mtd->erasesize) {
-			pr_info("\nWrite fail at 0x%08x\n", row_addr);
+			printk("\nWrite fail at 0x%08x\n", row_addr);
 			break;
 		}
 
 		/* read */
 		actual_size = mtd->erasesize;
 		ret = nand_read(mtd, row_addr, &actual_size, dst_buf);
-		if (ret
-			|| actual_size != mtd->erasesize
+		if (ret	|| actual_size != mtd->erasesize
 			|| pattern_check(0, dst_buf, data_size)<0) {
-			pr_info("\nWrite fail at 0x%08x\n", row_addr);
+			printk("\nWrite fail at 0x%08x\n", row_addr);
 			break;
 		}
 
 		if(k%10 == 0) {
-			pr_info("\r%d round test pass!", k);
+			printk("\r%d round test pass!", k);
 		}
 	}
 
-	pr_info("Stress test exit at %d round.\n", k);
+	printk("Stress test exit at %d round.\n", k);
+
+	free(src_buf);
+
 	return 0;
 }
 
@@ -1833,7 +1976,7 @@ static int sp_spinand_test_timing(void)
 {
 	u32 i;
 	for(i=5; i<15; i++) {
-		SPINAND_SET_CLKSEL(i);
+		SPINAND_SET_CLKSRC(i);
 		sp_spinand_test_speed();
 
 	}
@@ -1857,26 +2000,26 @@ static int sp_spinand_test(cmd_tbl_t *cmdtp, int flag, int argc, char * const ar
 	} else if (strncmp(cmd, "feature", 7) == 0) {
 		u32 addr, value;
 		if (argc == 2) {
-			pr_info("feature(A0) = 0x%02x\n",
+			printk("feature(A0) = 0x%02x\n",
 				spi_nand_getfeatures(info, 0xA0));
-			pr_info("feature(B0) = 0x%02x\n",
+			printk("feature(B0) = 0x%02x\n",
 				spi_nand_getfeatures(info, 0xB0));
-			pr_info("feature(C0) = 0x%02x\n",
+			printk("feature(C0) = 0x%02x\n",
 				spi_nand_getfeatures(info, 0xC0));
 		} else {
 			addr = simple_strtoul(argv[2], NULL, 16);
 			if(addr!=0xA0 && addr!=0xB0 && addr!=0xC0 && addr!=0xD0){
-				pr_info("invalid addr(0x%02x)!\n",addr);
+				printk("invalid addr(0x%02x)!\n",addr);
 				ret = CMD_RET_USAGE;
 			} else {
 				if(argc == 4) {
 					value = simple_strtoul(argv[3],NULL,16);
 					value &= 0xff;
 					spi_nand_setfeatures(info, addr, value);
-					pr_info("set feature(%02X) to 0x%02x\n",
+					printk("set feature(%02X) to 0x%02x\n",
 						addr, value);
 				} else {
-					pr_info("feature(%02X) = 0x%02x\n",addr,
+					printk("feature(%02X) = 0x%02x\n", addr,
 						spi_nand_getfeatures(info, addr));
 				}
 			}
@@ -1884,7 +2027,19 @@ static int sp_spinand_test(cmd_tbl_t *cmdtp, int flag, int argc, char * const ar
 	} else if (strncmp(cmd, "id", 2) == 0) {
 		u32 devid = 0;
 		spi_nand_readid(info, 0, (u8*)&devid);
-		pr_info("device id: 0x%08x\n", devid);
+		printk("device id: 0x%08x\n", devid);
+	} else if (strncmp(cmd, "rw", 2) == 0) {
+		u32 addr = 0;
+		u32 size = 0;
+		u32 seed = 0;
+		if(argc == 5) {
+			addr = simple_strtoul(argv[2],NULL,16);
+			size = simple_strtoul(argv[3],NULL,16);
+			seed = simple_strtoul(argv[4],NULL,16);
+			sp_spinand_test_rw(addr, size, seed);
+		} else {
+			ret = CMD_RET_USAGE;
+		}
 	} else if (strncmp(cmd, "speed", 5) == 0) {
 		sp_spinand_test_speed();
 	} else if (strncmp(cmd, "stress", 6) == 0) {
@@ -1901,14 +2056,14 @@ static int sp_spinand_test(cmd_tbl_t *cmdtp, int flag, int argc, char * const ar
 		if (argc >= 3) {
 			u32 trsmode = simple_strtoul(argv[2], NULL, 10);
 			if (trsmode >= SPINAND_TRS_MAX) {
-				pr_info("invalid value!\n");
+				printk("invalid value!\n");
 				ret = CMD_RET_USAGE;
 			} else {
 				info->trs_mode = trsmode;
-				pr_info("set trs_mode => %d\n", trsmode);
+				printk("set trs_mode => %d\n", trsmode);
 			}
 		} else {
-			pr_info("trs_mode = %d\n", info->trs_mode);
+			printk("trs_mode = %d\n", info->trs_mode);
 		}
 	}
 	else if (strncmp(cmd, "wio", 3) == 0) {
@@ -1916,86 +2071,68 @@ static int sp_spinand_test(cmd_tbl_t *cmdtp, int flag, int argc, char * const ar
 			u32 bitmode = simple_strtoul(argv[2], NULL, 10);
 			if (bitmode != SPINAND_1BIT_MODE
 				&& bitmode != SPINAND_4BIT_MODE) {
-				pr_info("invalid value!\n");
+				printk("invalid value!\n");
 				ret = CMD_RET_USAGE;
 			} else {
 				info->write_bitmode = bitmode;
-				pr_info("set write_bitmode => %d\n", bitmode);
+				printk("set write_bitmode => %d\n", bitmode);
 			}
 		} else {
-			pr_info("write_bitmode = %d\n", info->write_bitmode );
+			printk("write_bitmode = %d\n", info->write_bitmode );
 		}
 	} else if (strncmp(cmd, "rio", 3) == 0) {
 		if (argc >= 3) {
 			u32 bitmode = simple_strtoul(argv[2], NULL, 10);
 			if(bitmode > SPINAND_4BIT_MODE) {
-				pr_info("invalid value!\n");
+				printk("invalid value!\n");
 				ret = CMD_RET_USAGE;
 			} else {
 				info->read_bitmode = bitmode;
-				pr_info("set read_bitmode => %d\n", bitmode);
+				printk("set read_bitmode => %d\n", bitmode);
 			}
 		} else {
-			pr_info("read_bitmode = %d\n", info->read_bitmode);
+			printk("read_bitmode = %d\n", info->read_bitmode);
 		}
 	} else if (strncmp(cmd, "clksel", 6) == 0) {
 		if (argc >= 3) {
 			u32 clksel = simple_strtoul(argv[2], NULL, 10);
 			if (clksel < 4 && clksel>14) {
-				pr_info("invalid value!\n");
+				printk("invalid value!\n");
 				ret = CMD_RET_USAGE;
 			} else {
-				SPINAND_SET_CLKSEL(clksel);
-				pr_info("set spi_clk_sel => %d\n", clksel);
+				SPINAND_SET_CLKSRC(clksel);
+				printk("set spi_clk_sel => %d\n", clksel);
 			}
 		} else {
-			pr_info("spi_clk_sel = %d\n", SPINAND_GET_CLKSEL());
+			printk("spi_clk_sel = %d\n", SPINAND_GET_CLKSRC());
 		}
 	} else if (strncmp(cmd, "clkdiv", 6) == 0) {
 		if (argc >= 3) {
 			u32 clkdiv = simple_strtoul(argv[2], NULL, 10);
-			if (clkdiv < 1 && clkdiv>7) {
-				pr_info("invalid value!\n");
+			if (clkdiv < 1 || clkdiv > 7) {
+				printk("invalid value!\n");
 				ret = CMD_RET_USAGE;
 			} else {
 				info->spi_clk_div = clkdiv;
-				pr_info("set spi_clk_div => %d\n", clkdiv);
+				printk("set spi_clk_div => %d\n", clkdiv);
 			}
 		} else {
-			pr_info("spi_clk_div = %d\n", info->spi_clk_div);
+			printk("spi_clk_div = %d\n", info->spi_clk_div);
 		}
 	} else if (strncmp(cmd, "rts", 3) == 0) {
 		u32 rts;
 		if(argc >= 3) {
 			rts = simple_strtoul(argv[2], NULL, 10);
 			if(rts > 7) {
-				pr_info("invalid value!\n");
+				printk("invalid value!\n");
 				ret = CMD_RET_USAGE;
 			} else {
 				writel(SPINAND_READ_TIMING(rts), &regs->spi_timing);
-				pr_info("set rts => %d\n", rts);
+				printk("set rts => %d\n", rts);
 			}
 		} else {
 			rts = readl(&regs->spi_timing);
-			pr_info("rts = %d\n",(rts>>1)&0x07);
-		}
-	} else if (strncmp(cmd, "gpioset", 7) == 0) {
-		if (argc >= 4) {
-			u32 port = simple_strtoul(argv[2], NULL, 10);
-			u32 level = simple_strtoul(argv[3], NULL, 10);
-			level = level ? 1 : 0;
-			GPIO_DEBUG_SET(port, level);
-			pr_info("set gpio[%d] to %d\n", port, level);
-		} else {
-			ret = CMD_RET_USAGE;
-		}
-	} else if (strncmp(cmd, "gpioget", 7) == 0) {
-		if (argc >= 3) {
-			u32 port = simple_strtoul(argv[2], NULL, 10);
-			u32 level = GPIO_I_GET(port);
-			pr_info("gpio[%d] = %d\n", port, level);
-		} else {
-			ret = CMD_RET_USAGE;
+			printk("rts = %d\n",(rts>>1)&0x07);
 		}
 	} else {
 		ret = CMD_RET_USAGE;
@@ -2013,6 +2150,8 @@ U_BOOT_CMD(ssnand, CONFIG_SYS_MAXARGS, 1, sp_spinand_test,
 	"\t if 'addr' is not set, it shows all feature values.\n"
 	"\t if 'value' is not set, it shows the feature value of 'addr'.\n"
 	"\t if 'value' is set, it sets 'value' to feature of 'addr'.\n"
+	"ssnand rw [addr] [size] [seed] - write and read 'size' of sequenced data to 'addr'.\n"
+	"\t then check if the data is the same, the 'seed' is the start code of the sequence.\n"
 	"ssnand speed - test erase,write,read the speed.\n"
 	"ssnand stress [block] - do stress test on 'block',\n"
 	"\tif 'block' is -1 or not specified, all blocks would be tested.\n"

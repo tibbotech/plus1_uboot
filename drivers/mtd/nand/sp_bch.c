@@ -49,6 +49,30 @@ int sp_bch_blank(void *ecc, int len)
 }
 */
 
+void sp_bch_dump_regs(struct sp_spinand_info *info)
+{
+	u32 *p = (u32 *)info->bch_regs;
+	int i;
+	const char *reg_name[] = {
+		"cr0",
+		"buf",
+		"ecc",
+		"isr",
+		"srr",
+		"ier",
+		"sr",
+		"esr",
+		"fsr",
+		"ipn",
+		"ipd",
+		"cr1",
+	};
+
+	for (i=0; i<sizeof(reg_name)/sizeof(reg_name[0]); i++, p++) {
+		printk("%s = 0x%08X\n", reg_name[i], readl(p));
+	}
+}
+
 static int sp_bch_wait(struct sp_spinand_info *info)
 {
 	struct sp_bch_regs *regs;
@@ -62,7 +86,7 @@ static int sp_bch_wait(struct sp_spinand_info *info)
 	regs = info->bch_regs;
 
 	while (get_timer(now) < CFG_CMD_TIMEOUT_MS) {
-		if (!(readl(&regs->isr) & ISR_BUSY)) {
+		if ((readl(&regs->isr) & ISR_BCH)) {
 			ret = 0;
 			break;
 		}
@@ -70,6 +94,8 @@ static int sp_bch_wait(struct sp_spinand_info *info)
 
 	if (ret)
 		printf("sp_bch: cmd timeout\n");
+
+	writel(ISR_BCH, &regs->isr);
 
 	return ret;
 }
@@ -106,7 +132,7 @@ static int sp_bch_reset(struct sp_spinand_info *info)
 	return 0;
 }
 
-int sp_bch_init(struct mtd_info *mtd)
+int sp_bch_init(struct mtd_info *mtd, int *parity_sector_sz)
 {
 	struct sp_spinand_info *info = get_spinand_info();
 	struct nand_chip *nand = &info->nand;
@@ -249,7 +275,8 @@ ecc_detected:
 	nand->ecc.strength = bits;
 	nand->ecc.steps = nrps;
 	info->parity_sector_size = pssz;
-
+	if (parity_sector_sz)
+		*parity_sector_sz = pssz;
 #if 0
 	if (size == 512)
 		nand->ecc.bytes = (13 * bits + 7) / 8;
@@ -305,7 +332,7 @@ int sp_bch_encode(struct mtd_info *mtd, void *buf, void *ecc)
 	regs = info->bch_regs;
 
 	if (info->mtd != mtd)
-		sp_bch_init(mtd);
+		sp_bch_init(mtd, NULL);
 
 	flush_dcache_range((ulong) buf, (ulong) buf + mtd->writesize);
 	flush_dcache_range((ulong) ecc, (ulong) ecc + mtd->oobsize);
@@ -349,6 +376,7 @@ int sp_bch_decode_1024x60(void *buf, void *ecc)
 {
 	struct sp_spinand_info *info = get_spinand_info();
 	struct sp_bch_regs *regs;
+	uint32_t status;
 	int ret;
 
 	if (!ecc || !info || !buf)
@@ -367,6 +395,17 @@ int sp_bch_decode_1024x60(void *buf, void *ecc)
 	writel(CR0_BMODE(5)|CR0_START | CR0_DECODE | CR0_CMODE_1024x60, &regs->cr0);
 
 	ret = sp_bch_wait(info);
+
+	status = readl(&regs->sr);
+
+	if (ret) {
+		printk("sp_bch: decode timeout\n");
+	} else if (readl(&regs->fsr) != 0) {
+		printk("sp_bch: decode failed, status:0x%x\n", status);
+		ret = -1;
+		sp_bch_reset(info);
+	}
+
 	return ret;
 }
 
@@ -387,12 +426,11 @@ int sp_bch_decode(struct mtd_info *mtd, void *buf, void *ecc)
 	regs = info->bch_regs;
 
 	if (info->mtd != mtd)
-		sp_bch_init(mtd);
+		sp_bch_init(mtd, NULL);
 
 	flush_dcache_range((ulong) buf, (ulong) buf + mtd->writesize);
 	flush_dcache_range((ulong) ecc, (ulong) ecc + mtd->oobsize);
 
-	writel(SRR_RESET, &regs->srr);
 	writel((uint32_t) buf, &regs->buf);
 	writel((uint32_t) ecc, &regs->ecc);
 	writel(CR0_START | CR0_DECODE | info->cr0, &regs->cr0);
@@ -401,12 +439,13 @@ int sp_bch_decode(struct mtd_info *mtd, void *buf, void *ecc)
 	status = readl(&regs->sr);
 
 	if (ret) {
-		printf("sp_bch: decode timeout\n");
+		printk("sp_bch: decode timeout\n");
 	} else if (readl(&regs->fsr) != 0) {
-		if((status & SR_BLANK_FF)) {
+		if (status & SR_BLANK_FF) {
+			//printk("sp_bch: decode all FF!\n");
 			ret = 0;
 		} else {
-			printf("sp_bch: decode failed,status:0x%x\n", status);
+			printk("sp_bch: decode failed, status:0x%x\n", status);
 			mtd->ecc_stats.failed += SR_ERR_BITS(status);
 			ret = -1;
 		}
@@ -446,10 +485,10 @@ int sp_autobch_result(struct mtd_info *mtd)
 	status = readl(&regs->sr);
 	if (readl(&regs->fsr) != 0) {
 		if((status & SR_BLANK_FF)) {
-			printk("sp_bch: decode All FF!\n");
+			//printk("sp_bch: decode all FF!\n");
 			ret = 0;
 		}  else {
-			printk("sp_bch: decode failed.\n");
+			printk("sp_bch: decode failed, status:0x%x\n", status);
 			mtd->ecc_stats.failed += SR_ERR_BITS(status);
 			ret = -1;
 		}

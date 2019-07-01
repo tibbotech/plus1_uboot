@@ -9,25 +9,42 @@
 /*
  *  spi nand platform related configs
  */
-#define CONFIG_SPINAND_USE_SRAM
+//#define CONFIG_SPINAND_USE_SRAM
 #ifdef  CONFIG_SPINAND_USE_SRAM
 #define CONFIG_SPINAND_SRAM_ADDR    0x9e800000
 #endif
 #define SPI_NAND_DIRECT_MAP         0x9dff0000
 
+#define SPINAND_CLKSRC_REG          ((volatile u32 *)(0x9c000000 + (4*32 + 13)*4))
+#define SPINAND_SET_CLKSRC(a)       (*SPINAND_CLKSRC_REG = (0x001e0000+(((a)&0x0f)<<1)))
+#define SPINAND_GET_CLKSRC()        (((*SPINAND_CLKSRC_REG)>>1)&0x0f)
+
 /*
  *  spi nand functional related configs
  */
-#define CONFIG_SPINAND_BUF_SZ       (18 << 10)
-#define CONFIG_SPINAND_TIMEOUT      (100)   /* unit: ms */
-#define CONFIG_DEFAULT_TRSMODE      SPINAND_TRS_DMA
-#define CONFIG_DEFAULT_TRSMODE_RAW  SPINAND_TRS_DMA
-#define CONFIG_READ_TIMING_SEL      (2)
+#define CONFIG_SPINAND_CLK_DIV               (1)
+#define CONFIG_SPINAND_CLK_SRC               (14)
+#define CONFIG_SPINAND_READ_BITMODE          SPINAND_4BIT_MODE
+#define CONFIG_SPINAND_WRITE_BITMODE         SPINAND_4BIT_MODE
+#define CONFIG_SPINAND_BUF_SZ                (8 << 10)
+#define CONFIG_SPINAND_TIMEOUT               (100)   /* unit: ms */
+#define CONFIG_SPINAND_READ_TIMING_SEL       (2)
+#define CONFIG_SPINAND_TRSMODE               SPINAND_TRS_DMA
+#define CONFIG_SPINAND_TRSMODE_RAW           SPINAND_TRS_DMA
 
-#define CONFIG_DEFAULT_CLKSEL       (14)
-#define PLLF_CTRL_REG            ((volatile u32 *)(0x9c000000 + (4*32 + 13)*4))
-#define SPINAND_SET_CLKSEL(a)    (*PLLF_CTRL_REG = (0x001e0000+(((a)&0x0f)<<1)))
-#define SPINAND_GET_CLKSEL()     (((*PLLF_CTRL_REG)>>1)&0x0f)
+#define SPINAND_DEBUG_ON
+#ifdef SPINAND_DEBUG_ON
+#define TAG "[SPI-NAND] "
+#define SPINAND_LOGE(fmt, ...) printk(KERN_ERR TAG fmt,##__VA_ARGS__)
+#define SPINAND_LOGW(fmt, ...) printk(KERN_WARNING TAG fmt,##__VA_ARGS__)
+#define SPINAND_LOGI(fmt, ...) printk(KERN_INFO TAG fmt,##__VA_ARGS__)
+#define SPINAND_LOGD(fmt, ...) printk(KERN_DEBUG TAG fmt,##__VA_ARGS__)
+#else
+#define SPINAND_LOGE(fmt, ...)  do{}while(0)
+#define SPINAND_LOGW(fmt, ...)  do{}while(0)
+#define SPINAND_LOGI(fmt, ...)  do{}while(0)
+#define SPINAND_LOGD(fmt, ...)  do{}while(0)
+#endif
 
 /*
  *  spi nand vendor ids
@@ -41,6 +58,8 @@
 #define VID_ESMT    0xC8
 #define VID_ISSI    0xC8
 #define VID_MICRON  0x2C
+#define VID_XTX         0x0B
+#define VID_FORESEE     0xCD
 
 /*
  *  SPINAND_OPT_* are driver private options for spi nand device
@@ -58,22 +77,43 @@
 #define SPINAND_OPT_HAS_QE_BIT          0x00000002
 
 /*
- *  device not support 4bit mode program load. (ie. toshiba)
+ *  unsupport 4bit mode program load cmd (0x32). (ie. toshiba)
  */
 #define SPINAND_OPT_NO_4BIT_PROGRAM     0x00000004
+
+/*
+ *  unsupport 4bit mode read cache cmd (0x6B). (ie. FORESEE)
+ */
+#define SPINAND_OPT_NO_4BIT_READ        0x00000008
+
+/*
+ *  unsupport 2bit mode read cache cmd (0x3B).
+ */
+#define SPINAND_OPT_NO_2BIT_READ        0x00000010
 
 /*
  *  the bit0 of feature(0xB0) is used as CONTI_RD bit. (ie. micron 4G spi-nand)
  *  the CONTI_RD is used to enable/disable continue read.
  */
-#define SPINAND_OPT_HAS_CONTI_RD        0x00000008
+#define SPINAND_OPT_HAS_CONTI_RD        0x00000020
 
 /*
  * the bit3 of feature(0xB0) is used as BUF bit. (ie. winbond)
  * when this bit is set, it uses buffer read mode.
  * when this bit isn't set, it uses continuous read mode.
  */
-#define SPINAND_OPT_HAS_BUF_BIT         0x00000010
+#define SPINAND_OPT_HAS_BUF_BIT         0x00000040
+
+/*
+ * the bit4 of feature(0x90) is used as ECC_EN bit. (ie. FORESEE)
+ * generally, the ECC_EN should be the bit4 of feature(0xB0).
+ */
+#define SPINAND_OPT_ECCEN_IN_F90_4      0x00000080
+
+/*
+ * the bit[31:24] is the wanted feature(0xD0) value.
+ */
+#define SPINAND_OPT_HAS_FD0_VALUE       0x00000100
 
 /*
  *  SPINAND_CMD_*  are spi nand cmds.
@@ -266,12 +306,14 @@ struct sp_spinand_info {
 	void __iomem *bch_regs;
 	struct mtd_info *mtd;
 	struct nand_chip nand;
+	const char *dev_name;
 
 	struct {
 		u32 idx;
 		u32 size;
 		u8 *virt;
 		dma_addr_t phys;
+		u8 *virt_base;
 	} buff;
 
 	struct nand_ecclayout ecc_layout;
