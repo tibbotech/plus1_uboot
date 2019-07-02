@@ -395,6 +395,8 @@ mmc read 0x2fffc0 0x1422 0xa ; mmc read 0x307fc0 0x1822 0x30f0 ; sp_go 0x308000 
 
 #define CONFIG_ENV_OVERWRITE    /* Allow to overwrite ethaddr and serial */
 
+#if !defined(CONFIG_SP_SPINAND) && !defined(CONFIG_MMC_SP_EMMC)
 #define SPEED_UP_SPI_NOR_CLK    /* Set CLK based on flash id */
+#endif
 
 #endif /* __CONFIG_PENTAGRAM_H */
