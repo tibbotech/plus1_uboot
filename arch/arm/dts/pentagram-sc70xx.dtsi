@@ -52,13 +52,6 @@
 							PMX_L2SW_P1_MAC_RMII_RXER	G_MX31_GPIO_P3_7
 				>;
 			};
-			i2c {
-				pinmux = <	PMX_I2CM0_CK			G_MX10_GPIO_P1_2
-							PMX_I2CM0_DAT		  G_MX11_GPIO_P1_3
-							PMX_I2CM1_CK			G_MX12_GPIO_P1_4
-							PMX_I2CM1_DAT		  G_MX13_GPIO_P1_5
-				>;
-			};
 		};
 	};
 
