@@ -124,6 +124,10 @@
 #define USER_NAME		_username
 #endif
 
+#ifdef CONFIG_BOOTARGS_WITH_MEM
+#define DEFAULT_BOOTARGS	"console=ttyS0,115200 root=/dev/ram rw loglevel=8 user_debug=255 earlyprintk"
+#endif
+
 /*
  * In the beginning, bootcmd will check bootmode in SRAM and the flag
  * if_zebu to choose different boot flow :
@@ -283,7 +287,7 @@
 	"setexpr sz_kernel ${sz_kernel} + 72; " \
 	"setexpr sz_kernel ${sz_kernel} + 0x200; setexpr sz_kernel ${sz_kernel} / 0x200; " \
 	"mmc read ${addr_dst_kernel} ${addr_src_kernel} ${sz_kernel}; " \
-	"setenv bootargs console=ttyS0,115200 earlyprintk root=/dev/mmcblk0p7 rootwait ;" \
+	"setenv bootargs console=ttyS0,115200 earlyprintk root=/dev/mmcblk0p7  user_debug=255 rootwait ;" \
 	"bootm ${addr_dst_kernel} - ${addr_dst_dtb}\0" \
 "qk_emmc_boot=mmc read ${addr_tmp_header} ${addr_src_dtb} 0x1; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
