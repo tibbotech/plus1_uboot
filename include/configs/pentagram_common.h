@@ -340,6 +340,7 @@
 	"run isp_common; " \
 	"\0" \
 "isp_sdcard=setenv isp_if mmc && setenv isp_dev 1; " \
+	"setenv bootargs console=ttyS0,115200 earlyprintk root=/dev/mmcblk1p2 rw user_debug=255 rootwait;"\
 	"mmc list; " \
 	"run isp_common; " \
 	"\0" \
