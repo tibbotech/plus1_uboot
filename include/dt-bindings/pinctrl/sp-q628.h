@@ -1,5 +1,5 @@
 /*
- * Header providing constants for sc7021 pinctrl bindings.
+ * Header providing constants for sp7021 pinctrl bindings.
  *
  * Copyright (C) 2019 hammer hsieh <hammer.hsieh@sunplus.com>
  *

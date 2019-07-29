@@ -4,7 +4,7 @@
  * SPDX-License-Identifier:	GPL-2.0+
  */
 /dts-v1/;
-#include "pentagram-sc70xx.dtsi"
+#include "pentagram-sp70xx.dtsi"
 
 / {
 	model = "Sunplus Pentagram common board";

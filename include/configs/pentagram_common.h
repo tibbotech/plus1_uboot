@@ -28,7 +28,7 @@
 #define CONFIG_SYS_SDRAM_SIZE           (64 << 20)
 #elif defined(CONFIG_SYS_ENV_8388)
 #define CONFIG_SYS_SDRAM_SIZE		(256 << 20)
-#else /* normal sc7021 evb environment can have larger DRAM size */
+#else /* normal SP7021 evb environment can have larger DRAM size */
 #define CONFIG_SYS_SDRAM_SIZE		(512 << 20)
 #endif
 #define CONFIG_SYS_MALLOC_LEN		(6 << 20)
@@ -72,7 +72,7 @@
 #if defined(CONFIG_SYS_ENV_8388)
 #define CONFIG_ENV_OFFSET	0x087E4400	/* LBA 0x00043f22 */
 #define CONFIG_ENV_SIZE		0x2000
-#else /* CONFIG_SYS_ENV_SC7021_EVB (and CONFIG_SYS_ENV_ZEBU) */
+#else /* CONFIG_SYS_ENV_SP7021_EVB (and CONFIG_SYS_ENV_ZEBU) */
 	#if defined(CONFIG_ENV_IS_IN_NAND)
 #define CONFIG_ENV_OFFSET		(0x400000)
 #define CONFIG_ENV_OFFSET_REDUND	(0x480000)
@@ -96,7 +96,7 @@
 
 #if defined(CONFIG_SYS_ENV_8388)
 #include <asm/arch/sp_bootmode_bitmap_8388.h>
-#else /* CONFIG_SYS_ENV_SC7021_EVB (and CONFIG_SYS_ENV_ZEBU) */
+#else /* CONFIG_SYS_ENV_SP7021_EVB (and CONFIG_SYS_ENV_ZEBU) */
 #include <asm/arch/sp_bootmode_bitmap_sc7xxx.h>
 #endif
 
