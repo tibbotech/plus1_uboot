@@ -27,8 +27,8 @@ config SYS_ENV_ZEBU
 config SYS_ENV_8388
 	bool "8388 environment"
 
-config SYS_ENV_SC7021_EVB
-	bool "sc7021 EVB"
+config SYS_ENV_SP7021_EVB
+	bool "sp7021 EVB"
 
 endchoice
 
