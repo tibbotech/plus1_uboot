@@ -29,28 +29,44 @@
 
 		pinctrl_func: pinmux_func {
 			net_l2sw {
-				pinmux = <	PMX_L2SW_CLK_OUT			G_MX47_GPIO_P5_7
-							PMX_L2SW_MAC_SMI_MDC		G_MX41_GPIO_P5_1
-							PMX_L2SW_LED_FLASH0			G_MX42_GPIO_P5_2
-							PMX_L2SW_LED_FLASH1			G_MX30_GPIO_P3_6
-							PMX_L2SW_LED_ON0			G_MX51_GPIO_P6_3
-							PMX_L2SW_LED_ON1			G_MX39_GPIO_P4_7
-							PMX_L2SW_MAC_SMI_MDIO		G_MX40_GPIO_P5_0
-							PMX_L2SW_P0_MAC_RMII_TXEN	G_MX50_GPIO_P6_2
-							PMX_L2SW_P0_MAC_RMII_TXD0	G_MX48_GPIO_P6_0
-							PMX_L2SW_P0_MAC_RMII_TXD1	G_MX49_GPIO_P6_1
-							PMX_L2SW_P0_MAC_RMII_CRSDV	G_MX44_GPIO_P5_4
-							PMX_L2SW_P0_MAC_RMII_RXD0	G_MX45_GPIO_P5_5
-							PMX_L2SW_P0_MAC_RMII_RXD1	G_MX46_GPIO_P5_6
-							PMX_L2SW_P0_MAC_RMII_RXER	G_MX43_GPIO_P5_3
-							PMX_L2SW_P1_MAC_RMII_TXEN	G_MX38_GPIO_P4_6
-							PMX_L2SW_P1_MAC_RMII_TXD0	G_MX36_GPIO_P4_4
-							PMX_L2SW_P1_MAC_RMII_TXD1	G_MX37_GPIO_P4_5
-							PMX_L2SW_P1_MAC_RMII_CRSDV	G_MX32_GPIO_P4_0
-							PMX_L2SW_P1_MAC_RMII_RXD0	G_MX33_GPIO_P4_1
-							PMX_L2SW_P1_MAC_RMII_RXD1	G_MX34_GPIO_P4_2
-							PMX_L2SW_P1_MAC_RMII_RXER	G_MX31_GPIO_P3_7
+#if 1 // Ev board
+				pinmux = <PMX_L2SW_CLK_OUT              G_MX47_GPIO_P5_7
+					  PMX_L2SW_MAC_SMI_MDC          G_MX41_GPIO_P5_1
+					  PMX_L2SW_LED_FLASH0           G_MX42_GPIO_P5_2
+					  PMX_L2SW_LED_FLASH1           G_MX30_GPIO_P3_6
+					  PMX_L2SW_LED_ON0              G_MX51_GPIO_P6_3
+					  PMX_L2SW_LED_ON1              G_MX39_GPIO_P4_7
+					  PMX_L2SW_MAC_SMI_MDIO         G_MX40_GPIO_P5_0
+					  PMX_L2SW_P0_MAC_RMII_TXEN     G_MX50_GPIO_P6_2
+					  PMX_L2SW_P0_MAC_RMII_TXD0     G_MX48_GPIO_P6_0
+					  PMX_L2SW_P0_MAC_RMII_TXD1     G_MX49_GPIO_P6_1
+					  PMX_L2SW_P0_MAC_RMII_CRSDV    G_MX44_GPIO_P5_4
+					  PMX_L2SW_P0_MAC_RMII_RXD0     G_MX45_GPIO_P5_5
+					  PMX_L2SW_P0_MAC_RMII_RXD1     G_MX46_GPIO_P5_6
+					  PMX_L2SW_P0_MAC_RMII_RXER     G_MX43_GPIO_P5_3
+					  PMX_L2SW_P1_MAC_RMII_TXEN     G_MX38_GPIO_P4_6
+					  PMX_L2SW_P1_MAC_RMII_TXD0     G_MX36_GPIO_P4_4
+					  PMX_L2SW_P1_MAC_RMII_TXD1     G_MX37_GPIO_P4_5
+					  PMX_L2SW_P1_MAC_RMII_CRSDV    G_MX32_GPIO_P4_0
+					  PMX_L2SW_P1_MAC_RMII_RXD0     G_MX33_GPIO_P4_1
+					  PMX_L2SW_P1_MAC_RMII_RXD1     G_MX34_GPIO_P4_2
+					  PMX_L2SW_P1_MAC_RMII_RXER     G_MX31_GPIO_P3_7
 				>;
+#else // Demo board
+				pinmux = <PMX_L2SW_CLK_OUT              G_MX50_GPIO_P6_2
+					  PMX_L2SW_MAC_SMI_MDC          G_MX44_GPIO_P5_4
+					  PMX_L2SW_LED_FLASH0           G_MX54_GPIO_P6_6
+					  PMX_L2SW_LED_ON0              G_MX45_GPIO_P5_5
+					  PMX_L2SW_MAC_SMI_MDIO         G_MX43_GPIO_P5_3
+					  PMX_L2SW_P0_MAC_RMII_TXEN     G_MX53_GPIO_P6_5
+					  PMX_L2SW_P0_MAC_RMII_TXD0     G_MX51_GPIO_P6_3
+					  PMX_L2SW_P0_MAC_RMII_TXD1     G_MX52_GPIO_P6_4
+					  PMX_L2SW_P0_MAC_RMII_CRSDV    G_MX47_GPIO_P5_7
+					  PMX_L2SW_P0_MAC_RMII_RXD0     G_MX48_GPIO_P6_0
+					  PMX_L2SW_P0_MAC_RMII_RXD1     G_MX49_GPIO_P6_1
+					  PMX_L2SW_P0_MAC_RMII_RXER     G_MX46_GPIO_P5_6
+				>;
+#endif
 			};
 		};
 	};
@@ -69,7 +85,7 @@
 		compatible = "sunplus,sunplus-q628-sd";
 		reg = <0x9C003E80 0x280>;
 	};
-	
+
 	sp_spinand: spinand@9c002b80 {
 		compatible = "sunplus,sunplus-q628-spinand";
 		reg-names = "spinand_reg", "bch_reg";
@@ -78,24 +94,23 @@
 
 /* 8388 sp_emmc and sp_sd0 use same pinmux, so don't enable them at the same time */
 /*
-    sp_emmc: mmc@9C003B00 {
-        compatible = "sunplus,sunplus-q610-emmc";
-        reg = <0x9C003B00 0x280>;
-    };
-	
-*/
-/*
-	sp_sd0: mmc@9C003B00 {
-        compatible = "sunplus,sunplus-q610-sd0";
-        reg = <0x9C003B00 0x280>;
-    };
+	sp_emmc: mmc@9C003B00 {
+		compatible = "sunplus,sunplus-q610-emmc";
+		reg = <0x9C003B00 0x280>;
+	};
 
 */
 /*
+	sp_sd0: mmc@9C003B00 {
+		compatible = "sunplus,sunplus-q610-sd0";
+		reg = <0x9C003B00 0x280>;
+	};
+*/
+/*
 	sp_sd1: mmc@9C003E80 {
-        compatible = "sunplus,sunplus-q610-sd1";
-        reg = <0x9C003E80 0x280>;
-    };
+		compatible = "sunplus,sunplus-q610-sd1";
+		reg = <0x9C003E80 0x280>;
+	};
 */
 
 	sp_usb0: usb@9C102100 {
