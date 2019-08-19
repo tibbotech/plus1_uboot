@@ -108,6 +108,7 @@
 #endif
 
 #ifdef CONFIG_SP_SPINAND
+#define CONFIG_MTD_PARTITIONS
 #define CONFIG_SYS_MAX_NAND_DEVICE   1
 #define CONFIG_SYS_NAND_SELF_INIT
 #define CONFIG_SYS_NAND_BASE    0x9c002b80
@@ -313,6 +314,7 @@
 	"setexpr sz_kernel ${sz_kernel} + 72; " \
 	dbg_scr("echo from kernel partition to ${addr_dst_kernel} sz ${sz_kernel}; ") \
 	"nand read ${addr_dst_kernel} kernel ${sz_kernel}; " \
+	"setenv bootargs console=ttyS0,115200 earlyprintk root=ubi0:rootfs rw ubi.mtd=8,2048 rootflags=sync rootfstype=ubifs mtdparts=sp_spinand:128k(nand_header),128k(xboot1),768k(uboot1),3m(uboot2),512k(env),512k(env_redund),256k(dtb),15m(kernel),-(rootfs) user_debug=255 rootwait ;" \
 	"bootm ${addr_dst_kernel} - ${addr_dst_dtb}\0" \
 "qk_zmem_boot=sp_go ${addr_dst_kernel} ${addr_dst_dtb}\0" \
 "zmem_boot=bootm ${addr_dst_kernel} - ${addr_dst_dtb}\0" \
