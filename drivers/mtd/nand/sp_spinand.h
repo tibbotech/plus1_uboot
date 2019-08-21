@@ -116,6 +116,13 @@
 #define SPINAND_OPT_HAS_FD0_VALUE       0x00000100
 
 /*
+ * some devices have multiple dies,
+ * use the following macros to set/get die number.
+ */
+#define SPINAND_OPT_SET_DIENUM(n)       (((n-1)&0x0f)<<9)
+#define SPINAND_OPT_GET_DIENUM(x)       ((((x)>>9)&0x0f)+1)
+
+/*
  *  SPINAND_CMD_*  are spi nand cmds.
  */
 #define SPINAND_CMD_RESET            (0xff)
@@ -134,6 +141,7 @@
 #define SPINAND_CMD_PROGLOAD         (0x02)
 #define SPINAND_CMD_PROGLOAD_X4      (0x32)
 #define SPINAND_CMD_PROGEXEC         (0x10)
+#define SPINAND_CMD_DIE_SELECT       (0xc2)
 
 /*
  *  macros for spi_ctrl register
@@ -317,7 +325,6 @@ struct sp_spinand_info {
 	} buff;
 
 	struct nand_ecclayout ecc_layout;
-	int cs;
 	u32 id;                /* Vendor ID for 6B/EB Winbond or GigaDevice */
 	u32 cmd;               /* current command */
 	u32 row;               /* row address for current cmd */
@@ -325,6 +332,9 @@ struct sp_spinand_info {
 	u32 plane_sel_mode;
 	u32 page_size;
 	u32 oob_size;
+
+	u32 chip_num;
+	u32 cur_chip;
 
 	u32 cr0;
 	u32 ecc_sts;

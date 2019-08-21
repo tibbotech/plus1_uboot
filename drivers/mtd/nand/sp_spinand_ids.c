@@ -60,7 +60,7 @@ const struct nand_flash_dev sp_spinand_ids[] = {
 
 	/* ESMT */
 	NAND_ID("F50L1G41LB",     0xc8, 0x01, SZ_2K, SZ_64, SZ_128K, SZ_128, 0),
-	NAND_ID("F50L2G41LB",     0xc8, 0x0a, SZ_2K, SZ_64, SZ_128K, SZ_256, 0),
+	NAND_ID("F50L2G41LB",     0xc8, 0x0a, SZ_2K, SZ_64, SZ_128K, SZ_128, SPINAND_OPT_SET_DIENUM(2)),
 
 	/* ISSI */
 	NAND_ID("IS38SML01G1-LLA1",0xc8,0x21, SZ_2K, SZ_64, SZ_128K, SZ_128, 0),
