@@ -609,12 +609,7 @@ static int sp_sd_hw_init(sp_mmc_host *host)
 	host->base->sdcrctmr = 0x7ff;
 	host->base->sdcrctmren = 1;
 	host->base->sdrsptmren = 1;
-	if (SPMMC_DEVICE_TYPE_EMMC == host->dev_info.type)
-	{
-		host->base->sdmmcmode = 1;
-	} else {
-		host->base->sdmmcmode = 0;
-	}
+	host->base->sdmmcmode = 1;
 	host->base->sdrxdattmr_sel = SP_SD_RXDATTMR_MAX;
 	host->base->mediatype = 6;
 
@@ -918,12 +913,7 @@ static int sp_emmc_hw_init(sp_mmc_host *host)
 	base->sdcrctmr = 0x7ff;
 	base->sdcrctmren = 1;
 	base->sdrsptmren = 1;
-	if (SPMMC_DEVICE_TYPE_EMMC == host->dev_info.type)
-	{
-		base->sdmmcmode = 1;
-	} else {
-		base->sdmmcmode = 0;
-	}
+	base->sdmmcmode = 1;
 	base->sd_rxdattmr = SP_EMMC_RXDATTMR_MAX;
 	base->mediatype = 6;
 	mdelay(10);
