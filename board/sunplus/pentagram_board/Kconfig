@@ -2,6 +2,7 @@ if TARGET_PENTAGRAM_COMMON || TARGET_PENTAGRAM_B_BOOT
 
 config SYS_CONFIG_NAME
 	default "pentagram_common"
+	select CMD_TPS_UPD
 
 config SYS_SOC
 	default "pentagram"
@@ -78,18 +79,18 @@ config CMD_TPS_UPD
 
 config TPS_UPD_MMC
 	bool "tps_upd src - mmc"
-	default n
+	default y if DM_MMC
 
 config TPS_UPD_NAND
 	bool "tps_upd src/dst - nand"
-	default n
+	default y if NAND
 
 config TPS_UPD_TFTP
 	bool "tps_upd src - tftp"
-	default n
+	default y if NET
 
 config TPS_UPD_USB
 	bool "tps_upd src - usb"
-	default n
+	default y if USB
 
 endif
