@@ -68,4 +68,28 @@ config SP_JTAG
 	  for releasing reset pin. IV_MX[6] may be tied
 	  on PCB board.
 
+config CMD_TPS_MD
+	bool "MD button check shell api"
+	default y
+
+config CMD_TPS_UPD
+	bool "Tibbo update command"
+	default y
+
+config TPS_UPD_MMC
+	bool "tps_upd src - mmc"
+	default y
+
+config TPS_UPD_NAND
+	bool "tps_upd src/dst - nand"
+	default y
+
+config TPS_UPD_TFTP
+	bool "tps_upd src - tftp"
+	default y
+
+config TPS_UPD_USB
+	bool "tps_upd src - usb"
+	default y
+
 endif
