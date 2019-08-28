@@ -1,5 +1,5 @@
-#ifndef _SP_GPIO_H_
-#define _SP_GPIO_H_
+#ifndef _SP_GPIO_DRV_H_
+#define _SP_GPIO_DRV_H_
 
 #include <common.h>
 #include <dm.h>
@@ -244,5 +244,5 @@ extern u32 gpio_pin_mux_get(PMXSEL_ID id);
 #define GPIO_PIN_MUX_SEL(a,d) gpio_pin_mux_sel(a,d)
 #define GPIO_PIN_MUX_GET(a) gpio_pin_mux_get(a)
 
-#endif /* _SP_GPIO_H_ */
+#endif /* _SP_GPIO_DRV_H_ */
 
