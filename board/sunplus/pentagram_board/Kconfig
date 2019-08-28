@@ -70,7 +70,7 @@ config SP_JTAG
 
 config CMD_TPS_MD
 	bool "MD button check shell api"
-	default y
+	default n
 
 config CMD_TPS_UPD
 	bool "Tibbo update command"
@@ -78,18 +78,18 @@ config CMD_TPS_UPD
 
 config TPS_UPD_MMC
 	bool "tps_upd src - mmc"
-	default y
+	default n
 
 config TPS_UPD_NAND
 	bool "tps_upd src/dst - nand"
-	default y
+	default n
 
 config TPS_UPD_TFTP
 	bool "tps_upd src - tftp"
-	default y
+	default n
 
 config TPS_UPD_USB
 	bool "tps_upd src - usb"
-	default y
+	default n
 
 endif
