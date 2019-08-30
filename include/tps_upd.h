@@ -19,6 +19,8 @@ extern int tps_upd_r_mmc( char *_filename, ulong _addr);
 
 // nand write
 extern int tps_upd_w_nand( ulong _u_addr, ulong _u_size, const u_char *_to);
+// nand write
+extern int tps_upd_w_mmc( ulong _u_addr, ulong _u_size, const u_char *_to);
 // flash write
 extern int tps_upd_w_flash( ulong _u_addr, ulong _u_size, const u_char *_to);
 

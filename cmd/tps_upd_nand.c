@@ -38,7 +38,7 @@ static inline int s2ul( const char *p, ulong *num) {
  *num = simple_strtoul( p, &endptr, 16);
  return( *p != '\0' && *endptr == '\0');  }
 
-int dv_get_part( const u_char *_pn, int *_nand_devn, loff_t *_off, loff_t *_size,
+int dv_get_nand_part( const u_char *_pn, int *_nand_devn, loff_t *_off, loff_t *_size,
 		loff_t *_maxsize, unsigned char *_part_num) {
 #ifdef CONFIG_CMD_MTDPARTS
  struct mtd_device *dev;
@@ -78,14 +78,14 @@ int tps_upd_w_nand( ulong _u_data, ulong _u_size, const u_char *_to) {
  loff_t n_off = 0, n_sz = 0, n_maxsz = 0;
  size_t w_sz = 0;
  unsigned char part_num = 0;
- int ret;
+ int ret = 0;
 
  printf( "Doing upd from 0x%lX size 0x%lX at %s\n", _u_data, _u_size, _to);
 
  if ( _to[ 0] == '0' && _to[ 1] == 'x' && !s2ull( ( const char *)_to, &n_off)) {
    printf( "Can't get information about '%s' NAND offset\n", _to);
    return( -1);
- } else if ( dv_get_part( _to, &n_devn, &n_off, &n_sz, &n_maxsz, &part_num) != 0
+ } else if ( dv_get_nand_part( _to, &n_devn, &n_off, &n_sz, &n_maxsz, &part_num) != 0
  ) {
    printf( "Can't get information about '%s' NAND partition\n", _to);
    return( -1);  }

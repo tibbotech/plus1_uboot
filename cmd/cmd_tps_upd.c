@@ -202,14 +202,19 @@ static int do_tps_upd( cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]
  if ( addr == 0UL) {
    printf( "Addr 0x%08lx cannot be used as the source for update\n", addr);
    return( 1);  }
-#ifdef CONFIG_NAND
- cbfp = &tps_upd_w_nand;
-#else
  cbfp = NULL;
+#ifdef CONFIG_NAND
+ if ( cbfp == NULL) cbfp = &tps_upd_w_nand;
+#endif
+#ifdef CONFIG_MMC
+ if ( cbfp == NULL) cbfp = &tps_upd_w_mmc;
 #endif
  while ( argc >= 3) {
 #ifdef CONFIG_NAND
    if ( strcmp( argv[ 3], "nand") == 0) cbfp = &tps_upd_w_nand;
+#endif
+#ifdef CONFIG_MMC
+   if ( strcmp( argv[ 3], "mmc") == 0) cbfp = &tps_upd_w_mmc;
 #endif
 #ifdef CONFIG_CMD_FLASH
    if ( strcmp( argv[ 3], "flash") == 0) cbfp = &tps_upd_w_flash;

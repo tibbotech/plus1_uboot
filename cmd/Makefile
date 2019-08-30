@@ -144,6 +144,13 @@ obj-$(CONFIG_CMD_ZFS) += zfs.o
 obj-$(CONFIG_CMD_DFU) += dfu.o
 obj-$(CONFIG_CMD_GPT) += gpt.o
 obj-$(CONFIG_CMD_ETHSW) += ethsw.o
+obj-$(CONFIG_TPS_UPD_TFTP) += tps_upd_tftp.o
+obj-$(CONFIG_TPS_UPD_USB) += tps_upd_usb.o
+obj-$(CONFIG_TPS_UPD_MMC) += tps_upd_mmc.o
+obj-$(CONFIG_TPS_UPD_NAND) += tps_upd_nand.o
+obj-$(CONFIG_TPS_UPD_FLASH) += tps_upd_flash.o
+obj-$(CONFIG_CMD_TPS_UPD) += cmd_tps_upd.o
+obj-$(CONFIG_CMD_TPS_MD) += cmd_tps_md.o
 
 # Power
 obj-$(CONFIG_CMD_PMIC) += pmic.o

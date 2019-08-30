@@ -58,13 +58,6 @@ obj-$(CONFIG_LYNXKDI) += lynxkdi.o
 obj-$(CONFIG_MENU) += menu.o
 obj-$(CONFIG_UPDATE_TFTP) += update.o
 obj-$(CONFIG_DFU_TFTP) += update.o
-obj-$(CONFIG_TPS_UPD_TFTP) += tps_upd_tftp.o
-obj-$(CONFIG_TPS_UPD_USB) += tps_upd_usb.o
-obj-$(CONFIG_TPS_UPD_MMC) += tps_upd_mmc.o
-obj-$(CONFIG_TPS_UPD_NAND) += tps_upd_nand.o
-obj-$(CONFIG_TPS_UPD_FLASH) += tps_upd_flash.o
-obj-$(CONFIG_CMD_TPS_UPD) += cmd_tps_upd.o
-obj-$(CONFIG_CMD_TPS_MD) += cmd_tps_md.o
 obj-$(CONFIG_USB_KEYBOARD) += usb_kbd.o
 obj-$(CONFIG_CMDLINE) += cli_readline.o cli_simple.o
 
