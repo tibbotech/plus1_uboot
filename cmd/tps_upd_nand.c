@@ -101,7 +101,8 @@ int tps_upd_w_nand( ulong _u_data, ulong _u_size, const u_char *_to) {
    printf( "Size %lX exceeds partition or device limit (%llX)\n", _u_size, n_maxsz);
    return( -1);  }
 
- tps_leds_set( part_num);
+// FIXME
+// tps_leds_set( part_num);
  printf( "Erase off:%llX len:%llX\n", n_off, n_maxsz);
  // do it optionally
  memset( &opts, 0, sizeof( opts));
@@ -119,5 +120,6 @@ int tps_upd_w_nand( ulong _u_data, ulong _u_size, const u_char *_to) {
  // success == 0
  ret = nand_write_skip_bad( nand, n_off, &w_sz, NULL, n_maxsz, ( u_char *)_u_data, WITH_WR_VERIFY);
  printf( "Done upd offset:0x%llX lim:0x%llX, actually wrote:0x%X /ret:%d\n", n_off, n_maxsz, w_sz, ret);
- tps_leds_set( 2);
+// FIXME
+// tps_leds_set( 2);
  return( ret);  }
