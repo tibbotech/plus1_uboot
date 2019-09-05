@@ -28,11 +28,9 @@ static struct mmc * dv_mmc_start( void) {
  if ( !( mmc = find_mmc_device( 0))) {
    printf( "no mmc device at slot %x\n", 0);
    return( NULL);  }
-// printf( "MMC 0 found\n");
  if ( mmc_init( mmc)) {
    printf( "mmc init failed\n");
    return( NULL);  }
-// printf( "MMC init done\n");
  return( mmc);  }
 
 static inline int s2ull( const char *p, loff_t *num) {
@@ -57,10 +55,8 @@ int tps_upd_r_mmc( char *filename, ulong addr) {
 
 // block size in bytes
 int dv_get_mmc_part( const uchar *_pn, disk_partition_t *_info) {
-//, loff_t *_size, loff_t *_maxsize, lbaint_t *_bl0, lbaint_t *_bsz) {
  int i, ret = -1;
  struct blk_desc *dev_desc;
-// disk_partition_t info;
  if ( ( ret = blk_get_device_by_str( "mmc", "0", &dev_desc)) < 0) {
    printf( "Can't find device %s:%d\n", "mmc", 0);
    return( ret);   }
