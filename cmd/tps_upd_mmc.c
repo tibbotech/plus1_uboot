@@ -55,36 +55,49 @@ int tps_upd_r_mmc( char *filename, ulong addr) {
  rv = do_load( NULL, 0, 5, argv, FS_TYPE_ANY);
  return( rv);  }
 
-int dv_get_mmc_part( const u_char *_pn, int *_nand_devn, loff_t *_off, loff_t *_size,
-		loff_t *_maxsize, unsigned char *_part_num) {
-// struct mmc *mmc = dv_mmc_start();
-// struct blk_desc *bdev;
-// int ret = blk_get_device_by_str( "mmc", "0", &bdev);
-// if ( ret < 0) return( CMD_RET_FAILURE);
- int part;
+// block size in bytes
+int dv_get_mmc_part( const uchar *_pn, disk_partition_t *_info) {
+//, loff_t *_size, loff_t *_maxsize, lbaint_t *_bl0, lbaint_t *_bsz) {
+ int i, ret = -1;
  struct blk_desc *dev_desc;
- disk_partition_t info;
- part = blk_get_device_part_str( "mmc", "0:kernel", &dev_desc, &info, 0);
-printf( "part name:%s\n", info.name);
- return( part);  }
+// disk_partition_t info;
+ if ( ( ret = blk_get_device_by_str( "mmc", "0", &dev_desc)) < 0) {
+   printf( "Can't find device %s:%d\n", "mmc", 0);
+   return( ret);   }
+ for ( i = 1; i <= MAX_SEARCH_PARTITIONS; i++) {
+    if ( ( ret = part_get_info( dev_desc, i, _info))) continue;
+    if ( strcasecmp( ( const char *)_info->name, ( const char *)_pn) != 0) continue;
+    ret = i;
+    break;   }
+ if ( ret < 0) {
+   printf( "Partitions:\n");
+   for ( i = 1; i <= MAX_SEARCH_PARTITIONS; i++) printf( "%d '%s'\n", i, _info->name);
+ }
+ return( ret);  }
 
-int tps_upd_w_mmc( ulong _u_data, ulong _u_size, const u_char *_to) {
- int n_devn = 0;
- loff_t n_off = 0, n_sz = 0, n_maxsz = 0;
+int tps_upd_w_mmc( ulong _u_data, ulong _u_size, const uchar *_to) {
  size_t w_sz = 0;
- unsigned char part_num = 0;
- int ret = 0;
+ int part_num = 0, ret = 0;
+ struct mmc *mmc;
+ disk_partition_t info;
 
- printf( "Doing upd from 0x%lX size 0x%lX at %s\n", _u_data, _u_size, _to);
+ printf( "Doing upd from 0x%lX size 0x%lX at '%s' partition\n", _u_data, _u_size, _to);
 
- if ( _to[ 0] == '0' && _to[ 1] == 'x' && !s2ull( ( const char *)_to, &n_off)) {
-   printf( "Can't get information about '%s' MMC offset\n", _to);
-   return( -1);
- } else if ( dv_get_mmc_part( _to, &n_devn, &n_off, &n_sz, &n_maxsz, &part_num) != 0
- ) {
-   printf( "Can't get information about '%s' NAND partition\n", _to);
+ if ( ( part_num = dv_get_mmc_part( _to, &info)) < 0) {
+   printf( "Can't get information about '%s' MMC partition\n", _to);
    return( -1);  }
- //
- printf( "Done upd offset:0x%llX lim:0x%llX, actually wrote:0x%X /ret:%d\n", n_off, n_maxsz, w_sz, ret);
+
+ mmc = find_mmc_device( 0);
+ if ( mmc_getwp( mmc) == 1) {
+   printf( "MMC 0 is write-protected\n");
+   return( -1);  }
+  if ( _u_size > info.size * info.blksz) {
+   printf( "Size %lX exceeds partition or device limit (%lX)\n", _u_size, info.size * info.blksz);
+   return( -1);  }
+
+ lbaint_t x = _u_size / info.blksz;
+ printf( "'%s' at 0x%lX,sz:0x%lX blocks to write:%ld (%ld B/block)\n", info.name, info.start, info.size * info.blksz, x, info.blksz);
+ w_sz = blk_dwrite( mmc_get_blk_desc( mmc), info.start, x, ( void *)_u_data);
+ printf( "Done upd. Wrote:0x%lX /ret:%d\n", w_sz * info.blksz, ret);
 // tps_leds_set( 2);
  return( ret);  }
