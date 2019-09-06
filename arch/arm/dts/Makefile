@@ -457,8 +457,8 @@ dtb-$(CONFIG_ARCH_ASPEED) += ast2500-evb.dtb
 
 dtb-$(CONFIG_ARCH_STI) += stih410-b2260.dtb
 
-dtb$(CONFIG_ARCH_PENTAGRAM) += pentagram-common.dtb 
-dtb$(CONFIG_ARCH_PENTAGRAM) += pentagram-tppg2.dtb 
+dtb-$(CONFIG_ARCH_PENTAGRAM) += pentagram-common.dtb
+dtb-$(CONFIG_ARCH_PENTAGRAM) += pentagram-tppg2.dtb
 
 targets += $(dtb-y)
 
