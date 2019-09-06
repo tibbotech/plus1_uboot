@@ -10,6 +10,9 @@ config SYS_SOC
 config SYS_BOARD
 	default "pentagram_board"
 
+config SYS_VENDOR
+	default "sunplus"
+
 config SYS_TEXT_BASE
 	default 0x200040
 
