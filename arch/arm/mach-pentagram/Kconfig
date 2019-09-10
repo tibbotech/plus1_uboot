@@ -1,9 +1,5 @@
 if ARCH_PENTAGRAM
 
-config SYS_VENDOR
-	string "Vendor name"
-	default "sunplus"
-
 choice
 	prompt "Board select"
 
