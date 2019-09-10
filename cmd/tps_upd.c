@@ -10,7 +10,7 @@
 #include <net.h>
 #include <usb.h>
 #include <tps_upd.h>
-#include <libfdt_env.h>
+#include <linux/libfdt_env.h>
 
 #if !defined(CONFIG_TPS_UPD_TFTP)
 #error "CONFIG_TPS_UPD_TFTP required Tibbo fitupd"
