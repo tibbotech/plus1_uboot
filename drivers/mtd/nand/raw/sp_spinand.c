@@ -361,11 +361,11 @@ static void spi_nand_readid(struct sp_spinand_info *info, u32 addr, u8 *data)
 	/*read 3 byte cycle same to 8388 */
 	value = SPINAND_SEL_CHIP_A
 		| SPINAND_SCK_DIV(info->spi_clk_div)
-	        | SPINAND_USR_CMD(SPINAND_CMD_READID)
-	        | SPINAND_CTRL_EN
-	        | SPINAND_USRCMD_DATASZ(3)
-	        | SPINAND_READ_MODE
-	        | SPINAND_USRCMD_ADDRSZ(1);
+		| SPINAND_USR_CMD(SPINAND_CMD_READID)
+		| SPINAND_CTRL_EN
+		| SPINAND_USRCMD_DATASZ(3)
+		| SPINAND_READ_MODE
+		| SPINAND_USRCMD_ADDRSZ(1);
 	writel(value, &regs->spi_ctrl);
 
 	writel(addr, &regs->spi_page_addr);
@@ -391,6 +391,38 @@ static void spi_nand_readid(struct sp_spinand_info *info, u32 addr, u8 *data)
 	value = readl(&regs->spi_data);
 
 	*(u32 *)data = value;
+}
+
+static int spi_nand_select_die(struct sp_spinand_info *info, u32 id)
+{
+	struct sp_spinand_regs *regs = info->regs;
+	u32 value;
+
+	value = SPINAND_SEL_CHIP_A
+		| SPINAND_SCK_DIV(info->spi_clk_div)
+		| SPINAND_USR_CMD(SPINAND_CMD_DIE_SELECT)
+		| SPINAND_CTRL_EN
+		| SPINAND_USRCMD_DATASZ(0)
+		| SPINAND_WRITE_MODE
+		| SPINAND_USRCMD_ADDRSZ(1);
+	writel(value, &regs->spi_ctrl);
+
+	writel(id, &regs->spi_page_addr);
+
+	value = SPINAND_LITTLE_ENDIAN
+		| SPINAND_TRS_MODE;
+	writel(value, &regs->spi_cfg[0]);
+
+	value = SPINAND_CMD_BITMODE(1)
+		| SPINAND_CMD_DQ(1)
+		| SPINAND_ADDR_BITMODE(1)
+		| SPINAND_ADDR_DQ(1);
+	writel(value, &regs->spi_cfg[1]);
+
+	value = SPINAND_USR_CMD_TRIGGER;
+	writel(value, &regs->spi_auto_cfg);
+
+	return wait_spi_idle(info);
 }
 
 static int spi_nand_blkerase(struct sp_spinand_info *info, u32 row)
@@ -1139,16 +1171,9 @@ static int sp_spinand_write_raw(struct sp_spinand_info *info,
 static void sp_spinand_select_chip(struct mtd_info *mtd, int chipnr)
 {
 	struct sp_spinand_info *info = get_spinand_info();
-
-	switch (chipnr) {
-	case 0:
-	case 1:
-	case 2:
-	case 3:
-		info->cs = chipnr;
-		break;
-	default:
-		break;
+	if (info->chip_num > 1 && info->cur_chip != chipnr && chipnr >= 0) {
+		info->cur_chip = chipnr;
+		spi_nand_select_die(info, chipnr);
 	}
 }
 
@@ -1377,6 +1402,7 @@ static int sp_spinand_init(struct sp_spinand_info *info)
 	struct mtd_info *mtd = &nand->mtd;
 	u32 value;
 	int ret;
+	int i;
 
 	info->mtd = mtd;
 	mtd->priv = nand;
@@ -1460,25 +1486,35 @@ static int sp_spinand_init(struct sp_spinand_info *info)
 	if (info->nand.drv_options & SPINAND_OPT_NO_4BIT_PROGRAM)
 		info->write_bitmode = SPINAND_1BIT_MODE;
 
-	if (info->nand.drv_options & SPINAND_OPT_ECCEN_IN_F90_4) {
-		value = spi_nand_getfeatures(info, 0x90);
-		value &= ~0x01;
-		spi_nand_setfeatures(info, 0x90, value);
+	info->chip_num = SPINAND_OPT_GET_DIENUM(info->nand.drv_options);
+	info->cur_chip = -1;
+	if (info->chip_num > 1) {
+		nand->numchips = info->chip_num;
+		mtd->size = info->chip_num * nand->chipsize;
 	}
 
-	value = spi_nand_getfeatures(info, DEVICE_FEATURE_ADDR);
-	value &= ~0x10;          /* disable internal ECC */
-	if (info->nand.drv_options & SPINAND_OPT_HAS_BUF_BIT)
-		value |= 0x08;   /* use buffer read mode */
-	if (info->nand.drv_options & SPINAND_OPT_HAS_CONTI_RD)
-		value &= ~0x01;  /* disable continuous read mode */
-	if (info->nand.drv_options & SPINAND_OPT_HAS_QE_BIT)
-		value |= 0x01;   /* enable quad io */
-	spi_nand_setfeatures(info, DEVICE_FEATURE_ADDR, value);
+	for (i=0; i<info->chip_num; i++) {
+		sp_spinand_select_chip(mtd, i);
+		if (info->nand.drv_options & SPINAND_OPT_ECCEN_IN_F90_4) {
+			value = spi_nand_getfeatures(info, 0x90);
+			value &= ~0x01;
+			spi_nand_setfeatures(info, 0x90, value);
+		}
 
-	/* close write protection */
-	spi_nand_setfeatures(info, DEVICE_PROTECTION_ADDR, 0x0);
-	info->dev_protection = spi_nand_getfeatures(info, DEVICE_PROTECTION_ADDR);
+		value = spi_nand_getfeatures(info, DEVICE_FEATURE_ADDR);
+		value &= ~0x10;          /* disable internal ECC */
+		if (info->nand.drv_options & SPINAND_OPT_HAS_BUF_BIT)
+			value |= 0x08;   /* use buffer read mode */
+		if (info->nand.drv_options & SPINAND_OPT_HAS_CONTI_RD)
+			value &= ~0x01;  /* disable continuous read mode */
+		if (info->nand.drv_options & SPINAND_OPT_HAS_QE_BIT)
+			value |= 0x01;   /* enable quad io */
+		spi_nand_setfeatures(info, DEVICE_FEATURE_ADDR, value);
+
+		/* close write protection */
+		spi_nand_setfeatures(info, DEVICE_PROTECTION_ADDR, 0x0);
+		info->dev_protection = spi_nand_getfeatures(info, DEVICE_PROTECTION_ADDR);
+	}
 
 	ret = sp_bch_init(mtd, (int*)&info->parity_sector_size);
 	if (ret < 0) {
@@ -1490,6 +1526,7 @@ static int sp_spinand_init(struct sp_spinand_info *info)
 	SPINAND_LOGI("\tdevice id   : 0x%08x\n", info->id);
 	SPINAND_LOGI("\toptions     : 0x%08x\n", nand->options);
 	SPINAND_LOGI("\tdrv options : 0x%08x\n", nand->drv_options);
+	SPINAND_LOGI("\tchip number : %d\n", info->chip_num);
 	SPINAND_LOGI("\tblock size  : %d\n", mtd->erasesize);
 	SPINAND_LOGI("\tpage size   : %d\n", mtd->writesize);
 	SPINAND_LOGI("\toob size    : %d\n", mtd->oobsize);
