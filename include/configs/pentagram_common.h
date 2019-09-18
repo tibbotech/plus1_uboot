@@ -108,7 +108,7 @@
 #endif
 
 #ifdef CONFIG_SP_SPINAND
-#define CONFIG_MTD_PARTITIONS
+//#define CONFIG_MTD_PARTITIONS
 #define CONFIG_SYS_MAX_NAND_DEVICE   1
 #define CONFIG_SYS_NAND_SELF_INIT
 #define CONFIG_SYS_NAND_BASE    0x9c002b80
@@ -218,6 +218,12 @@
 #define DSTADDR_DTB		0x2FFFC0
 #define TMPADDR_HEADER		0x800000
 
+#if defined(CONFIG_SP_SPINAND) && defined(CONFIG_MMC_SP_EMMC)
+#define SDCARD_DEVICE_ID	0
+#else
+#define SDCARD_DEVICE_ID	1
+#endif
+
 #define CONFIG_EXTRA_ENV_SETTINGS \
 "bootinfo_base="		__stringify(SP_BOOTINFO_BASE) "\0" \
 "addr_src_kernel="		__stringify(CONFIG_SRCADDR_KERNEL) "\0" \
@@ -230,6 +236,7 @@
 "sp_main_storage="		SP_MAIN_STORAGE "\0" \
 "serverip=" 			__stringify(TFTP_SERVER_IP) "\0" \
 "macaddr="			__stringify(BOARD_MAC_ADDR) "\0" \
+"sdcard_devid="			__stringify(SDCARD_DEVICE_ID) "\0" \
 "be2le=setexpr byte *${tmpaddr} '&' 0x000000ff; " \
 	"setexpr tmpval $tmpval + $byte; " \
 	"setexpr tmpval $tmpval * 0x100; " \
@@ -341,7 +348,7 @@
 	"$isp_if start; " \
 	"run isp_common; " \
 	"\0" \
-"isp_sdcard=setenv isp_if mmc && setenv isp_dev 1; " \
+"isp_sdcard=setenv isp_if mmc && setenv isp_dev $sdcard_devid; " \
 	"setenv bootargs console=ttyS0,115200 earlyprintk root=/dev/mmcblk1p2 rw user_debug=255 rootwait;"\
 	"mmc list; " \
 	"run isp_common; " \
