@@ -58,28 +58,28 @@
 
 /* Main storage selection */
 #if defined(CONFIG_SP_SPINAND)
-#define SP_MAIN_STORAGE		"nand"
+#define SP_MAIN_STORAGE			"nand"
 #elif defined(CONFIG_MMC_SP_EMMC)
-#define SP_MAIN_STORAGE		"emmc"
+#define SP_MAIN_STORAGE			"emmc"
 #elif defined(BOOT_KERNEL_FROM_TFTP)
-#define SP_MAIN_STORAGE		"tftp"
+#define SP_MAIN_STORAGE			"tftp"
 #else
-#define SP_MAIN_STORAGE		"none"
+#define SP_MAIN_STORAGE			"none"
 #endif
 
 /* u-boot env parameter */
-#define CONFIG_SYS_MMC_ENV_DEV	0
+#define CONFIG_SYS_MMC_ENV_DEV		0
 #if defined(CONFIG_SYS_ENV_8388)
-#define CONFIG_ENV_OFFSET	0x087E4400	/* LBA 0x00043f22 */
-#define CONFIG_ENV_SIZE		0x2000
+#define CONFIG_ENV_OFFSET		0x087E4400	/* LBA 0x00043f22 */
+#define CONFIG_ENV_SIZE			0x2000
 #else /* CONFIG_SYS_ENV_SP7021_EVB (and CONFIG_SYS_ENV_ZEBU) */
 	#if defined(CONFIG_ENV_IS_IN_NAND)
 #define CONFIG_ENV_OFFSET		(0x400000)
 #define CONFIG_ENV_OFFSET_REDUND	(0x480000)
 #define CONFIG_ENV_SIZE			(0x80000)
 	#else
-#define CONFIG_ENV_OFFSET	(0x1022 << 9)
-#define CONFIG_ENV_SIZE		(0x0400 << 9)
+#define CONFIG_ENV_OFFSET		(0x1022 << 9)
+#define CONFIG_ENV_SIZE			(0x0400 << 9)
 	#endif
 #endif
 
@@ -109,24 +109,24 @@
 
 #ifdef CONFIG_SP_SPINAND
 //#define CONFIG_MTD_PARTITIONS
-#define CONFIG_SYS_MAX_NAND_DEVICE   1
+#define CONFIG_SYS_MAX_NAND_DEVICE	1
 #define CONFIG_SYS_NAND_SELF_INIT
-#define CONFIG_SYS_NAND_BASE    0x9c002b80
-//#define CONFIG_MTD_DEVICE	/* needed for mtdparts cmd */
-#define MTDIDS_DEFAULT		"nand0=sp_spinand.0"
-#define MTDPARTS_DEFAULT	"mtdparts=sp_spinand.0:-(whole_nand)"
+#define CONFIG_SYS_NAND_BASE		0x9c002b80
+//#define CONFIG_MTD_DEVICE		/* needed for mtdparts cmd */
+#define MTDIDS_DEFAULT			"nand0=sp_spinand.0"
+#define MTDPARTS_DEFAULT		"mtdparts=sp_spinand.0:-(whole_nand)"
 #endif
 
 /* TFTP server IP and board MAC address settings for TFTP ISP.
  * You should modify BOARD_MAC_ADDR to the address which you are assigned to */
 #if !defined(BOOT_KERNEL_FROM_TFTP)
-#define TFTP_SERVER_IP		172.18.12.62
-#define BOARD_MAC_ADDR		00:22:60:00:88:20
-#define USER_NAME		_username
+#define TFTP_SERVER_IP			172.18.12.62
+#define BOARD_MAC_ADDR			00:22:60:00:88:20
+#define USER_NAME			_username
 #endif
 
 #ifdef CONFIG_BOOTARGS_WITH_MEM
-#define DEFAULT_BOOTARGS	"console=ttyS0,115200 root=/dev/ram rw loglevel=8 user_debug=255 earlyprintk"
+#define DEFAULT_BOOTARGS		"console=ttyS0,115200 root=/dev/ram rw loglevel=8 user_debug=255 earlyprintk"
 #endif
 
 /*
@@ -217,6 +217,7 @@
 #define DSTADDR_KERNEL		0x307FC0 /* if stext is on 0x308000 */
 #define DSTADDR_DTB		0x2FFFC0
 #define TMPADDR_HEADER		0x800000
+#define DSTADDR_ROOTFS		0x13FFFC0
 
 #if defined(CONFIG_SP_SPINAND) && defined(CONFIG_MMC_SP_EMMC)
 #define SDCARD_DEVICE_ID	0
@@ -230,6 +231,7 @@
 "addr_src_dtb="			__stringify(CONFIG_SRCADDR_DTB) "\0" \
 "addr_dst_kernel="		__stringify(DSTADDR_KERNEL) "\0" \
 "addr_dst_dtb="			__stringify(DSTADDR_DTB) "\0" \
+"addr_dst_rootfs="		__stringify(DSTADDR_ROOTFS) "\0" \
 "addr_tmp_header="		__stringify(TMPADDR_HEADER) "\0" \
 "if_zebu="			__stringify(CONFIG_SYS_ENV_ZEBU) "\0" \
 "if_qkboot="			__stringify(CONFIG_SYS_USE_QKBOOT_HEADER) "\0" \
