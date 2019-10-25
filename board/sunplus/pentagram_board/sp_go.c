@@ -2,6 +2,7 @@
 #include <command.h>
 #include <image.h>
 #include <mapmem.h>
+#include <malloc.h>
 
 
 static uint32_t sum32(uint32_t sum, uint8_t *data, uint32_t len)
@@ -302,5 +303,105 @@ void SPI_nor_speed_up_clk(void)
 
 	SPI_nor_restore_cfg2();
 }
+
+#endif
+
+#ifdef RASPBIAN_CMD
+
+static int do_raspbian(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+{
+	ulong   addr;
+	int     size;
+	char    *cmdline, *p;
+	char    *delim = " \t";
+	char    *bootargs;
+	char    *new_bootargs;
+	int     bootargs_len;
+	int     init_len;
+	int     found;
+
+	if ((strcmp(argv[1], "init") == 0) && (argc == 4)) {
+		addr = simple_strtoul(argv[2], NULL, 16);
+		size = simple_strtoul(argv[3], NULL, 16);
+		if (size >= 4096) {
+			printf("Length of cmdline is too long!\n");
+			return CMD_RET_FAILURE;
+		}
+
+		// Allocate memory and copy cmdline.
+		cmdline = malloc(size+1);
+		if (cmdline == NULL) {
+			printf("Failed to alloc memory for cmdline!\n");
+			return CMD_RET_FAILURE;
+		}
+		strncpy(cmdline, (char*)addr, size);
+		cmdline[size] = 0;
+
+		// Find token: "init="
+		found = 0;
+		p = strtok(cmdline, delim);
+		while (p) {
+			if (strncmp(p, "init=", 5) == 0) {
+				found = 1;
+				break;
+			}
+			p = strtok(NULL, delim);
+		}
+
+		if (found) {
+			// Token "init=" is found. Check length of token.
+			init_len = strlen(p);
+			if (init_len <= 5) {
+				free(cmdline);
+				return CMD_RET_SUCCESS;
+			}
+
+			bootargs = env_get("bootargs");
+			bootargs_len = strlen(bootargs);
+			if ((init_len + bootargs_len) > (4095-1)) {
+				// Length of new 'bootargs' should be no more than 4095
+				printf("Length of new bootargs is too long!\n");
+				free(cmdline);
+				return CMD_RET_FAILURE;
+			}
+
+			// Allocate memory for new bootargs.
+			new_bootargs = malloc(bootargs_len + init_len + 2);
+			if (new_bootargs == NULL) {
+				printf("Failed to alloc memory for new bootargs!\n");
+				free(cmdline);
+				return CMD_RET_FAILURE;
+			}
+
+			// Copy old bootargs.
+			strcpy(new_bootargs, bootargs);
+			if (bootargs_len > 0) {
+				new_bootargs[bootargs_len] = ' ';
+				bootargs_len++;
+			}
+
+			// Added 'init' to end of old bootargs.
+			strcpy(&new_bootargs[bootargs_len], p);
+			new_bootargs[bootargs_len+init_len] = 0;
+			env_set("bootargs", new_bootargs);
+			free(new_bootargs);
+		}
+
+		free(cmdline);
+		return CMD_RET_SUCCESS;
+	} else {
+		return CMD_RET_USAGE;
+	}
+}
+
+U_BOOT_CMD(
+	raspb, 4, 1, do_raspbian,
+	"Raspbian command",
+	"- Raspbian command.\n"
+	"\n"
+	"raspb init addr size - copies 'init' setting of 'cmdline.txt' of Raspbian to 'bootargs'.\n"
+	"\taddr: address where 'cmdline.txt' is loaded\n"
+	"\tsize: file size of 'cmdline.txt'\n"
+);
 
 #endif

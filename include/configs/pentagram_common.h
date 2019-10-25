@@ -129,6 +129,9 @@
 #define DEFAULT_BOOTARGS		"console=ttyS0,115200 root=/dev/ram rw loglevel=8 user_debug=255 earlyprintk"
 #endif
 
+#define RASPBIAN_CMD                    // Enable Raspbian command
+
+
 /*
  * In the beginning, bootcmd will check bootmode in SRAM and the flag
  * if_zebu to choose different boot flow :
@@ -223,6 +226,19 @@
 #define SDCARD_DEVICE_ID	0
 #else
 #define SDCARD_DEVICE_ID	1
+#endif
+
+#ifdef RASPBIAN_CMD
+#define RASPBIAN_INIT		"setenv filesize 0; " \
+				"fatsize $isp_if $isp_dev /cmdline.txt; " \
+				"if test $filesize != 0; then " \
+				"	fatload $isp_if $isp_dev $addr_dst_dtb /cmdline.txt; " \
+				"	raspb init $fileaddr $filesize; " \
+				"	echo new bootargs; " \
+				"	echo $bootargs; " \
+				"fi; "
+#else
+#define RASPBIAN_INIT		""
 #endif
 
 #define CONFIG_EXTRA_ENV_SETTINGS \
@@ -357,6 +373,7 @@
 	"\0" \
 "isp_common=setenv isp_ram_addr 0x1000000; " \
 	"fatls $isp_if $isp_dev / ; " \
+	RASPBIAN_INIT \
 	"fatload $isp_if $isp_dev $isp_ram_addr /ISPBOOOT.BIN 0x800 0x100000 && md.b $isp_ram_addr 0x200; " \
 	"setenv isp_main_storage ${sp_main_storage} && printenv isp_main_storage; " \
 	"setexpr script_addr $isp_ram_addr + 0x20 && setenv script_addr 0x${script_addr} && source $script_addr; " \
