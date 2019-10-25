@@ -88,7 +88,9 @@ unsigned long notrace timer_read_counter(void)
 void reset_cpu(ulong ignored)
 {
 	volatile unsigned int *ptr;
+#if 0
 	stc_avReg_t *pstc_avReg;
+#endif
 
 	puts("System is going to reboot ...\n");
 

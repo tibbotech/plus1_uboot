@@ -1270,7 +1270,7 @@ Void_t* mALLOc(bytes) size_t bytes;
 #else
   if ((long)bytes <= 0) {
     printf("\n\n**** WARN: forbid malloc(0) : return_address=0x%x ****\n\n",
-      __builtin_return_address(0));
+      (unsigned int)__builtin_return_address(0));
     return NULL;
   }
 #endif

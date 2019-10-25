@@ -455,7 +455,6 @@ sp_mmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
 	sp_sd_trace();
 #endif
 	struct sp_mmc_host *host = mmc->priv;
-	sp_mmc_hw_ops *ops = host->ops;
 
 	int ret = 0; /* Return 0 means success, returning other stuff means error */
 	int i = 0;
