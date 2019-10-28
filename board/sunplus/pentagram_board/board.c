@@ -26,6 +26,14 @@ struct Q628_moon1_regs{
 #define Q628_MOON1_REG ((volatile struct Q628_moon1_regs *)Q628_RF_GRP(1,0))
 
 #define Q628_MOON4_REG ((volatile struct Q628_moon1_regs *)Q628_RF_GRP(4,0))
+
+struct Q628_pad_ctl_regs {
+	unsigned int reserved[20];
+	unsigned int spi_flash_sftpad_ctl;
+	unsigned int spi_nd_sftpad_ctl;
+};
+#define Q628_PAD_CTL_REG ((volatile struct Q628_pad_ctl_regs *)Q628_RF_GRP(101,0))
+
 enum Device_table{
 	DEVICE_SPI_NAND = 0,
 	DEVICE_MAX
@@ -73,6 +81,13 @@ void board_nand_init(void)
 {
 #ifdef CONFIG_SP_SPINAND
 	SetBootDev(DEVICE_SPI_NAND,1);
+
+	/* config soft pad */
+	#ifdef CONFIG_GLB_GMNCFG_SPINAND_ENABLE_SFTPAD
+	Q628_PAD_CTL_REG->spi_nd_sftpad_ctl = CONFIG_GLB_GMNCFG_SPINAND_SFTPAD_CTL;
+	printf("spi_nd_sftpad_ctl:0x%08x\n", Q628_PAD_CTL_REG->spi_nd_sftpad_ctl);
+	#endif
+
 	board_spinand_init();
 #endif
 }

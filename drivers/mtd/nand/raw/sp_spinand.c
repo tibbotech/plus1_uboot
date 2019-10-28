@@ -1568,7 +1568,7 @@ static int sp_spinand_probe(struct udevice *dev)
 		return ret;
 
 	info->regs = devm_ioremap(dev, res.start, resource_size(&res));
-	SPINAND_LOGI("\nsp_spinand: regs@0x%p\n", info->regs);
+	SPINAND_LOGI("sp_spinand: regs@0x%p\n", info->regs);
 
 	/* get bch reg */
 	ret = dev_read_resource_byname(dev, "bch_reg", &res);
@@ -1737,6 +1737,7 @@ err_out:
 
 static int sp_spinand_test_speed(void)
 {
+	#define START_BLOCK_NUM (20)        /* This start block number is in blank area of uboot2 partition */
 	#define TEST_BLOCK_NUM (10)
 	const char *trs_mode[] = {"pio", "pio+auto", "dma", "dma+autobch"};
 	const char *io_mode[] = {"x1", "x2", "x4", "dualIO", "quadIO"};
@@ -1754,7 +1755,7 @@ static int sp_spinand_test_speed(void)
 	s32 i, j;
 	int ret;
 
-	for(i=0,j=3; i<TEST_BLOCK_NUM; i++,j++) {
+	for(i=0,j=START_BLOCK_NUM; i<TEST_BLOCK_NUM; i++,j++) {
 		while (nand_block_isbad(mtd, (loff_t)j * mtd->erasesize))
 			j++;
 		test_block_table[i] = j*mtd->erasesize;
@@ -2010,15 +2011,150 @@ static int sp_spinand_test_stress1(u32 block)
 	return 0;
 }
 
-static int sp_spinand_test_timing(void)
+static int sp_spinand_test_timing(u8 clk_bypass, u8 dq_bypass, u8 set_now,
+				u8 rts_only, u32 *rts, u32 *softpad)
 {
-	u32 i;
-	for(i=5; i<15; i++) {
-		SPINAND_SET_CLKSRC(i);
-		sp_spinand_test_speed();
+	struct sp_spinand_info *info = get_spinand_info();
+	struct sp_spinand_regs *regs = info->regs;
+	u32 *softpad_ctrl_reg = (u32 *)0x9C0032D4;
+	u32 origin_value = readl(softpad_ctrl_reg);
+	u32 default_value, value;
+	u32 begin=0, num=0, _begin=0, _num=0, sum=0;
+	u32 i, j, best_i, best_j = 0;
+	u32 polarity;
+	u32 origin_rts = readl(&regs->spi_timing);
+	u32 curr_rts = 0;
+	u8 result[4][33];
 
+	printk("%s, start. softpad:0x%08x, timing:0x%08x\n", __FUNCTION__, readl(softpad_ctrl_reg), readl(&regs->spi_timing));
+
+	memset(result, 0, sizeof(result));
+	default_value = origin_value;
+	default_value &= ~((0x3f<<2) | (1<<15) | (0xf<<21));
+	default_value |= clk_bypass ? 0x00 : (0x04<<2);         /* Enable softpad function for CLK pin (g_MX[78]) */
+	default_value |= dq_bypass ? (1<<15) : (0x3b<<2);       /* Enable softpad function for other pins */
+
+	/* for version A IC, dq bypass means the softpad is disabled.
+	 * so only rts can be scanned.
+	 */
+	if (dq_bypass || rts_only) {
+		value = default_value;
+		writel(value, softpad_ctrl_reg);
+		while(readl(softpad_ctrl_reg) != value);
+		for (i=0, sum=0; i<sizeof(result)/sizeof(result[0]); i++) {
+			curr_rts = i+1;
+			writel(SPINAND_READ_TIMING(curr_rts), &regs->spi_timing);
+			if (sp_spinand_test_speed() < 0) {
+				result[i][0] = 'x';
+			} else {
+				result[i][0] = 'o';
+				sum++;
+				if (!begin)
+					begin = i;
+			}
+		}
+		printk("rts | result \n");
+		for (i=0; i<sizeof(result)/sizeof(result[0]); i++)
+			printk("  %d |  %c\n", i+1, result[i][0]);
+
+		if (sum) {
+			curr_rts = begin + 1 + (sum-1)/2;
+			if (rts)
+				*rts = curr_rts;
+			if (softpad)
+				*softpad = value;
+		}
+		goto func_out;
 	}
-	return 0;
+
+	for (i=0; i<sizeof(result)/sizeof(result[0]); i++)
+	{
+		curr_rts = i + 1;
+		value = (origin_rts & 0xFFFFFFF1) | SPINAND_READ_TIMING(curr_rts);
+		writel(value, &regs->spi_timing);
+
+		for (j=0,result[i][32]=0; j<32; j++) {
+			polarity = (j<16) ? 1 : 0;
+			value = (polarity<<18) | ((j&0x0f)<<21) | default_value;
+
+			writel(value, softpad_ctrl_reg);
+			while(readl(softpad_ctrl_reg) != value);
+			printk("<rts:%d, polarity:%d, delay:%d, value:0x%08x>\n",
+				curr_rts, polarity, j&15, value);
+			if (sp_spinand_test_speed() < 0) {
+
+				result[i][j] = 'x';
+			} else {
+				result[i][32]++;
+				result[i][j] = 'o';
+				sum++;
+			}
+		}
+	}
+	/* print the result */
+	printk("<%s>\n", info->dev_name);
+	printk("      =======================Timing Test Result========================\n");
+	printk("     |-----------polarity=1-----------|---------polarity=0-------------\n");
+	printk("     |0 1 2 3 4 5 6 7 8 9 a b c d e f | 0 1 2 3 4 5 6 7 8 9 a b c d e f");
+	for (i=0; i<sizeof(result)/sizeof(result[0]); i++) {
+		printk("\nrts=%d|",i+1);
+		for(j=0; j<32; j++) {
+			printk("%c ", result[i][j]);
+			if (j == 15)
+				printk("| ");
+		}
+	}
+	printk("\n");
+
+	/* find best_i */
+	for (i=1, best_i=0; i<sizeof(result)/sizeof(result[0]); i++) {
+		if (result[i][32] > result[best_i][32])
+			best_i = i;
+	}
+	/* find best_j */
+	for (j=0; j<32; j++) {
+		if (result[best_i][j] == 'o') {
+			if (_num == 0)
+				_begin = j;
+			_num++;
+		} else {
+			if(_num > num) {
+				begin = _begin;
+				num = _num;
+			}
+			_num = 0;
+		}
+	}
+	if (_num > num) {
+		begin = _begin;
+		num = _num;
+	}
+
+	if (num) {
+		curr_rts = best_i+1;
+		printk("advised rts = %d\n", curr_rts);
+		if (rts)
+			*rts = curr_rts;
+
+		best_j = begin + num/2;
+		polarity = best_j<16 ? 1 : 0;
+		value = (polarity<<18) | ((best_j&0x0f)<<21) | origin_value;
+
+		writel(value, softpad_ctrl_reg);
+		printk("advised softpad ctrl parameter = 0x%08x\n", value);
+		if (softpad)
+			*softpad = value;
+	}
+
+func_out:
+	if (sum==0 || !set_now) {
+		//writel(SPINAND_READ_TIMING(origin_rts), &regs->spi_timing);
+		writel(origin_rts, &regs->spi_timing);
+		writel(origin_value, softpad_ctrl_reg);
+	}
+
+	printk("%s, end. softpad:0x%08x, timing:0x%08x\n", __FUNCTION__, readl(softpad_ctrl_reg), readl(&regs->spi_timing));
+	return sum;
 }
 
 static int sp_spinand_test(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
@@ -2089,7 +2225,15 @@ static int sp_spinand_test(cmd_tbl_t *cmdtp, int flag, int argc, char * const ar
 		else
 			sp_spinand_test_stress1(block);
 	} else if (strncmp(cmd, "timing", 6) == 0) {
-		sp_spinand_test_timing();
+		u32 clk_bypass = 0, dq_bypass = 0;
+		u32 i;
+		for (i=2; i<argc; i++) {
+			if (strncmp(argv[i], "clk", 3) == 0)
+				clk_bypass = 1;
+			else if (strncmp(argv[i], "dq", 2) == 0)
+				dq_bypass = 1;
+		}
+		sp_spinand_test_timing(clk_bypass, dq_bypass, 0, 0, NULL, NULL);
 	} else if (strncmp(cmd, "trsmode", 7) == 0) {
 		if (argc >= 3) {
 			u32 trsmode = simple_strtoul(argv[2], NULL, 10);
@@ -2193,7 +2337,8 @@ U_BOOT_CMD(ssnand, CONFIG_SYS_MAXARGS, 1, sp_spinand_test,
 	"ssnand speed - test erase,write,read the speed.\n"
 	"ssnand stress [block] - do stress test on 'block',\n"
 	"\tif 'block' is -1 or not specified, all blocks would be tested.\n"
-	"ssnand timing - timing test\n"
+	"ssnand timing [clk|dq] - timing test,\n"
+	"\tif 'clk' or 'dq' is specified, means the softpad function of clk or dq is disabled.\n"
 	"ssnand trsmode [value] - set/show trs_mode, 0~3 are allowed.\n"
 	"ssnand wio [value] - set/show write_bitmode, 0/2 are allowed.\n"
 	"ssnand rio [value] - set/show read_bitmode, 0/1/2 are allowed.\n"
