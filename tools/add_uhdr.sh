@@ -5,12 +5,13 @@
 # $3: output image
 # $4: load address    (optional)
 # $5: execute address (optional)
-
+# $6: arm or riscv
 NAME="$1"
 SRC="$2"
 OUTPUT="$3"
 LADDR=$4
 RADDR=$5
+ARCH=$6
 
 ####################
 # check if mkimage is available?
@@ -65,6 +66,6 @@ if [ ! -f "$SRC" ];then
 	exit 1
 fi
 
-$MKIMAGE -A arm -O linux -T $TYPE -C none -a $LADDR -e $RADDR -n $NAME -d $SRC $OUTPUT
+$MKIMAGE -A $ARCH -O linux -T $TYPE -C none -a $LADDR -e $RADDR -n $NAME -d $SRC $OUTPUT
 
 ls -l $OUTPUT

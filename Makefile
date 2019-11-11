@@ -935,7 +935,7 @@ else
 img_name = "uboot_$(CONFIG_SYS_BOARD)"
 endif
 
-all:		$(ALL-y)
+all: 		$(ALL-y)
 ifeq ($(CONFIG_DM_I2C_COMPAT)$(CONFIG_SANDBOX),y)
 	@echo >&2 "===================== WARNING ======================"
 	@echo >&2 "This board uses CONFIG_DM_I2C_COMPAT. Please remove"
@@ -1027,7 +1027,16 @@ endif
 	@# options are whitelisted, so new ones should not be added.
 	@# create u-boot.img
 	@echo "Wrap u-boot image..."
-	./tools/add_uhdr.sh $(img_name) u-boot.bin u-boot.img 0x200040 0x200040
+
+ifeq ($(CONFIG_RISCV),y)
+	@echo >&2 "===================== compile OPENSBI  ======================"
+	 $(Q)$(MAKE) -C ../OpenSBI distclean && $(MAKE) -C ../OpenSBI FW_PAYLOAD_PATH=../uboot/u-boot.bin CROSS_COMPILE=$(CROSS_COMPILE)
+	
+	@echo >&2 "===================== OpenSBI+U-boot.bin=U-boot.img  ======================"
+	./tools/add_uhdr.sh $(img_name) ../OpenSBI/out/fw_payload.bin u-boot.img 0xA0100000 0xA0100000 riscv
+else
+	./tools/add_uhdr.sh $(img_name) u-boot.bin u-boot.img 0x200040 0x200040 arm
+endif	
 	@img_sz=`du -sb u-boot.img | cut -f1` ; \
 	printf "size: %d (hex %x)\n" $$img_sz $$img_sz
 	$(call cmd,cfgcheck,u-boot.cfg)
