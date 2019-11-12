@@ -3,15 +3,16 @@
 # $1: image name
 # $2: source image
 # $3: output image
-# $4: load address    (optional)
-# $5: execute address (optional)
-# $6: arm or riscv
+# $4: arm or riscv
+# $5: load address    (optional)
+# $6: execute address (optional)
+
 NAME="$1"
 SRC="$2"
 OUTPUT="$3"
-LADDR=$4
-RADDR=$5
-ARCH=$6
+ARCH="$4"
+LADDR=$5
+RADDR=$6
 
 ####################
 # check if mkimage is available?

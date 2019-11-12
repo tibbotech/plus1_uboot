@@ -239,6 +239,7 @@ export	HOSTARCH HOSTOS
 
 #########################################################################
 
+CROSS_COMPILE = ../../crossgcc/riscv64-sifive-linux-gnu/bin/riscv64-sifive-linux-gnu-
 # set default to nothing for native builds
 ifeq ($(HOSTARCH),$(ARCH))
 CROSS_COMPILE ?=
@@ -1033,9 +1034,9 @@ ifeq ($(CONFIG_RISCV),y)
 	 $(Q)$(MAKE) -C ../OpenSBI distclean && $(MAKE) -C ../OpenSBI FW_PAYLOAD_PATH=../uboot/u-boot.bin CROSS_COMPILE=$(CROSS_COMPILE)
 	
 	@echo >&2 "===================== OpenSBI+U-boot.bin=U-boot.img  ======================"
-	./tools/add_uhdr.sh $(img_name) ../OpenSBI/out/fw_payload.bin u-boot.img 0xA0100000 0xA0100000 riscv
+	./tools/add_uhdr.sh $(img_name) ../OpenSBI/out/fw_payload.bin u-boot.img riscv 0xA0100000 0xA0100000 
 else
-	./tools/add_uhdr.sh $(img_name) u-boot.bin u-boot.img 0x200040 0x200040 arm
+	./tools/add_uhdr.sh $(img_name) u-boot.bin u-boot.img arm 0x200040 0x200040 
 endif	
 	@img_sz=`du -sb u-boot.img | cut -f1` ; \
 	printf "size: %d (hex %x)\n" $$img_sz $$img_sz
