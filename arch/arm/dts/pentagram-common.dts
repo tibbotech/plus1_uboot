@@ -51,7 +51,7 @@
 					  PMX_L2SW_P1_MAC_RMII_RXD1     G_MX34_GPIO_P4_2
 					  PMX_L2SW_P1_MAC_RMII_RXER     G_MX31_GPIO_P3_7
 				>;
-#elif 0 // Demo board V2/V3
+#elif 0 // Demo board V1/V2
 				pinmux = <PMX_L2SW_CLK_OUT              G_MX50_GPIO_P6_2
 					  PMX_L2SW_MAC_SMI_MDC          G_MX44_GPIO_P5_4
 					  PMX_L2SW_LED_FLASH0           G_MX54_GPIO_P6_6
