@@ -159,8 +159,6 @@ wait_for_gd_init:
 	bnez	t1, 1b
 
 
-
-
 	/* register available harts in the available_harts mask */
 	li	t1, 1
 	sll	t1, t1, tp
@@ -185,8 +183,6 @@ wait_for_gd_init:
 #ifdef CONFIG_DEBUG_UART
 	jal	debug_uart_init
 #endif
-	li a0,0x58
-	call uart_out
 
 	mv	a0, zero		/* a0 <-- boot_flags = 0 */
 	la	t5, board_init_f
@@ -277,14 +273,13 @@ stack_setup:
 	la	t3, __bss_start
 	sub	t3, t3, t0		/* t3 <- __bss_start_ofs */
 	add	t2, t0, t3		/* t2 <- source end address */
-
+	
 copy_loop:
 	LREG	t5, 0(t0)
 	addi	t0, t0, REGBYTES
 	SREG	t5, 0(t1)
 	addi	t1, t1, REGBYTES
 	blt	t0, t2, copy_loop
-
 /*
  * Update dynamic relocations after board_init_f
  */
@@ -387,8 +382,6 @@ call_board_init_r:
 	jal	invalidate_icache_all
 	jal	flush_dcache_all
 	la	t0, board_init_r
-	REG_STAMP(t0)
-	REG_STAMP(t6)
 	mv	t4, t0			/* offset of board_init_r() */
 	add	t4, t4, t6		/* real address of board_init_r() */
 /*
@@ -396,9 +389,7 @@ call_board_init_r:
  */
 	mv	a0, s3			/* gd_t */
 	mv	a1, s4			/* dest_addr */
-	REG_STAMP(s3)
-		REG_STAMP(s4)
-	REG_STAMP(t4)
+
 /*
  * jump to it ...
  */
@@ -445,10 +436,9 @@ secondary_hart_loop:
 	j	secondary_hart_loop
 
 uart_out:
-#if 1
-		lui a5,0x27000
-		addi	a5,a5,577 
-		slli	a5,a5,0x2
+	lui a5,0x27000
+	addi	a5,a5,577 
+	slli	a5,a5,0x2
 wait:
 	lw	a4,0(a5)
 	andi	a4,a4,1
@@ -460,15 +450,8 @@ wait:
 	slli	a5,a5,0x8
 	sw	a0,0(a5)
 	li	a0,1
-#else
-	li	a7,1 //SBI_CONSOLE_PUTCHAR
-	ecall
-#endif
 	ret
 
-sbi_out:
-	li	a7,1 //SBI_CONSOLE_PUTCHAR
-	ecall
-	ret
+
 
 

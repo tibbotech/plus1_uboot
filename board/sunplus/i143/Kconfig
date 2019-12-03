@@ -1,7 +1,7 @@
-if TARGET_SUNPLUS_U54MC
+if TARGET_SUNPLUS_I143
 
 config SYS_BOARD
-	default "u54mc"
+	default "i143"
 
 config SYS_VENDOR
 	default "sunplus"
@@ -10,7 +10,7 @@ config SYS_CPU
 	default "generic"
 	
 config SYS_CONFIG_NAME
-	default "sunplus_u54mc"	
+	default "sunplus_i143"	
 	
 config SYS_TEXT_BASE
 	default 0xA1000000 

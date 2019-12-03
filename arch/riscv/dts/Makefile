@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-2.0+
 
-dtb-$(CONFIG_TARGET_SUNPLUS_U54MC) += sunplus_u54mc.dtb
+dtb-$(CONFIG_TARGET_SUNPLUS_I143) += sunplus_i143.dtb
 
 targets += $(dtb-y)
 

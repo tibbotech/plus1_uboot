@@ -11,11 +11,21 @@
 #define __CONFIG_PENTAGRAM_H
 
 
+//#define  CONFIG_SYS_ENV_ZEBU	1
+
+#ifdef CONFIG_SYS_ENV_ZEBU
+#define CONFIG_SYS_ZMEM_SKIP_RELOC	1
+#ifdef CONFIG_SYS_ZMEM_SKIP_RELOC
+#define CONFIG_SP_ZMEM_RELOC_ADDR	0xA3F00000
+#endif
+#endif
+
+
 /* Disable some options which is enabled by default: */
 
 #define CONFIG_SYS_SDRAM_BASE		0xA0000000
 
-#define CONFIG_SYS_MALLOC_LEN		(8 << 20)
+#define CONFIG_SYS_MALLOC_LEN		(4 << 20)
 
 
 #ifdef CONFIG_SPL_BUILD
@@ -155,7 +165,6 @@
  */
 #define CONFIG_BOOTCOMMAND \
 "echo [scr] bootcmd started; " \
-"md.l 0xf8020040 0x10; " \
 "md.l ${bootinfo_base} 1; " \
 "if itest.l *${bootinfo_base} == " __stringify(SPI_NOR_BOOT) "; then " \
 	"if itest ${if_zebu} == 1; then " \
@@ -205,7 +214,7 @@
 "fi"
 
 #define DSTADDR_KERNEL		0xA01FFFC0 
-#define DSTADDR_DTB			0xA01F0040
+#define DSTADDR_DTB			0xA01F0000
 #define TMPADDR_HEADER		0xA4000000
 
 #define CONFIG_SRCADDR_KERNEL 	0xF8200000

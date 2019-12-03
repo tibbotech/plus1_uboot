@@ -17,15 +17,15 @@ config TARGET_QEMU_VIRT
 config TARGET_SIFIVE_FU540
 	bool "Support SiFive FU540 Board"
 	
-config TARGET_SUNPLUS_U54MC
-	bool "Support Sunplus U54MC Board"
+config TARGET_SUNPLUS_I143
+	bool "Support Sunplus I143 Board"
 endchoice
 
 # board-specific options below
 source "board/AndesTech/ax25-ae350/Kconfig"
 source "board/emulation/qemu-riscv/Kconfig"
 source "board/sifive/fu540/Kconfig"
-source "board/sunplus/u54mc/Kconfig"
+source "board/sunplus/i143/Kconfig"
 
 # platform-specific options below
 source "arch/riscv/cpu/ax25/Kconfig"
