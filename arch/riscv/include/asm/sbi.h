@@ -19,24 +19,31 @@
 #define SBI_REMOTE_SFENCE_VMA 6
 #define SBI_REMOTE_SFENCE_VMA_ASID 7
 #define SBI_SHUTDOWN 8
+#define SBI_EXT_BASE 0x10
+#define SBI_EXT_BASE_SET_HART0_START	0x7
 
-#define SBI_CALL(which, arg0, arg1, arg2) ({			\
+
+#define SBI_CALL(which, arg0, arg1, arg2,arg3, arg4, arg5, arg6) ({			\
 	register uintptr_t a0 asm ("a0") = (uintptr_t)(arg0);	\
 	register uintptr_t a1 asm ("a1") = (uintptr_t)(arg1);	\
 	register uintptr_t a2 asm ("a2") = (uintptr_t)(arg2);	\
+	register uintptr_t a3 asm ("a3") = (uintptr_t)(arg3);	\
+	register uintptr_t a4 asm ("a4") = (uintptr_t)(arg4);	\
+	register uintptr_t a5 asm ("a5") = (uintptr_t)(arg5);	\
+	register uintptr_t a6 asm ("a6") = (uintptr_t)(arg6);	\
 	register uintptr_t a7 asm ("a7") = (uintptr_t)(which);	\
 	asm volatile ("ecall"					\
 		      : "+r" (a0)				\
-		      : "r" (a1), "r" (a2), "r" (a7)		\
+		      : "r" (a1), "r" (a2),"r" (a3), "r" (a4),"r" (a5), "r" (a6), "r" (a7)		\
 		      : "memory");				\
 	a0;							\
 })
 
 /* Lazy implementations until SBI is finalized */
-#define SBI_CALL_0(which) SBI_CALL(which, 0, 0, 0)
-#define SBI_CALL_1(which, arg0) SBI_CALL(which, arg0, 0, 0)
-#define SBI_CALL_2(which, arg0, arg1) SBI_CALL(which, arg0, arg1, 0)
-
+#define SBI_CALL_0(which) SBI_CALL(which, 0, 0, 0, 0, 0, 0, 0)
+#define SBI_CALL_1(which, arg0) SBI_CALL(which, arg0, 0, 0, 0, 0, 0, 0)
+#define SBI_CALL_2(which, arg0, arg1) SBI_CALL(which, arg0, arg1, 0, 0, 0, 0, 0)
+#define SBI_CALL_7(which, arg0) SBI_CALL(which, 0, 0, 0, 0, 0, 0, arg0)
 static inline void sbi_console_putchar(int ch)
 {
 	SBI_CALL_1(SBI_CONSOLE_PUTCHAR, ch);
@@ -89,6 +96,11 @@ static inline void sbi_remote_sfence_vma_asid(const unsigned long *hart_mask,
 					      unsigned long asid)
 {
 	SBI_CALL_1(SBI_REMOTE_SFENCE_VMA_ASID, hart_mask);
+}
+
+static inline void sbi_ext_base_run_hart0(void)
+{
+	SBI_CALL_7(SBI_EXT_BASE,SBI_EXT_BASE_SET_HART0_START);
 }
 
 #endif
