@@ -174,5 +174,10 @@
 			compatible = "sunplus,sunplus-uart";
 			reg = <0x0 0x9c000900 0x0 0x80>;
 		};
+		
+		mmc@sp_emmc {
+			compatible = "sunplus,sunplus-q628-emmc";
+			reg = <0 0x9C003B00 0 0x180>;
+		};
 	};
 };

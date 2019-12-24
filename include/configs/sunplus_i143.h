@@ -324,14 +324,15 @@
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
 	"setexpr sz_dtb ${tmpval} + 0x40; " \
 	"setexpr sz_dtb ${sz_dtb} + 0x200; setexpr sz_dtb ${sz_dtb} / 0x200; " \
-	"mmc read ${addr_dst_dtb} ${addr_src_dtb} ${sz_dtb}; " \
+    "setexpr addr_dram ${addr_dst_dtb} - 0x40; " \
+	"mmc read ${addr_dram} ${addr_src_dtb} ${sz_dtb}; " \
 	"mmc read ${addr_tmp_header} ${addr_src_kernel} 0x1; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
 	"setexpr sz_kernel ${tmpval} + 0x40; " \
 	"setexpr sz_kernel ${sz_kernel} + 72; " \
 	"setexpr sz_kernel ${sz_kernel} + 0x200; setexpr sz_kernel ${sz_kernel} / 0x200; " \
 	"mmc read ${addr_dst_kernel} ${addr_src_kernel} ${sz_kernel}; " \
-	"sp_go ${addr_dst_kernel} ${addr_dst_dtb}\0" \
+	"bootm ${addr_dst_kernel} - ${addr_dst_dtb}\0" \
 "tftp_boot=setenv ethaddr ${macaddr} && printenv ethaddr; " \
 	"printenv serverip; " \
 	"dhcp ${addr_dst_dtb} ${serverip}:dtb" __stringify(USER_NAME) "; " \
