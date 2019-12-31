@@ -17,13 +17,13 @@
 #include <miiphy.h>
 #include <net.h>
 #include <asm/cache.h>
-#include "sunplus_l2sw.h"
+#include "sunplus_gl2sw.h"
 
 
 extern int read_otp_data(int addr, char *value);
 
 
-static struct l2sw_reg* ls2w_reg_base = NULL;
+static struct l2sw_reg* l2sw_reg_base = NULL;
 static struct moon5_reg* moon5_reg_base = NULL;
 
 #if 0
@@ -34,10 +34,7 @@ static void print_packet(char *p, int len)
 	u32 LenType;
 	int i;
 
-	i = snprintf(buf, sizeof(buf), "MAC: DA=%02x:%02x:%02x:%02x:%02x:%02x, "
-		"SA=%02x:%02x:%02x:%02x:%02x:%02x, ",
-		(u32)p[0], (u32)p[1], (u32)p[2], (u32)p[3], (u32)p[4], (u32)p[5],
-		(u32)p[6], (u32)p[7], (u32)p[8], (u32)p[9], (u32)p[10], (u32)p[11]);
+	i = snprintf(buf, sizeof(buf), "MAC: DA=%pM, SA=%pM, ", &p[0], &p[6]);
 	p += 12;        // point to LenType
 
 	LenType = (((u32)p[0])<<8) + p[1];
@@ -271,12 +268,12 @@ static void rx_descs_init(struct emac_eth_dev *priv)
 	}
 
 	// Flush all rx descriptors.
-	flush_dcache_range(DCACHE_ROUNDDN(priv->rx_desc), DCACHE_ROUNDUP((u32)priv->rx_desc+sizeof(priv->rx_desc)));
-	//eth_info("RX Queue: start = %08x, end = %08x\n", priv->rx_desc, &priv->rx_desc[CONFIG_RX_DESCR_NUM]);
+	flush_dcache_range(DCACHE_ROUNDDN(priv->rx_desc), DCACHE_ROUNDUP((u64)priv->rx_desc+sizeof(priv->rx_desc)));
+	//eth_info("RX Queue: start = %px, end = %px\n", priv->rx_desc, &priv->rx_desc[CONFIG_RX_DESCR_NUM]);
 
 	// Setup base address for high- and low-priority rx queue.
-	HWREG_W(rx_hbase_addr_0, (uintptr_t)&priv->rx_desc[0]);
-	HWREG_W(rx_lbase_addr_0, (uintptr_t)&priv->rx_desc[CONFIG_RX_DESCR_NUM]);
+	HWREG_W(rx_hbase_addr, (uintptr_t)&priv->rx_desc[0]);
+	HWREG_W(rx_lbase_addr, (uintptr_t)&priv->rx_desc[CONFIG_RX_DESCR_NUM]);
 }
 
 static void tx_descs_init(struct emac_eth_dev *priv)
@@ -296,12 +293,12 @@ static void tx_descs_init(struct emac_eth_dev *priv)
 	priv->tx_pos = 0;
 
 	// Flush all tx descriptors.
-	flush_dcache_range(DCACHE_ROUNDDN(priv->tx_desc), DCACHE_ROUNDUP((u32)priv->tx_desc+sizeof(priv->tx_desc)));
-	//eth_info("TX Queue: start = %08x, end = %08x\n", priv->tx_desc, &priv->tx_desc[CONFIG_TX_DESCR_NUM]);
+	flush_dcache_range(DCACHE_ROUNDDN(priv->tx_desc), DCACHE_ROUNDUP((u64)priv->tx_desc+sizeof(priv->tx_desc)));
+	//eth_info("TX Queue: start = %px, end = %px\n", priv->tx_desc, &priv->tx_desc[CONFIG_TX_DESCR_NUM]);
 
 	// Setup base address for high- and low-priority tx queue.
-	HWREG_W(tx_hbase_addr_0, (uintptr_t)&priv->tx_desc[0]);
-	HWREG_W(tx_lbase_addr_0, (uintptr_t)&priv->tx_desc[CONFIG_TX_DESCR_NUM]);
+	HWREG_W(tx_hbase_addr, (uintptr_t)&priv->tx_desc[0]);
+	HWREG_W(tx_lbase_addr, (uintptr_t)&priv->tx_desc[CONFIG_TX_DESCR_NUM]);
 }
 
 #if 0
@@ -356,8 +353,7 @@ static int _l2sw_write_hwaddr(struct emac_eth_dev *priv, u8 *mac_id)
 	HWREG_W(w_mac_15_0, mac_id[0]+(mac_id[1]<<8));
 	HWREG_W(w_mac_47_16, mac_id[2]+(mac_id[3]<<8)+(mac_id[4]<<16)+(mac_id[5]<<24));
 
-	//eth_info("ethaddr=%02x:%02x:%02x:%02x:%02x:%02x\n", mac_id[0], mac_id[1],
-	//	mac_id[2], mac_id[3], mac_id[4], mac_id[5]);
+	//eth_info("ethaddr=%pM\n", mac_id);
 
 	HWREG_W(wt_mac_ad0, (1<<10)|(1<<4)|1);  // Set aging=1
 	do {
@@ -420,8 +416,7 @@ static int l2sw_eth_write_hwaddr(struct udevice *dev)
 	struct emac_eth_dev *priv = dev_get_priv(dev);
 
 	// Delete the old mac address.
-	//eth_info("ethaddr=%02x:%02x:%02x:%02x:%02x:%02x\n", priv->mac_addr[0], priv->mac_addr[1],
-	//	priv->mac_addr[2], priv->mac_addr[3], priv->mac_addr[4], priv->mac_addr[5]);
+	//eth_info("ethaddr=%pM\n", priv->mac_addr);
 	if (is_valid_ethaddr(priv->mac_addr)) {
 		_l2sw_remove_hwaddr(priv, priv->mac_addr);
 	}
@@ -430,9 +425,7 @@ static int l2sw_eth_write_hwaddr(struct udevice *dev)
 	if (is_valid_ethaddr(pdata->enetaddr)) {
 		return _l2sw_write_hwaddr(priv, pdata->enetaddr);
 	} else {
-		eth_err("Invalid mac address = %02x:%02x:%02x:%02x:%02x:%02x!\n",
-			pdata->enetaddr[0], pdata->enetaddr[1], pdata->enetaddr[2],
-			pdata->enetaddr[3], pdata->enetaddr[4], pdata->enetaddr[5]);
+		//eth_err("Invalid mac address = %pM!\n",	pdata->enetaddr);
 	}
 
 	return -1;
@@ -448,7 +441,7 @@ static int l2sw_emac_eth_send(struct udevice *dev, void *packet, int len)
 
 	// Invalidate tx descriptor.
 	desc_start = DCACHE_ROUNDDN(txdesc);
-	desc_end = DCACHE_ROUNDUP((u32)txdesc + sizeof(*txdesc));
+	desc_end = DCACHE_ROUNDUP((u64)txdesc + sizeof(*txdesc));
 	invalidate_dcache_range(desc_start, desc_end);
 
 	if (txdesc->cmd1 & OWN_BIT) {
@@ -456,10 +449,10 @@ static int l2sw_emac_eth_send(struct udevice *dev, void *packet, int len)
 		return -EPERM;
 	}
 
-	memcpy((void *)txdesc->addr1, packet, len);
+	memcpy((void *)(u64)txdesc->addr1, packet, len);
 	if (len < TX_BUF_MIN_SZ)
 	{
-		memset((char*)txdesc->addr1+len, 0, TX_BUF_MIN_SZ-len);
+		memset((char*)(u64)txdesc->addr1+len, 0, TX_BUF_MIN_SZ-len);
 		len = TX_BUF_MIN_SZ;
 	}
 
@@ -505,8 +498,8 @@ static int l2sw_emac_eth_recv(struct udevice *dev, int flags, uchar **packetp)
 	int status;
 
 	// Read status and clear.
-	status = HWREG_R(sw_int_status_0);
-	HWREG_W(sw_int_status_0, status);
+	status = HWREG_R(sw_int_status);
+	HWREG_W(sw_int_status, status);
 	//if (status != 0) {
 	//      eth_info("status = %08x\n", status);
 	//}
@@ -519,7 +512,7 @@ static int l2sw_emac_eth_recv(struct udevice *dev, int flags, uchar **packetp)
 
 		// Invalidate rx descriptor queue.
 		desc_start = DCACHE_ROUNDDN(rxdesc);
-		desc_end = DCACHE_ROUNDUP((u32)rxdesc+sizeof(u32));
+		desc_end = DCACHE_ROUNDUP((u64)rxdesc+sizeof(u32));
 		invalidate_dcache_range(desc_start, desc_end);
 		cmd = rxdesc->cmd1;
 
@@ -572,16 +565,16 @@ static int l2sw_eth_free_pkt(struct udevice *dev, uchar *packet, int length)
 	uintptr_t desc_start, desc_end;
 	u32 i;
 
-	i = ((int)packet - priv->rx_desc[0].addr1) / CONFIG_ETH_BUFSIZE;
+	i = (u32)(((u64)packet - priv->rx_desc[0].addr1) / CONFIG_ETH_BUFSIZE);
 	if (i < (CONFIG_RX_DESCR_NUM * CONFIG_RX_QUEUE_NUM)) {
 		rxdesc = &priv->rx_desc[i];
 
 		// Invalidate rx descriptor.
 		desc_start = DCACHE_ROUNDDN(rxdesc);
-		desc_end = DCACHE_ROUNDUP((u32)rxdesc + sizeof(u32));
+		desc_end = DCACHE_ROUNDUP((u64)rxdesc + sizeof(u32));
 		invalidate_dcache_range(desc_start, desc_end);
 
-		//eth_info("FR: rx_desc[%d], cmd1 = %08x, cmd2 = %08x, addr1 = %08x\n", i, rxdesc->cmd1, rxdesc->cmd2, rxdesc->addr1);
+		//eth_info("FR: rx_desc[%lld], cmd1 = %08x, cmd2 = %08x, addr1 = %08x\n", i, rxdesc->cmd1, rxdesc->cmd2, rxdesc->addr1);
 
 		// Make the current descriptor valid again.
 		rxdesc->cmd1 = OWN_BIT;
@@ -603,7 +596,7 @@ static void l2sw_soc_stop(void)
 	reg = HWREG_R(port_cntl0);
 	HWREG_W(port_cntl0, reg | (3<<24));
 
-	HWREG_W(sw_int_status_0, 0xffffffff);
+	HWREG_W(sw_int_status, 0xffffffff);
 }
 
 static void l2sw_emac_eth_stop(struct udevice *dev)
@@ -632,16 +625,16 @@ static void l2sw_emac_board_setup(struct emac_eth_dev *priv)
 
 	// Set phy 0 address.
 	if (priv->phy_addr0 <= 31) {
-		reg = HWREG_R(mac_force_mode);
-		HWREG_W(mac_force_mode, (reg & (~(0x1f<<16))) | (priv->phy_addr0<<16));
+		reg = HWREG_R(mac_force_mode0);
+		HWREG_W(mac_force_mode0, (reg & (~(0x1f<<0))) | (priv->phy_addr0<<0));
 	}
 
 	// Set phy 1 address.
 	if (priv->phy_addr1 <= 31) {
-		reg = HWREG_R(mac_force_mode);
-		HWREG_W(mac_force_mode, (reg & (~(0x1f<<24))) | (priv->phy_addr1<<24));
+		reg = HWREG_R(mac_force_mode0);
+		HWREG_W(mac_force_mode0, (reg & (~(0x1f<<5))) | (priv->phy_addr1<<5));
 	}
-	//eth_info("mac_force_mode = %08x\n", HWREG_R(mac_force_mode));
+	//eth_info("mac_force_mode0 = %08x\n", HWREG_R(mac_force_mode0));
 }
 
 static int l2sw_emac_eth_init(struct emac_eth_dev *priv, u8 *enetaddr)
@@ -653,7 +646,7 @@ static int l2sw_emac_eth_init(struct emac_eth_dev *priv, u8 *enetaddr)
 	// Stop receiving and tranferring.
 	l2sw_soc_stop();
 
-	HWREG_W(sw_int_mask_0, 0xffffffff);
+	HWREG_W(sw_int_mask, 0xffffffff);
 
 	// port 0: VLAN group 0
 	// port 1: VLAN group 0
@@ -737,17 +730,17 @@ static int l2sw_emac_eth_ofdata_to_platdata(struct udevice *dev)
 	int i;
 	u8 otp_mac[ARP_HLEN];
 
-	ls2w_reg_base = (void*)devfdt_get_addr_name(dev, "l2sw");
-	pdata->iobase = (int)ls2w_reg_base;
-	//eth_info("ls2w_reg_base = %08x\n", (int)ls2w_reg_base);
-	if ((int)ls2w_reg_base == -1) {
+	l2sw_reg_base = (void*)devfdt_get_addr_name(dev, "gl2sw");
+	pdata->iobase = (unsigned long)l2sw_reg_base;
+	//eth_info("l2sw_reg_base = %p\n", l2sw_reg_base);
+	if ((long long)l2sw_reg_base == -1) {
 		eth_err("Failed to get base address of L2SW!\n");
 		return -EINVAL;
 	}
 
 	moon5_reg_base = (void*)devfdt_get_addr_name(dev, "moon5");
-	//eth_info("moon5_reg_base = %08x\n", (int)moon5_reg_base);
-	if ((int)moon5_reg_base == -1) {
+	//eth_info("moon5_reg_base = %p\n", moon5_reg_base);
+	if ((long long)moon5_reg_base == -1) {
 		eth_err("Failed to get base address of MOON5!\n");
 		return -EINVAL;
 	}
@@ -772,7 +765,7 @@ static int l2sw_emac_eth_ofdata_to_platdata(struct udevice *dev)
 	}
 	//eth_info("priv->phy_addr1 = %d\n", priv->phy_addr1);
 
-	pdata->phy_interface = phy_get_interface_by_name("rmii");
+	pdata->phy_interface = phy_get_interface_by_name("rgmii");
 	//eth_info("phy_interface = %d\n", pdata->phy_interface);
 	if (pdata->phy_interface == -1) {
 		eth_err("Invalid PHY interface!\n");
@@ -790,9 +783,8 @@ static int l2sw_emac_eth_ofdata_to_platdata(struct udevice *dev)
 		if (is_valid_ethaddr(otp_mac)) {
 			memcpy(pdata->enetaddr, otp_mac, ARP_HLEN);
 		} else {
-			eth_err("Invalid mac address from OTP[%d:%d] = %02x:%02x:%02x:%02x:%02x:%02x!\n",
-				priv->otp_mac_addr, priv->otp_mac_addr+5, otp_mac[0], otp_mac[1],
-				otp_mac[2], otp_mac[3], otp_mac[4], otp_mac[5]);
+			eth_err("Invalid mac address from OTP[%d:%d] = %pM!\n",
+				priv->otp_mac_addr, priv->otp_mac_addr+5, otp_mac);
 		}
 	} else if (priv->otp_mac_addr == -1) {
 		eth_err("OTP address of mac address is not defined!\n");
@@ -804,12 +796,12 @@ static int l2sw_emac_eth_ofdata_to_platdata(struct udevice *dev)
 }
 
 static const struct udevice_id l2sw_emac_eth_ids[] = {
-	{.compatible = "sunplus,sunplus-q628-l2sw"},
+	{.compatible = "sunplus,sunplus-i143-gl2sw"},
 	{ }
 };
 
 U_BOOT_DRIVER(eth_sunplus_l2sw_emac) = {
-	.name                   = "eth_sunplus_l2sw_emac",
+	.name                   = "eth_sunplus_gl2sw_emac",
 	.id                     = UCLASS_ETH,
 	.of_match               = l2sw_emac_eth_ids,
 	.ofdata_to_platdata     = l2sw_emac_eth_ofdata_to_platdata,
@@ -819,4 +811,3 @@ U_BOOT_DRIVER(eth_sunplus_l2sw_emac) = {
 	.platdata_auto_alloc_size = sizeof(struct eth_pdata),
 	.flags                  = DM_FLAG_ALLOC_PRIV_DMA,
 };
-

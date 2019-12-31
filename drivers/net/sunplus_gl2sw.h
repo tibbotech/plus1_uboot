@@ -38,10 +38,10 @@
 #define MAC_AT_DATA_READY               (1<<0)
 
 // Register write & read
-#define HWREG_W(M, N)                   writel(N, (int)&ls2w_reg_base->M)
-#define HWREG_R(M)                      readl((int)&ls2w_reg_base->M)
-#define MOON5REG_W(M, N)                writel(N, (int)&moon5_reg_base->M)
-#define MOON5REG_R(M)                   readl((int)&moon5_reg_base->M)
+#define HWREG_W(M, N)                   writel(N, (void*)&l2sw_reg_base->M)
+#define HWREG_R(M)                      readl((void*)&l2sw_reg_base->M)
+#define MOON5REG_W(M, N)                writel(N, (void*)&moon5_reg_base->M)
+#define MOON5REG_R(M)                   readl((void*)&moon5_reg_base->M)
 
 // Queue defines
 #define CONFIG_TX_DESCR_NUM             4
@@ -59,7 +59,8 @@
 #define CONFIG_MDIO_TIMEOUT             (3 * CONFIG_SYS_HZ)
 
 
-#define DCACHE_ROUNDDN(x)               (((u32)(x))&(~(CONFIG_SYS_CACHELINE_SIZE-1)))
+#define CONFIG_SYS_CACHELINE_SIZE       64
+#define DCACHE_ROUNDDN(x)               (((u64)(x))&(~(CONFIG_SYS_CACHELINE_SIZE-1)))
 #define DCACHE_ROUNDUP(x)               (DCACHE_ROUNDDN(x-1)+CONFIG_SYS_CACHELINE_SIZE)
 
 
@@ -102,8 +103,8 @@ struct emac_eth_dev {
  * TYPE: RegisterFile_L2SW
  */
 struct l2sw_reg {
-	u32 sw_int_status_0;
-	u32 sw_int_mask_0;
+	u32 sw_int_status;
+	u32 sw_int_mask;
 	u32 fl_cntl_th;
 	u32 cpu_fl_cntl_th;
 	u32 pri_fl_cntl;
@@ -126,7 +127,7 @@ struct l2sw_reg {
 	u32 w_mac_15_0;
 	u32 w_mac_47_16;
 	u32 PVID_config0;
-	u32 PVID_config1;
+	u32 reserved0;
 	u32 VLAN_memset_config0;
 	u32 VLAN_memset_config1;
 	u32 port_ability;
@@ -136,46 +137,41 @@ struct l2sw_reg {
 	u32 port_cntl1;
 	u32 port_cntl2;
 	u32 sw_glb_cntl;
-	u32 l2sw_rsv1;
+	u32 sw_reset;
 	u32 led_port0;
 	u32 led_port1;
-	u32 led_port2;
-	u32 led_port3;
-	u32 led_port4;
+	u32 reserved1[3];
 	u32 watch_dog_trig_rst;
 	u32 watch_dog_stop_cpu;
 	u32 phy_cntl_reg0;
 	u32 phy_cntl_reg1;
-	u32 mac_force_mode;
+	u32 mac_force_mode0;
 	u32 VLAN_group_config0;
-	u32 VLAN_group_config1;
+	u32 reserved2;
 	u32 flow_ctrl_th3;
 	u32 queue_status_0;
 	u32 debug_cntl;
-	u32 l2sw_rsv2;
+	u32 debug_info;
 	u32 mem_test_info;
-	u32 sw_int_status_1;
-	u32 sw_int_mask_1;
-	u32 l2sw_rsv3[76];
+	u32 sw_global_signal;
+	u32 pause_uc_sa_sw_15_0;
+	u32 pause_uc_sa_sw_47_16;
+	u32 reserved3[2];
+	u32 mac_force_model;
+	u32 p0_softpad_config;
+	u32 p1_softpad_config;
+	u32 reserved4[70];
 	u32 cpu_tx_trig;
-	u32 tx_hbase_addr_0;
-	u32 tx_lbase_addr_0;
-	u32 rx_hbase_addr_0;
-	u32 rx_lbase_addr_0;
-	u32 tx_hw_addr_0;
-	u32 tx_lw_addr_0;
-	u32 rx_hw_addr_0;
-	u32 rx_lw_addr_0;
-	u32 cpu_port_cntl_reg_0;
-	u32 tx_hbase_addr_1;
-	u32 tx_lbase_addr_1;
-	u32 rx_hbase_addr_1;
-	u32 rx_lbase_addr_1;
-	u32 tx_hw_addr_1;
-	u32 tx_lw_addr_1;
-	u32 rx_hw_addr_1;
-	u32 rx_lw_addr_1;
-	u32 cpu_port_cntl_reg_1;
+	u32 tx_hbase_addr;
+	u32 tx_lbase_addr;
+	u32 rx_hbase_addr;
+	u32 rx_lbase_addr;
+	u32 tx_hw_addr;
+	u32 tx_lw_addr;
+	u32 rx_hw_addr;
+	u32 rx_lw_addr;
+	u32 cpu_port_cntl_reg;
+	u32 desc_addr_cntl;
 };
 
 //=================================================================================================
