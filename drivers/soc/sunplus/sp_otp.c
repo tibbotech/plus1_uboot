@@ -3,21 +3,24 @@
 
 #include "sp_otp.h"
 
+#define SUPPORT_WRITE_OTP
+
 /*
  * QAC628 OTP memory contains 8 banks with 4 32-bit words. Bank 0 starts
  * at offset 0 from the base.
  *
  */
-#define QAC628_OTP_NUM_BANKS		8
-#define QAC628_OTP_WORDS_PER_BANK	4
-#define QAC628_OTP_WORD_SIZE		sizeof(u32)
-#define QAC628_OTP_SIZE		        (QAC628_OTP_NUM_BANKS * \
+#define QAC628_OTP_NUM_BANKS            8
+#define QAC628_OTP_WORDS_PER_BANK       4
+#define QAC628_OTP_WORD_SIZE            sizeof(u32)
+#define QAC628_OTP_SIZE                 (QAC628_OTP_NUM_BANKS * \
 					QAC628_OTP_WORDS_PER_BANK * \
 					QAC628_OTP_WORD_SIZE)
 #define QAC628_OTP_BIT_ADDR_OF_BANK     (8 * QAC628_OTP_WORD_SIZE * \
 					QAC628_OTP_WORDS_PER_BANK)
 
 #define OTP_READ_TIMEOUT                20000
+#define OTP_WAIT_MICRO_SECONDS          100
 
 #define OTPRX_2_BASE_ADR                0x9C002800
 
@@ -132,9 +135,42 @@ int read_otp_data(int addr, char *value)
 	return 0;
 }
 
+#ifdef SUPPORT_WRITE_OTP
+int write_otp_data(int addr, char value)
+{
+	unsigned int data;
+	u32 timeout = OTP_WAIT_MICRO_SECONDS;
+
+	writel(0xFD01, &regs->otp_ctrl);
+	writel(addr, &regs->otp_prog_addr);
+	writel(0x03, &regs->otp_prog_ctl);
+
+	data = value;
+	data = (data << 8) + 0x12;
+	writel(data, &regs->otp_prog_reg25);
+
+	writel(0x01, &regs->otp_prog_wr);
+	writel(0x00, &regs->otp_prog_pgenb);
+
+	do {
+		udelay(1000);
+		if (timeout-- == 0)
+			return -1;
+
+		data = readl(&regs->otp_prog_state);
+	} while((data & 0x1F) != 0x13);
+
+	writel(0x01, &regs->otp_prog_pgenb);
+	writel(0x00, &regs->otp_prog_wr);
+	writel(0x00, &regs->otp_prog_ctl);
+
+	return 0;
+}
+#endif
+
 static int do_read_otp(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
-	unsigned int addr;	
+	unsigned int addr;
 	char value;
 	unsigned int data;
 	int i, j;
@@ -173,9 +209,46 @@ static int do_read_otp(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]
 	}
 }
 
+#ifdef SUPPORT_WRITE_OTP
+static int do_write_otp(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+{
+	unsigned int addr;
+	unsigned int data;
+	char value;
+
+	if (argc == 3) {
+		addr = simple_strtoul(argv[1], NULL, 0);
+		data = simple_strtoul(argv[2], NULL, 0);
+
+		if ((addr >= 128) || (data >= 256))
+			return CMD_RET_USAGE;
+
+		value = data & 0xFF;
+
+		if (write_otp_data(addr, value) == -1) {
+			return CMD_RET_FAILURE;
+		}
+
+		printf("OTP write complete !!\n");
+
+		return 0;
+	} else {
+		return CMD_RET_USAGE;
+	}
+}
+#endif
+
 /*******************************************************/
 U_BOOT_CMD(
-	rotp,	2,	1,	do_read_otp,
+	rotp, 2, 1, do_read_otp,
 	"read 1 byte data or all data of OTP",
 	"[OTP address (0, 1,..., 128 byte) | None]"
 );
+
+#ifdef SUPPORT_WRITE_OTP
+U_BOOT_CMD(
+	wotp, 3, 1, do_write_otp,
+	"write 1 byte data to OTP",
+	"[OTP address (0~127 byte)] [data (0~255)]"
+);
+#endif
