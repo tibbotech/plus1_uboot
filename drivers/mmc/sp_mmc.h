@@ -80,7 +80,7 @@ typedef struct sp_mmc_timing_info {
 
 typedef struct sp_mmc_host {
 	union {
-		volatile SDREG		*base;
+		volatile SDCARDREG		*base;
 		volatile EMMCREG	*ebase;
 	};
 

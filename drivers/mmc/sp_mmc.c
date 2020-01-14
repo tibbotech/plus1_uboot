@@ -177,12 +177,12 @@ static void sp_mmc_get_rsp_48(struct sp_mmc_host *host, struct mmc_cmd *cmd)
 	 * Store received response buffer data
 	 * Function runs to here only if no error occurs
 	 */
-	rspBuf[0] = host->base->sdrspbuf0;
-	rspBuf[1] = host->base->sdrspbuf1;
-	rspBuf[2] = host->base->sdrspbuf2;
-	rspBuf[3] = host->base->sdrspbuf3;
-	rspBuf[4] = host->base->sdrspbuf4;
-	rspBuf[5] = host->base->sdrspbuf5;
+	rspBuf[0] = host->base->sd_rspbuf0;
+	rspBuf[1] = host->base->sd_rspbuf1;
+	rspBuf[2] = host->base->sd_rspbuf2;
+	rspBuf[3] = host->base->sd_rspbuf3;
+	rspBuf[4] = host->base->sd_rspbuf4;
+	rspBuf[5] = host->base->sd_rspbuf5;
 
 	/* Pass response back to U-Boot */
 	cmd->response[0] = (rspBuf[1] << 24) | (rspBuf[2] << 16) | (rspBuf[3] << 8) | rspBuf[4];
@@ -251,9 +251,9 @@ static void sp_mmc_get_rsp_136(struct sp_mmc_host *host, struct mmc_cmd *cmd)
 	 * The host may be busy sending 8 clk cycles for the end of a request
 	 */
 	while (1) {
-		if (host->base->sdstate_new & SDSTATE_NEW_FINISH_IDLE)
+		if (host->ebase->sdstate_new & SDSTATE_NEW_FINISH_IDLE)
 			break;
-		if (host->base->sdstate_new & SDSTATE_NEW_ERROR_TIMEOUT)
+		if (host->ebase->sdstate_new & SDSTATE_NEW_ERROR_TIMEOUT)
 			return;
 	}
 }
@@ -455,6 +455,7 @@ sp_mmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
 	sp_sd_trace();
 #endif
 	struct sp_mmc_host *host = mmc->priv;
+	sp_mmc_hw_ops *ops = host->ops;
 
 	int ret = 0; /* Return 0 means success, returning other stuff means error */
 	int i = 0;
@@ -581,7 +582,7 @@ static int sp_mmc_ofdata_to_platdata(struct udevice *dev)
 	sp_sd_trace();
 	struct sp_mmc_host *priv = dev_get_priv(dev);
 
-	priv->base = (volatile SDREG *)devfdt_get_addr(dev);
+	priv->base = (volatile SDCARDREG *)devfdt_get_addr(dev);
 	IFPRINTK("base:%p\n", priv->base);
 
 	return 0;
@@ -608,8 +609,13 @@ static int sp_sd_hw_init(sp_mmc_host *host)
 	host->base->sdcrctmr = 0x7ff;
 	host->base->sdcrctmren = 1;
 	host->base->sdrsptmren = 1;
+	//if (SPMMC_DEVICE_TYPE_EMMC == host->dev_info.type)
+	//{
 	host->base->sdmmcmode = 1;
-	host->base->sdrxdattmr_sel = SP_SD_RXDATTMR_MAX;
+	//} else {
+	//	host->base->sdmmcmode = 0;
+	//}
+	host->base->sd_rxdattmr = SP_SD_RXDATTMR_MAX;
 	host->base->mediatype = 6;
 
 	return 0;
@@ -626,13 +632,16 @@ static int sp_sd_hw_set_clock(struct sp_mmc_host *host, uint div)
 
 static int sp_sd_hw_tunel_read_dly (sp_mmc_host *host, sp_mmc_timing_info *dly)
 {
-	host->base->sd_rd_dly_sel = dly->rd_dly;
+	host->base->sd_rd_rsp_dly_sel = dly->rd_rsp_dly;
+	host->base->sd_rd_dat_dly_sel = dly->rd_dat_dly;
+	host->base->sd_rd_crc_dly_sel = dly->rd_crc_dly;
 	return 0;
 }
 
 static int sp_sd_hw_tunel_write_dly  (sp_mmc_host *host, sp_mmc_timing_info *dly)
 {
-	host->base->sd_wr_dly_sel = dly->wr_dly;
+	host->base->sd_wr_dat_dly_sel = dly->wr_dat_dly;
+	host->base->sd_wr_cmd_dly_sel = dly->wr_cmd_dly;
 	return 0;
 }
 
@@ -672,8 +681,14 @@ int sp_sd_hw_set_bus_width (sp_mmc_host *host, uint bus_width)
 	return 0;
 }
 
-int sp_sd_hw_set_sdddr_mode (sp_mmc_host *host, int timing)
+int sp_sd_hw_set_sdddr_mode (sp_mmc_host *host, int ddrmode)
 {
+	sp_sd_trace();
+	if (ddrmode)
+		host->ebase->sdddrmode = 1;
+	else
+		host->ebase->sdddrmode = 0;
+
 	return 0;
 }
 
@@ -681,14 +696,14 @@ int sp_sd_hw_set_cmd (sp_mmc_host *host, struct mmc_cmd *cmd)
 {
 	/* printf("Configuring registers\n"); */
 	/* Configure Group SD Registers */
-	host->base->sd_cmdbuf[0] = (u8)(cmd->cmdidx | 0x40);	/* add start bit, according to spec, command format */
-	host->base->sd_cmdbuf[1] = (u8)((cmd->cmdarg >> 24) & 0x000000ff);
-	host->base->sd_cmdbuf[2] = (u8)((cmd->cmdarg >> 16) & 0x000000ff);
-	host->base->sd_cmdbuf[3] = (u8)((cmd->cmdarg >>  8) & 0x000000ff);
-	host->base->sd_cmdbuf[4] = (u8)((cmd->cmdarg >>  0) & 0x000000ff);
+	host->ebase->sd_cmdbuf0 = (u8)(cmd->cmdidx | 0x40);	/* add start bit, according to spec, command format */
+	host->ebase->sd_cmdbuf1 = (u8)((cmd->cmdarg >> 24) & 0xff);
+	host->ebase->sd_cmdbuf2 = (u8)((cmd->cmdarg >> 16) & 0xff);
+	host->ebase->sd_cmdbuf3 = (u8)((cmd->cmdarg >>  8) & 0xff);
+	host->ebase->sd_cmdbuf4 = (u8)((cmd->cmdarg >>  0) & 0xff);
 
 	/* Configure SD INT reg (Disable them) */
-	host->base->dmacmpen_interrupt = 0;
+	host->base->hwdmacmpen = 0;
 	host->base->sdcmpen = 0x0;
 	host->base->sd_trans_mode = 0x0;
 	host->base->sdcmddummy = 1;
@@ -721,12 +736,82 @@ int sp_sd_hw_set_cmd (sp_mmc_host *host, struct mmc_cmd *cmd)
 
 int sp_sd_hw_get_reseponse (sp_mmc_host *host, struct mmc_cmd *cmd)
 {
-	if (cmd->resp_type & MMC_RSP_136)
-		sp_mmc_get_rsp_136(host, cmd);
-	else
-		sp_mmc_get_rsp_48(host, cmd);
+
+	sp_sd_trace();
+	unchar *rspBuf = (unchar *)cmd->response;
+	int i;
+
+	while (1) {
+		if (host->ebase->sdstatus & SP_SDSTATUS_RSP_BUF_FULL)
+			break;	/* Wait until response buffer full */
+
+		if (host->ebase->sdstate_new & SDSTATE_NEW_FINISH_IDLE)
+			break;
+
+		if (host->ebase->sdstate_new & SDSTATE_NEW_ERROR_TIMEOUT)
+			return -EIO;
+	}
+
+	if (cmd->resp_type & MMC_RSP_136) {
+		uint val[2];
+		val[0] = host->ebase->sd_rspbuf[0];
+		val[1] = host->ebase->sd_rspbuf[1];
+		rspBuf[0] = (val[0] >> 16) & 0xff;
+		rspBuf[1] = (val[0] >> 8) & 0xff;
+		rspBuf[2] = (val[0] >> 0) & 0xff;
+		rspBuf[3] = (val[1] >> 8) & 0xff;
+		rspBuf[4] = (val[1] >> 0) & 0xff;
+
+		val[0] = host->ebase->sd_rspbuf[0];
+		val[1] = host->ebase->sd_rspbuf[1];
+		rspBuf[5] = (val[0] >> 24) & 0xff;
+		rspBuf[6] = (val[0] >> 16) & 0xff;
+		rspBuf[7] = (val[0] >> 8) & 0xff;
+		rspBuf[8] = (val[0] >> 0) & 0xff;
+		rspBuf[9] = (val[1] >> 8) & 0xff;
+		rspBuf[10] = (val[1] >> 0) & 0xff;
+
+		val[0] = host->ebase->sd_rspbuf[0];
+		val[1] = host->ebase->sd_rspbuf[1];
+		rspBuf[11] = (val[0] >> 24) & 0xff;
+		rspBuf[12] = (val[0] >> 16) & 0xff;
+		rspBuf[13] = (val[0] >> 8) & 0xff;
+		rspBuf[14] = (val[0] >> 0) & 0xff;
+		rspBuf[15] = (val[1] >> 8) & 0xff;
+
+		for (i = 0; i < SP_MMC_MAX_RSP_LEN/sizeof(cmd->response[0]); i++ ) {
+			cmd->response[i] = SP_MMC_SWAP32(cmd->response[i]);
+		}
+	}
+	else {
+		rspBuf[0] = host->ebase->sd_rspbuf0;
+		rspBuf[0] = host->ebase->sd_rspbuf1;
+		rspBuf[1] = host->ebase->sd_rspbuf2;
+		rspBuf[2] = host->ebase->sd_rspbuf3;
+		rspBuf[3] = host->ebase->sd_rspbuf4;
+		rspBuf[4] = host->ebase->sd_rspbuf5;
+
+		cmd->response[0] = SP_MMC_SWAP32(cmd->response[0]);
+	}
+
+	while (1) {
+		if (host->ebase->sdstate_new & SDSTATE_NEW_FINISH_IDLE)
+			break;
+
+		if (host->ebase->sdstate_new & SDSTATE_NEW_ERROR_TIMEOUT)
+			return -EIO;
+	}
 
 	return 0;
+
+
+
+	//if (cmd->resp_type & MMC_RSP_136)
+	//	sp_mmc_get_rsp_136(host, cmd);
+	//else
+	//	sp_mmc_get_rsp_48(host, cmd);
+
+	//return 0;
 }
 
 
@@ -736,14 +821,15 @@ int sp_sd_hw_set_data_info (sp_mmc_host *host, struct mmc_cmd *cmd, struct mmc_d
 	unsigned int hw_address;
 	/* Reset */
 	Reset_Controller(host);
+	Sd_Bus_Reset_Channel(host);
 	/* Configure Group SD Registers */
-	host->base->sd_cmdbuf[0] = (u8)(cmd->cmdidx | 0x40);	/* add start bit, according to spec, command format */
-	host->base->sd_cmdbuf[1] = (u8)((cmd->cmdarg >> 24) & 0x000000ff);
-	host->base->sd_cmdbuf[2] = (u8)((cmd->cmdarg >> 16) & 0x000000ff);
-	host->base->sd_cmdbuf[3] = (u8)((cmd->cmdarg >>  8) & 0x000000ff);
-	host->base->sd_cmdbuf[4] = (u8)((cmd->cmdarg >>  0) & 0x000000ff);
+	host->ebase->sd_cmdbuf0 = (u8)(cmd->cmdidx | 0x40);	/* add start bit, according to spec, command format */
+	host->ebase->sd_cmdbuf1 = (u8)((cmd->cmdarg >> 24) & 0xff);
+	host->ebase->sd_cmdbuf2 = (u8)((cmd->cmdarg >> 16) & 0xff);
+	host->ebase->sd_cmdbuf3 = (u8)((cmd->cmdarg >>  8) & 0xff);
+	host->ebase->sd_cmdbuf4 = (u8)((cmd->cmdarg >>  0) & 0xff);
 
-	SD_PAGE_NUM_SET(host->base, data->blocks);
+	//SD_PAGE_NUM_SET(host->base, data->blocks);   
 	if (cmd->resp_type & MMC_RSP_CRC && !(cmd->resp_type & MMC_RSP_136))
 		host->base->sdrspchk_en = 0x1;
 	else
@@ -763,7 +849,7 @@ int sp_sd_hw_set_data_info (sp_mmc_host *host, struct mmc_cmd *cmd, struct mmc_d
 		host->base->sd_len_mode = 0;
 	else
 		host->base->sd_len_mode = 1;
-	host->base->sdpiomode = 0;
+
 	host->base->sdcrctmren = 1;
 	host->base->sdrsptmren = 1;
 	host->base->hw_dma_en = 0;
@@ -773,27 +859,49 @@ int sp_sd_hw_set_data_info (sp_mmc_host *host, struct mmc_cmd *cmd, struct mmc_d
 	else
 		host->base->sdrsptype = 0x0;
 
+        SD_PAGE_NUM_SET(host->ebase, data->blocks); 
 	SDDATALEN_SET(host->base, data->blocksize);
 
+	if(SP_MMC_PIO_MODE == host->dmapio_mode) {
+		host->ebase->sdpiomode = 1;
+		host->ebase->rx4_en = 1;
+	}
+	else {
+		host->ebase->sdpiomode = 0;
+#define SP_MMC_DMA_DEVICE		2ul
+#define SP_MMC_DMADST_SHIFT		8
+#define SP_MMC_DMA_HOST			1ul
+#define SP_MMC_DMASRC_SHIFT		4
+#define SP_MMC_DMA_TO_DEVICE	((SP_MMC_DMA_DEVICE << SP_MMC_DMADST_SHIFT) | (SP_MMC_DMA_HOST << SP_MMC_DMASRC_SHIFT))
+#define SP_MMC_DMA_FROM_DEVICE  ((SP_MMC_DMA_HOST << SP_MMC_DMADST_SHIFT) | (SP_MMC_DMA_DEVICE << SP_MMC_DMASRC_SHIFT))
+#define SP_MMC_DMA_MASK			((0x3ul<< SP_MMC_DMADST_SHIFT) | (0x03ul << SP_MMC_DMASRC_SHIFT))
+
+		host->ebase->medatype_dma_src_dst &= ~SP_MMC_DMA_MASK;
 	/* Configure Group DMA Registers */
 	if (data->flags & MMC_DATA_WRITE) {
-		host->base->dmadst = 0x2;
-		host->base->dmasrc = 0x1;
+			host->ebase->medatype_dma_src_dst |= SP_MMC_DMA_TO_DEVICE;
+#if 0
+			host->ebase->dmadst = 0x2;
+			host->ebase->dmasrc = 0x1;
+#endif
 		hw_address = (unsigned int) data->src;
 	} else {
-		host->base->dmadst = 0x1;
-		host->base->dmasrc = 0x2;
+			host->ebase->medatype_dma_src_dst |= SP_MMC_DMA_FROM_DEVICE;
+#if 0
+			host->ebase->dmadst = 0x1;
+			host->ebase->dmasrc = 0x2;
+#endif
 		hw_address = (unsigned int) data->dest;
 	}
-	DMASIZE_SET(host->base, data->blocksize);
-	/* printf("hw_address 0x%x\n", hw_address); */
-	SET_HW_DMA_BASE_ADDR(host->base, hw_address);
+		host->ebase->dma_base_addr = hw_address;
+		SP_MMC_SECTOR_NUM_SET(host->ebase->sdram_sector_0_size, data->blocks);
+	}
 
 	/*
 	 * Configure SD INT reg
 	 * Disable HW DMA data transfer complete interrupt (when using sdcmpen)
 	 */
-	host->base->dmacmpen_interrupt = 0;
+	host->base->hwdmacmpen = 0;
 	host->base->sdcmpen = 0x0;
 
 	return 0;
@@ -801,7 +909,7 @@ int sp_sd_hw_set_data_info (sp_mmc_host *host, struct mmc_cmd *cmd, struct mmc_d
 
 int sp_sd_hw_trigger (sp_mmc_host *host)
 {
-	host->base->sdctrl_trigger_cmd = 1;   /* Start transaction */
+	host->base->sdctrl0 = 1;   /* Start transaction */
 	return 0;
 }
 
@@ -816,13 +924,16 @@ int sp_sd_hw_reset_mmc (sp_mmc_host *host)
 
 int sp_sd_hw_reset_dma (sp_mmc_host *host)
 {
-	host->base->rst_cnad = 1;
+
+	host->ebase->dmaidle = 1;
+	host->ebase->dmaidle = 0;
+	host->ebase->hw_dma_rst = 1;
 	/*reset Central FIFO*/
 	/* Wait for channel reset to complete */
-	while (host->base->rst_cnad == 1) {
-		sp_sd_trace();
-		udelay(1);
-	}
+	//while (host->ebase->hwsd_sm & SP_SD_HW_DMA_ERROR) {
+	//	sp_sd_trace();
+	//	udelay(1);
+	//}
 
 
 	return 0;
@@ -851,6 +962,7 @@ int sp_sd_hw_check_finish (sp_mmc_host *host)
 
 int	sp_sd_hw_tx_dummy (sp_mmc_host *host)
 {
+	host->base->sdctrl1 = 1;
 	return 0;
 }
 
@@ -861,24 +973,24 @@ int sp_sd_hw_check_error (sp_mmc_host *host, bool with_data)
 	if (host->base->sdstate_new & SDSTATE_NEW_ERROR_TIMEOUT) {
 		/* Response related errors */
 		if (host->base->sdstatus & SP_SDSTATUS_WAIT_RSP_TIMEOUT) {
-			host->timing_info.wr_dly++;
+			host->timing_info.wr_cmd_dly++;
 			ret = -ETIMEDOUT;
 		} else if (host->base->sdstatus & SP_SDSTATUS_RSP_CRC7_ERROR) {
-			host->timing_info.rd_dly++;
+			host->timing_info.rd_rsp_dly++;
 			ret = -EILSEQ;
 		} else if (with_data) {
 			/* Data transaction related errors */
 			if (host->base->sdstatus & SP_SDSTATUS_WAIT_STB_TIMEOUT) {
-				host->timing_info.rd_dly++;
+				host->timing_info.rd_dat_dly++;
 				ret = -ETIMEDOUT;
 			} else if (host->base->sdstatus & SP_SDSTATUS_WAIT_CARD_CRC_CHECK_TIMEOUT) {
-				host->timing_info.rd_dly++;
+				host->timing_info.rd_dat_dly++;
 				ret = -ETIMEDOUT;
 			} else if (host->base->sdstatus & SP_SDSTATUS_CRC_TOKEN_CHECK_ERROR) {
-				host->timing_info.wr_dly++;
+				host->timing_info.wr_dat_dly++;
 				ret = -EILSEQ;
 			} else if (host->base->sdstatus & SP_SDSTATUS_RDATA_CRC16_ERROR) {
-				host->timing_info.rd_dly++;
+				host->timing_info.rd_dat_dly++;
 				ret = -EILSEQ;
 			}
 
@@ -912,7 +1024,12 @@ static int sp_emmc_hw_init(sp_mmc_host *host)
 	base->sdcrctmr = 0x7ff;
 	base->sdcrctmren = 1;
 	base->sdrsptmren = 1;
+	//if (SPMMC_DEVICE_TYPE_EMMC == host->dev_info.type)
+	//{
 	base->sdmmcmode = 1;
+	//} else {
+	//	base->sdmmcmode = 0;
+	//}
 	base->sd_rxdattmr = SP_EMMC_RXDATTMR_MAX;
 	base->mediatype = 6;
 	mdelay(10);
@@ -1003,11 +1120,11 @@ int sp_emmc_hw_set_cmd (sp_mmc_host *host, struct mmc_cmd *cmd)
 	sp_sd_trace();
 	/* printf("Configuring registers\n"); */
 	/* Configure Group SD Registers */
-	host->ebase->sd_cmdbuf[3] = (u8)(cmd->cmdidx | 0x40);	/* add start bit, according to spec, command format */
-	host->ebase->sd_cmdbuf[2] = (u8)((cmd->cmdarg >> 24) & 0xff);
-	host->ebase->sd_cmdbuf[1] = (u8)((cmd->cmdarg >> 16) & 0xff);
-	host->ebase->sd_cmdbuf[0] = (u8)((cmd->cmdarg >>  8) & 0xff);
-	host->ebase->sd_cmdbuf[4] = (u8)((cmd->cmdarg >>  0) & 0xff);
+	host->ebase->sd_cmdbuf0 = (u8)(cmd->cmdidx | 0x40);	/* add start bit, according to spec, command format */
+	host->ebase->sd_cmdbuf1 = (u8)((cmd->cmdarg >> 24) & 0xff);
+	host->ebase->sd_cmdbuf2 = (u8)((cmd->cmdarg >> 16) & 0xff);
+	host->ebase->sd_cmdbuf3 = (u8)((cmd->cmdarg >>  8) & 0xff);
+	host->ebase->sd_cmdbuf4 = (u8)((cmd->cmdarg >>  0) & 0xff);
 
 	/* Configure SD INT reg (Disable them) */
 	host->ebase->hwdmacmpen = 0;
@@ -1161,11 +1278,11 @@ int sp_emmc_hw_set_data_info (sp_mmc_host *host, struct mmc_cmd *cmd, struct mmc
 	Sd_Bus_Reset_Channel(host);
 
 	/* Configure Group SD Registers */
-	host->ebase->sd_cmdbuf[3] = (u8)(cmd->cmdidx | 0x40);	/* add start bit, according to spec, command format */
-	host->ebase->sd_cmdbuf[2] = (u8)((cmd->cmdarg >> 24) & 0x000000ff);
-	host->ebase->sd_cmdbuf[1] = (u8)((cmd->cmdarg >> 16) & 0x000000ff);
-	host->ebase->sd_cmdbuf[0] = (u8)((cmd->cmdarg >>  8) & 0x000000ff);
-	host->ebase->sd_cmdbuf[4] = (u8)((cmd->cmdarg >>  0) & 0x000000ff);
+	host->ebase->sd_cmdbuf0 = (u8)(cmd->cmdidx | 0x40);	/* add start bit, according to spec, command format */
+	host->ebase->sd_cmdbuf1 = (u8)((cmd->cmdarg >> 24) & 0xff);
+	host->ebase->sd_cmdbuf2 = (u8)((cmd->cmdarg >> 16) & 0xff);
+	host->ebase->sd_cmdbuf3 = (u8)((cmd->cmdarg >>  8) & 0xff);
+	host->ebase->sd_cmdbuf4 = (u8)((cmd->cmdarg >>  0) & 0xff);
 
 
 	if (cmd->resp_type & MMC_RSP_CRC && !(cmd->resp_type & MMC_RSP_136))
@@ -1270,6 +1387,7 @@ int sp_emmc_hw_reset_dma (sp_mmc_host *host)
 		sp_sd_trace();
 		udelay(1);
 	}
+
 
 	return 0;
 }
@@ -1499,7 +1617,9 @@ struct moon1_regs {
 
 int sd_set_pinmux(struct sp_mmc_dev_info *info)
 {
-	MOON1_REG->sft_cfg[1] = RF_MASK_V(1 << 6, 1 << 6);
+	//MOON1_REG->sft_cfg[1] = RF_MASK_V(1 << 6, 1 << 6);
+
+	MOON1_REG->sft_cfg[4] = RF_MASK_V(1 << 0, 1 << 0);
 	return 0;
 }
 

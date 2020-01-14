@@ -63,6 +63,35 @@ typedef volatile unchar dev_reg8;
 #define	HWSD_SM_RST_CHAN_TIMEOUT	0x53
 
 
+#define SP_MEDIA_NONE			0
+#define SP_MEDIA_SMC			1
+#define SP_MEDIA_RESERVED1 		2
+#define SP_MEDIA_CF				3
+#define SP_MEDIA_SPI			4
+#define SP_MEDIA_RESERVED2		5
+#define SP_MEDIA_SD				6
+#define SP_MEDIA_MEMORY_STICK	7
+
+	/*  G1.8 => sdstatus */
+#define SP_SDSTATUS_DUMMY_READY 				        	BIT(0)
+#define SP_SDSTATUS_RSP_BUF_FULL					        BIT(1)
+#define SP_SDSTATUS_TX_DATA_BUF_EMPTY				      BIT(2)
+#define SP_SDSTATUS_RX_DATA_BUF_FULL			       	BIT(3)
+#define SP_SDSTATUS_CMD_PIN_STATUS					      BIT(4)
+#define SP_SDSTATUS_DAT0_PIN_STATUS					      BIT(5)
+#define SP_SDSTATUS_WAIT_RSP_TIMEOUT				      BIT(6)
+#define SP_SDSTATUS_WAIT_CARD_CRC_CHECK_TIMEOUT		BIT(7)
+#define SP_SDSTATUS_WAIT_STB_TIMEOUT				      BIT(8)
+#define SP_SDSTATUS_RSP_CRC7_ERROR					      BIT(9)
+#define SP_SDSTATUS_CRC_TOKEN_CHECK_ERROR			    BIT(10)
+#define SP_SDSTATUS_RDATA_CRC16_ERROR				      BIT(11)
+#define SP_SDSTATUS_SUSPEND_STATE_READY				    BIT(12)
+#define SP_SDSTATUS_BUSY_CYCLE						        BIT(13)
+
+
+	/*  G1.9 => sdstate */
+#define SDSTATE_NEW_FINISH_IDLE 		              BIT(6)
+#define SDSTATE_NEW_ERROR_TIMEOUT 		            BIT(5)
 
 typedef struct spsd_general_regs {
 	/*  group 0 */
@@ -281,7 +310,7 @@ typedef struct spsd_general_regs {
 
 	dev_reg32 sd_clk_dly_sel:3;			/* 14. */
 #define SP_SD_RXDATTMR_MAX	((1 << 29) - 1)
-	dev_reg32 sdrxdattmr_sel:29;
+	dev_reg32 sdrxdattmr:29;
 
 	dev_reg32 reserved_reserved_2_15;		/* 15. */
 
@@ -733,8 +762,23 @@ typedef struct  spemmc_general_regs{
 
 	/* g1.17 */
 	/* g1.18 */
+	union {
+		struct  {
+    	                dev_reg8 sd_cmdbuf3;
+	                dev_reg8 sd_cmdbuf2;
+	                dev_reg8 sd_cmdbuf1;
+   	                dev_reg8 sd_cmdbuf0;
+	                dev_reg8 sd_cmdbuf4;
+			dev_reg8 sd_cmdbuf_reserved[3];
+		};
+		struct {
 	dev_reg8 sd_cmdbuf[5];
-	dev_reg8 reserved32[3];
+	                dev_reg8 cmdbuf_reserved[3];
+		};
+	};
+
+
+
 	/* g1.19 - g1.20 */
 	union {
 		struct  {
@@ -754,6 +798,6 @@ typedef struct  spemmc_general_regs{
 	dev_reg32 reserved34[11];
 	/* ms card related regs */
 	dev_reg32 ms_regs[32];
-} EMMCREG;
+} EMMCREG,SDCARDREG;
 
 #endif /* __SP_MMC_REGS_H__ */
