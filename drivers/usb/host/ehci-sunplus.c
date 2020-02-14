@@ -29,7 +29,9 @@
 
 
 struct uphy_rn_regs {
-       unsigned int cfg[22];
+	u32 cfg[28];		       // 150.0
+	u32 gctrl[3];		       // 150.28
+	u32 gsts;		       // 150.31
 };
 #define UPHY0_RN_REG ((volatile struct uphy_rn_regs *)RF_GRP(149, 0))
 #define UPHY1_RN_REG ((volatile struct uphy_rn_regs *)RF_GRP(150, 0))
@@ -103,99 +105,88 @@ struct sunplus_ehci_priv {
 
 static void uphy_init(int port_num)
 {
-	unsigned int val, set;
-
-	// 1. Default value modification
+	// 1. enable UPHY 0/1 & USBC 0/1 HW CLOCK */
 	if(0 == port_num){
-		MOON4_REG->uphy0_ctl[0] = RF_MASK_V(0xffff, 0x4002);
-		MOON4_REG->uphy0_ctl[1] = RF_MASK_V(0xffff, 0x8747);	
-	} else if (1 == port_num){
-		MOON4_REG->uphy1_ctl[0] = RF_MASK_V(0xffff, 0x4004);
-		MOON4_REG->uphy1_ctl[1] = RF_MASK_V(0xffff, 0x8747);	
-	}
-
-	// 2. PLL power off/on twice
-	if(0 == port_num){
-		MOON4_REG->uphy0_ctl[3] = RF_MASK_V(0xffff, 0x88);
-		mdelay(1);
-		MOON4_REG->uphy0_ctl[3] = RF_MASK_V(0xffff, 0x80);
-		mdelay(1);
-		MOON4_REG->uphy0_ctl[3] = RF_MASK_V(0xffff, 0x88);
-		mdelay(1);
-		MOON4_REG->uphy0_ctl[3] = RF_MASK_V(0xffff, 0x80);
-		mdelay(1);
-		MOON4_REG->uphy0_ctl[3] = RF_MASK_V(0xffff, 0);
-	} else if (1 == port_num){
-		MOON4_REG->uphy1_ctl[3] = RF_MASK_V(0xffff, 0x88);
-		mdelay(1);
-		MOON4_REG->uphy1_ctl[3] = RF_MASK_V(0xffff, 0x80);
-		mdelay(1);
-		MOON4_REG->uphy1_ctl[3] = RF_MASK_V(0xffff, 0x88);
-		mdelay(1);
-		MOON4_REG->uphy1_ctl[3] = RF_MASK_V(0xffff, 0x80);
-		mdelay(1);
-		MOON4_REG->uphy1_ctl[3] = RF_MASK_V(0xffff, 0);
+		MOON0_REG->clken[2] = RF_MASK_V_SET(1 << 13);
+		MOON0_REG->clken[2] = RF_MASK_V_SET(1 << 10);
+	} else if(1 == port_num){
+		MOON0_REG->clken[2] = RF_MASK_V_SET(1 << 14);
+		MOON0_REG->clken[2] = RF_MASK_V_SET(1 << 11);
 	}
 	mdelay(1);
 
-	// 3. reset UPHY0/1
+	// 2. reset UPHY 0/1
 	if(0 == port_num){
 		MOON0_REG->reset[2] = RF_MASK_V_SET(1 << 13);
+		mdelay(1);
 		MOON0_REG->reset[2] = RF_MASK_V_CLR(1 << 13);
-	} else if (1 == port_num){
+	} else if(1 == port_num){
 		MOON0_REG->reset[2] = RF_MASK_V_SET(1 << 14);
+		mdelay(1);
 		MOON0_REG->reset[2] = RF_MASK_V_CLR(1 << 14);
 	}
 	mdelay(1);
 
-	// 4. UPHY 0 internal register modification
+	// 3. Default value modification
 	if(0 == port_num){
-		UPHY0_RN_REG->cfg[7] = 0x8b;
-	} else if (1 == port_num){
-		UPHY1_RN_REG->cfg[7] = 0x8b;
+		UPHY0_RN_REG->gctrl[0] = 0x18888002;
+	} else if(1 == port_num){
+		UPHY1_RN_REG->gctrl[0] = 0x18888002;
+	}
+	mdelay(1);
+
+	// 4. PLL power off/on twice
+	if(0 == port_num){
+		UPHY0_RN_REG->gctrl[2] = 0x88;
+		mdelay(1);
+		UPHY0_RN_REG->gctrl[2] = 0x80;
+		mdelay(1);
+		UPHY0_RN_REG->gctrl[2] = 0x88;
+		mdelay(1);
+		UPHY0_RN_REG->gctrl[2] = 0x80;;
+		mdelay(20);
+		UPHY0_RN_REG->gctrl[2] = 0x0;
+	} else if(1 == port_num){
+		UPHY1_RN_REG->gctrl[2] = 0x88;
+		mdelay(1);
+		UPHY1_RN_REG->gctrl[2] = 0x80;
+		mdelay(1);
+		UPHY1_RN_REG->gctrl[2] = 0x88;
+		mdelay(1);
+		UPHY1_RN_REG->gctrl[2] = 0x80;
+		mdelay(20);
+		UPHY1_RN_REG->gctrl[2] = 0x0;
 	}
 
-	// 5. USBC 0 reset
+	// 5. USBC 0/1 reset
 	if(0 == port_num){
 		MOON0_REG->reset[2] = RF_MASK_V_SET(1 << 10);
+		mdelay(1);
 		MOON0_REG->reset[2] = RF_MASK_V_CLR(1 << 10);
-	} else if (1 == port_num){
+	} else if(1 == port_num){
 		MOON0_REG->reset[2] = RF_MASK_V_SET(1 << 11);
+		mdelay(1);
 		MOON0_REG->reset[2] = RF_MASK_V_CLR(1 << 11);
 	}
+	mdelay(1);
 
-	// Backup solution to workaround real IC USB clock issue
-	// (issue: hang on reading EHCI_USBSTS after EN_ASYNC_SCHEDULE)
+	// 6. HW workaround
 	if(0 == port_num){
-		if (HB_GP_REG->hb_otp_data2 & 0x1) { // G350.2 bit[0]
-			printf("uphy0 rx clk inv\n");
-			MOON4_REG->uphy0_ctl[2] = RF_MASK_V_SET(1 << 6);
-		}
-	} else if (1 == port_num){
-		if (HB_GP_REG->hb_otp_data2 & 0x2) { // G350.2 bit[1]
-			printf("uphy1 rx clk inv\n");
-			MOON4_REG->uphy1_ctl[2] = RF_MASK_V_SET(1 << 6);
-		}		
+		UPHY0_RN_REG->cfg[19] |= 0x0f;
+	} else if(1 == port_num){
+		UPHY1_RN_REG->cfg[19] |= 0x0f;
 	}
-
-    // OTP for USB DISC (disconnect voltage)
-	val = HB_GP_REG->hb_otp_data6;
+	// 7. USB DISC (disconnect voltage)
 	if(0 == port_num){
-		set = val & 0x1F; // UPHY0 DISC
-	    if (!set) {
-	            set = DEFAULT_UPHY_DISC;
-	    } else if (set <= ORIG_UPHY_DISC) {
-	            set += 2;
-	    }
-	    UPHY0_RN_REG->cfg[7] = (UPHY0_RN_REG->cfg[7] & ~0x1F) | set;
-	} else if (1 == port_num){
-		set = (val >> 5) & 0x1F; // UPHY1 DISC
-	    if (!set) {
-	            set = DEFAULT_UPHY_DISC;
-	    } else if (set <= ORIG_UPHY_DISC) {
-	            set += 2;
-	    }
-	    UPHY1_RN_REG->cfg[7] = (UPHY1_RN_REG->cfg[7] & ~0x1F) | set;
+		UPHY0_RN_REG->cfg[7] = 0x8b;
+	} else if(1 == port_num){
+		UPHY1_RN_REG->cfg[7] = 0x8b;
+	}
+	// 8. RX SQUELCH LEVEL
+	if(0 == port_num){
+		UPHY0_RN_REG->cfg[25] = 0x4;
+	} else if(1 == port_num){
+		UPHY1_RN_REG->cfg[25] = 0x4;
 	}
 }
 
@@ -205,9 +196,9 @@ static void usb_power_init(int is_host, int port_num)
     //    Host: enable
     //    Device: disable
 	if (is_host) {
-		MOON1_REG->sft_cfg[3] = RF_MASK_V_SET(1 << (2 + port_num));
+		MOON1_REG->sft_cfg[2] = RF_MASK_V_SET(1 << (12 + port_num));
 	} else {
-		MOON1_REG->sft_cfg[3] = RF_MASK_V_CLR(1 << (2 + port_num));
+		MOON1_REG->sft_cfg[2] = RF_MASK_V_CLR(1 << (12 + port_num));
 	}
 
     // b. USB control register:
@@ -215,17 +206,17 @@ static void usb_power_init(int is_host, int port_num)
     //    Device  ctrl=1, host sel=0, type=0
 	if (is_host) {
 		if(0 == port_num){
-			MOON4_REG->usbc_ctl = RF_MASK_V_SET(7 << 4);
+			MOON5_REG->sft_cfg[17] = RF_MASK_V_SET(7 << 4);
 		} else if (1 == port_num){
-			MOON4_REG->usbc_ctl = RF_MASK_V_SET(7 << 12);
+			MOON5_REG->sft_cfg[17] = RF_MASK_V_SET(7 << 12);
 		}
 	} else {
 		if(0 == port_num){
-			MOON4_REG->usbc_ctl = RF_MASK_V_SET(1 << 4);
-			MOON4_REG->usbc_ctl = RF_MASK_V_CLR(3 << 5);
+			MOON5_REG->sft_cfg[17] = RF_MASK_V_SET(1 << 4);
+			MOON5_REG->sft_cfg[17] = RF_MASK_V_CLR(3 << 5);
 		} else if (1 == port_num){
-			MOON4_REG->usbc_ctl = RF_MASK_V_SET(1 << 12);
-			MOON4_REG->usbc_ctl = RF_MASK_V_CLR(3 << 13);
+			MOON5_REG->sft_cfg[17] = RF_MASK_V_SET(1 << 12);
+			MOON5_REG->sft_cfg[17] = RF_MASK_V_CLR(3 << 13);
 		}
 	}
 }
@@ -267,8 +258,8 @@ static int ehci_usb_remove(struct udevice *dev)
 }
 
 static const struct udevice_id ehci_sunplus_ids[] = {
-	{ .compatible = "sunplus,sunplus-q628-usb-ehci0" },
-	{ .compatible = "sunplus,sunplus-q628-usb-ehci1" },
+	{ .compatible = "sunplus,sunplus-i143-usb-ehci0" },
+	{ .compatible = "sunplus,sunplus-i143-usb-ehci1" },
 	{ }
 };
 
