@@ -16,6 +16,7 @@ obj-y	+= interrupts.o
 obj-y	+= reset.o
 obj-y   += setjmp.o
 obj-$(CONFIG_SMP) += smp.o
+obj-$(CONFIG_SP_TIMER) += sp_timer.o
 
 # For building EFI apps
 CFLAGS_$(EFI_CRT0) := $(CFLAGS_EFI)

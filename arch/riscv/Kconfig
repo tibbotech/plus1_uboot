@@ -153,4 +153,10 @@ config XIP
 config STACK_SIZE_SHIFT
 	int
 	default 13
+
+config SP_TIMER
+	bool "Sunplus timer"
+	default y
+	help
+	  Support Sunplus STC timer	
 endmenu
