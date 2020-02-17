@@ -184,8 +184,8 @@
 			compatible = "sunplus,sunplus-i143-gl2sw";
 			reg = <0x0 0x9c108000 0x0 0x280>, <0x0 0x9c000280 0x0 0x80>;
 			reg-names = "gl2sw", "moon5";
-			phy0 = <&phy0>;
-			phy1 = <&phy1>;
+			phy-handle1 = <&phy0>;
+			phy-handle2 = <&phy1>;
 			mac-addr1 = <52>;
 			#address-cells = <1>;
 			#size-cells = <0>;

@@ -749,7 +749,7 @@ static int l2sw_emac_eth_ofdata_to_platdata(struct udevice *dev)
 	priv->phy_addr0 = -1;
 	priv->phy_addr1 = -1;
 
-	offset = fdtdec_lookup_phandle(gd->fdt_blob, node, "phy0");
+	offset = fdtdec_lookup_phandle(gd->fdt_blob, node, "phy-handle1");
 	if (offset > 0) {
 		priv->phy_addr0 = fdtdec_get_int(gd->fdt_blob, offset, "reg", -1);
 	}
@@ -759,7 +759,7 @@ static int l2sw_emac_eth_ofdata_to_platdata(struct udevice *dev)
 		return -EINVAL;
 	}
 
-	offset = fdtdec_lookup_phandle(gd->fdt_blob, node, "phy1");
+	offset = fdtdec_lookup_phandle(gd->fdt_blob, node, "phy-handle2");
 	if (offset > 0) {
 		priv->phy_addr1 = fdtdec_get_int(gd->fdt_blob, offset, "reg", -1);
 	}
@@ -797,6 +797,7 @@ static int l2sw_emac_eth_ofdata_to_platdata(struct udevice *dev)
 
 static const struct udevice_id l2sw_emac_eth_ids[] = {
 	{.compatible = "sunplus,sunplus-i143-gl2sw"},
+	{.compatible = "sunplus,i143-gl2sw"},
 	{ }
 };
 
