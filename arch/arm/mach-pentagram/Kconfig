@@ -12,6 +12,10 @@ config TARGET_PENTAGRAM_B_BOOT
 	bool "pentagram common board (B boot)"
 	select CPU_ARM926EJS
 
+config TARGET_PENTAGRAM_I143_CP
+	bool "pentagram common board (I143 C+P)"
+	select CPU_V7A
+	select SYS_THUMB_BUILD
 endchoice
 
 choice

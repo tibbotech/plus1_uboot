@@ -28,6 +28,7 @@
 
 		pinctrl_func: pinmux_func {
 			net_l2sw {
+#ifndef CONFIG_SUPPORT_I143_CP			
 #if 1 // Ev board
 				pinmux = <PMX_L2SW_CLK_OUT              G_MX47_GPIO_P5_7
 					  PMX_L2SW_MAC_SMI_MDC          G_MX41_GPIO_P5_1
@@ -84,6 +85,7 @@
 					  PMX_L2SW_P1_MAC_RMII_RXD1     G_MX56_GPIO_P7_0
 					  PMX_L2SW_P1_MAC_RMII_RXER     G_MX53_GPIO_P6_5
 				>;
+#endif
 #endif
 			};
 		};
