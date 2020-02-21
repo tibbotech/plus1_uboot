@@ -132,4 +132,11 @@ config PHYS_TO_BUS
 	  your platform's Kconfig, and implement the appropriate mapping
 	  functions in your platform's support code.
 
+config SP_VIDEOIN
+	bool "Sunplus Video-In Validation"
+	default n
+	help
+	  Enable Sunplus Video-In uboot command to validate Sunplus Video-In
+	  functions.
+
 endmenu

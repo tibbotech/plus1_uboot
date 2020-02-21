@@ -104,6 +104,7 @@ obj-y += memory/
 obj-y += pwm/
 obj-y += reset/
 obj-y += input/
+obj-$(CONFIG_SP_VIDEOIN) += sp-videoin/
 # SOC specific infrastructure drivers.
 obj-y += smem/
 obj-y += soc/
