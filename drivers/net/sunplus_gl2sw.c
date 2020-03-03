@@ -23,7 +23,7 @@
 extern int read_otp_data(int addr, char *value);
 
 
-static struct l2sw_reg* l2sw_reg_base = NULL;
+static struct l2sw_reg* gl2sw_reg_base = NULL;
 static struct moon5_reg* moon5_reg_base = NULL;
 
 #if 0
@@ -227,6 +227,7 @@ static int l2sw_mdio_init(const char *name, struct udevice *priv)
 	return mdio_register(bus);
 }
 
+#ifndef ZEBU_XTOR
 static int l2sw_phy_init(struct emac_eth_dev *priv, void *dev)
 {
 	struct phy_device *phy_dev;
@@ -244,6 +245,7 @@ static int l2sw_phy_init(struct emac_eth_dev *priv, void *dev)
 
 	return 0;
 }
+#endif
 
 static void rx_descs_init(struct emac_eth_dev *priv)
 {
@@ -425,7 +427,7 @@ static int l2sw_eth_write_hwaddr(struct udevice *dev)
 	if (is_valid_ethaddr(pdata->enetaddr)) {
 		return _l2sw_write_hwaddr(priv, pdata->enetaddr);
 	} else {
-		//eth_err("Invalid mac address = %pM!\n",	pdata->enetaddr);
+		//eth_err("Invalid mac address = %pM!\n", pdata->enetaddr);
 	}
 
 	return -1;
@@ -537,7 +539,7 @@ static int l2sw_emac_eth_recv(struct udevice *dev, int flags, uchar **packetp)
 		data_end = DCACHE_ROUNDUP(rxdesc->addr1 + length);
 		invalidate_dcache_range(data_start, data_end);
 
-		//print_packet((char*)rxdesc->addr1, length);
+		//print_packet((char*)(long long)rxdesc->addr1, length);
 
 		// Move to next descriptor and wrap-around if needed.
 		if (++rx_pos >= CONFIG_RX_DESCR_NUM) {
@@ -574,7 +576,7 @@ static int l2sw_eth_free_pkt(struct udevice *dev, uchar *packet, int length)
 		desc_end = DCACHE_ROUNDUP((u64)rxdesc + sizeof(u32));
 		invalidate_dcache_range(desc_start, desc_end);
 
-		//eth_info("FR: rx_desc[%lld], cmd1 = %08x, cmd2 = %08x, addr1 = %08x\n", i, rxdesc->cmd1, rxdesc->cmd2, rxdesc->addr1);
+		//eth_info("FR: rx_desc[%d], cmd1 = %08x, cmd2 = %08x, addr1 = %08x\n", i, rxdesc->cmd1, rxdesc->cmd2, rxdesc->addr1);
 
 		// Make the current descriptor valid again.
 		rxdesc->cmd1 = OWN_BIT;
@@ -593,15 +595,20 @@ static void l2sw_soc_stop(void)
 	reg = HWREG_R(cpu_cntl);
 	HWREG_W(cpu_cntl, reg | (1<<6));
 
+#ifndef ZEBU_XTOR
+// Never disable lan port in force link-up mode.
 	reg = HWREG_R(port_cntl0);
 	HWREG_W(port_cntl0, reg | (3<<24));
+#endif
 
 	HWREG_W(sw_int_status, 0xffffffff);
 }
 
 static void l2sw_emac_eth_stop(struct udevice *dev)
 {
+#ifndef ZEBU_XTOR
 	struct emac_eth_dev *priv = dev_get_priv(dev);
+#endif
 
 	//eth_info("[%s] IN\n", __func__);
 
@@ -609,9 +616,9 @@ static void l2sw_emac_eth_stop(struct udevice *dev)
 	l2sw_soc_stop();
 
 	dcache_enable();
-
+#ifndef ZEBU_XTOR
 	phy_shutdown(priv->phy_dev0);
-
+#endif
 	//mac_hw_addr_print();
 }
 
@@ -620,8 +627,17 @@ static void l2sw_emac_board_setup(struct emac_eth_dev *priv)
 	u32 reg;
 
 	// Set polarity of TX & RX
-	reg = MOON5REG_R(mo4_l2sw_clksw_ctl);
-	MOON5REG_W(mo4_l2sw_clksw_ctl, reg | (0xf<<16) | 0xf);
+	//reg = MOON5REG_R(mo4_l2sw_clksw_ctl);
+	//MOON5REG_W(mo4_l2sw_clksw_ctl, reg | (0xf<<16) | 0xf);
+	volatile u32 *moon1_reg_base = (void*)0x9c000080;
+	moon1_reg_base[1] = (1 << (16+3)) | (1 << 3);   // Enable GL2SW pin-out.
+	//eth_info("moon1_reg_base[1] = %08x\n", moon1_reg_base[1]);
+
+#ifdef ZEBU_XTOR
+	volatile u32 *moon4_reg_base = (void*)0x9c000200;
+	moon4_reg_base[14] = (1 << (16+7)) | (1 << 7);  // Force lower speed for XTOR.
+	//eth_info("moon4_reg_base[14] = %08x\n", moon4_reg_base[14]);
+#endif
 
 	// Set phy 0 address.
 	if (priv->phy_addr0 <= 31) {
@@ -635,6 +651,25 @@ static void l2sw_emac_board_setup(struct emac_eth_dev *priv)
 		HWREG_W(mac_force_mode0, (reg & (~(0x1f<<5))) | (priv->phy_addr1<<5));
 	}
 	//eth_info("mac_force_mode0 = %08x\n", HWREG_R(mac_force_mode0));
+
+#ifdef ZEBU_XTOR
+	// enable lan 0 & lan 1 before force link-up
+	reg = HWREG_R(port_cntl0);
+	HWREG_W(port_cntl0, reg & (~(3<<24)));
+
+	reg = HWREG_R(mac_force_mode0);
+	reg |= MAC_FORCE_MODE0;
+	HWREG_W(mac_force_mode0, reg);
+	reg = HWREG_R(mac_force_mode1);
+	reg |= MAC_FORCE_MODE1;
+	HWREG_W(mac_force_mode1, reg);
+	//eth_info("mac_force_mode0 = %08x\n", HWREG_R(mac_force_mode0));
+	//eth_info("mac_force_mode1 = %08x\n", HWREG_R(mac_force_mode1));
+
+	// Invert RX clock and no delay
+	HWREG_W(p0_softpad_config, 0x00000020);
+	HWREG_W(p1_softpad_config, 0x00000020);
+#endif
 }
 
 static int l2sw_emac_eth_init(struct emac_eth_dev *priv, u8 *enetaddr)
@@ -672,7 +707,9 @@ static int l2sw_emac_eth_init(struct emac_eth_dev *priv, u8 *enetaddr)
 	HWREG_W(cpu_cntl, (reg & (~((0x1<<14)|(0x3c<<0)))) | (0x1<<12));
 
 	// Write mac address.
-	_l2sw_write_hwaddr(priv, enetaddr);
+	if (is_valid_ethaddr(enetaddr)) {
+		_l2sw_write_hwaddr(priv, enetaddr);
+	}
 
 	// Initialize rx/tx descriptor.
 	rx_descs_init(priv);
@@ -682,9 +719,10 @@ static int l2sw_emac_eth_init(struct emac_eth_dev *priv, u8 *enetaddr)
 	reg = HWREG_R(led_port0);
 	HWREG_W(led_port0, reg | (1<<28));
 
+#ifndef ZEBU_XTOR
 	// Start up PHY0 */
 	genphy_parse_link(priv->phy_dev0);
-
+#endif
 	return 0;
 }
 
@@ -702,10 +740,12 @@ static int l2sw_emac_eth_probe(struct udevice *dev)
 	}
 	priv->bus = miiphy_get_dev_by_name(dev->name);
 
+#ifndef ZEBU_XTOR
 	ret = l2sw_phy_init(priv, dev);
 	if (ret != 0) {
 		return ret;
 	}
+#endif
 
 	l2sw_emac_eth_init(dev->priv, pdata->enetaddr);
 
@@ -730,11 +770,11 @@ static int l2sw_emac_eth_ofdata_to_platdata(struct udevice *dev)
 	int i;
 	u8 otp_mac[ARP_HLEN];
 
-	l2sw_reg_base = (void*)devfdt_get_addr_name(dev, "gl2sw");
-	pdata->iobase = (unsigned long)l2sw_reg_base;
-	//eth_info("l2sw_reg_base = %p\n", l2sw_reg_base);
-	if ((long long)l2sw_reg_base == -1) {
-		eth_err("Failed to get base address of L2SW!\n");
+	gl2sw_reg_base = (void*)devfdt_get_addr_name(dev, "gl2sw");
+	pdata->iobase = (unsigned long)gl2sw_reg_base;
+	//eth_info("gl2sw_reg_base = %p\n", gl2sw_reg_base);
+	if ((long long)gl2sw_reg_base == -1) {
+		eth_err("Failed to get base address of GL2SW!\n");
 		return -EINVAL;
 	}
 
@@ -796,7 +836,6 @@ static int l2sw_emac_eth_ofdata_to_platdata(struct udevice *dev)
 }
 
 static const struct udevice_id l2sw_emac_eth_ids[] = {
-	{.compatible = "sunplus,sunplus-i143-gl2sw"},
 	{.compatible = "sunplus,i143-gl2sw"},
 	{ }
 };

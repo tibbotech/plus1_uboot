@@ -181,7 +181,7 @@
 		};
 
 		sp_gl2sw: gl2sw@0x9c108000 {
-			compatible = "sunplus,sunplus-i143-gl2sw";
+			compatible = "sunplus,i143-gl2sw";
 			reg = <0x0 0x9c108000 0x0 0x280>, <0x0 0x9c000280 0x0 0x80>;
 			reg-names = "gl2sw", "moon5";
 			phy-handle1 = <&phy0>;

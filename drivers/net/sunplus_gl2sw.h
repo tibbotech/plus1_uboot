@@ -2,11 +2,26 @@
  * Sunplus l2sw ethernet driver for u-boot
  */
 
-#ifndef __SUNPLUS_L2SW_H__
-#define __SUNPLUS_L2SW_H__
+#ifndef __SUNPLUS_GL2SW_H__
+#define __SUNPLUS_GL2SW_H__
 
 #include <net.h>
 #include <linux/compiler.h>
+
+
+#define ZEBU_XTOR
+
+#ifdef ZEBU_XTOR
+// mac_force_mode0[11:10]: force_gmii_en[1:0]   = 0x3 (enable force function)
+// mac_force_mode0[17:16]: force_gmii_spd0[1:0] = 0x3 (1G)
+// mac_force_mode0[19:18]: force_gmii_spd1[1:0] = 0x3 (1G)
+// mac_force_mode0[27:26]: force_gmii_dpx[1:0]  = 0x3 (no force duplex)
+#define MAC_FORCE_MODE0 0x0c0f0c00
+// mac_force_mode1[17:16]: force_gmii_xfc0[1:0] = 0x3 (full duplex and tx flow control)
+// mac_force_mode1[19:18]: force_gmii_xfc1[1:0] = 0x3 (full duplex and tx flow control)
+// mac_force_mode1[27:26]: force_gmii_link[1:0] = 0x3 (link up)
+#define MAC_FORCE_MODE1 0x0c0f0000
+#endif
 
 
 // debug macros
@@ -38,8 +53,8 @@
 #define MAC_AT_DATA_READY               (1<<0)
 
 // Register write & read
-#define HWREG_W(M, N)                   writel(N, (void*)&l2sw_reg_base->M)
-#define HWREG_R(M)                      readl((void*)&l2sw_reg_base->M)
+#define HWREG_W(M, N)                   writel(N, (void*)&gl2sw_reg_base->M)
+#define HWREG_R(M)                      readl((void*)&gl2sw_reg_base->M)
 #define MOON5REG_W(M, N)                writel(N, (void*)&moon5_reg_base->M)
 #define MOON5REG_R(M)                   readl((void*)&moon5_reg_base->M)
 
@@ -157,7 +172,7 @@ struct l2sw_reg {
 	u32 pause_uc_sa_sw_15_0;
 	u32 pause_uc_sa_sw_47_16;
 	u32 reserved3[2];
-	u32 mac_force_model;
+	u32 mac_force_mode1;
 	u32 p0_softpad_config;
 	u32 p1_softpad_config;
 	u32 reserved4[70];
