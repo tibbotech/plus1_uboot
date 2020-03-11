@@ -85,6 +85,9 @@
 	#endif
 #endif
 
+
+#define B_START_POS		(0x9e809ff8) 
+
 //#define CONFIG_CMDLINE_EDITING
 //#define CONFIG_AUTO_COMPLETE
 //#define CONFIG_SYS_LONGHELP
@@ -223,6 +226,7 @@
 #define DSTADDR_DTB		0x2FFFC0
 #define TMPADDR_HEADER		0x800000
 #define DSTADDR_ROOTFS		0x13FFFC0
+#define DSTADDR_NONOS	0x10000
 
 #if defined(CONFIG_SP_SPINAND) && defined(CONFIG_MMC_SP_EMMC)
 #define SDCARD_DEVICE_ID	0
@@ -247,6 +251,8 @@
 "bootinfo_base="		__stringify(SP_BOOTINFO_BASE) "\0" \
 "addr_src_kernel="		__stringify(CONFIG_SRCADDR_KERNEL) "\0" \
 "addr_src_dtb="			__stringify(CONFIG_SRCADDR_DTB) "\0" \
+"addr_src_nonos="		__stringify(CONFIG_SRCADDR_NONOS) "\0" \
+"addr_dst_nonos="		__stringify(DSTADDR_NONOS) "\0" \
 "addr_dst_kernel="		__stringify(DSTADDR_KERNEL) "\0" \
 "addr_dst_dtb="			__stringify(DSTADDR_DTB) "\0" \
 "addr_dst_rootfs="		__stringify(DSTADDR_ROOTFS) "\0" \
@@ -271,7 +277,15 @@
 	"setexpr byte *${tmpaddr} '&' 0xff000000; " \
 	"setexpr byte ${byte} / 0x1000000; " \
 	"setexpr tmpval $tmpval + $byte;\0" \
-"romter_boot=cp.b ${addr_src_dtb} ${addr_tmp_header} 0x28; " \
+"romter_boot=cp.b ${addr_src_nonos} ${addr_tmp_header} 0x40; " \
+	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
+	dbg_scr("md ${addr_tmp_header} 0x10; printenv tmpval; ") \
+	"setexpr sz_nonos ${tmpval} + 0x40; " \
+	"setexpr sz_nonos ${sz_nonos} + 4; setexpr sz_nonos ${sz_nonos} / 4; " \
+	dbg_scr("echo nonosize ${sz_nonos}  addr_dst_nonos ${addr_dst_nonos};") \
+	"cp.l ${addr_src_nonos} ${addr_dst_nonos} ${sz_nonos}; " \
+	"sp_nonos_go ${addr_dst_nonos};"\
+	"cp.b ${addr_src_dtb} ${addr_tmp_header} 0x28; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x4; run be2le; " \
 	dbg_scr("md ${addr_tmp_header} 0x10; printenv tmpval; ") \
 	"setexpr sz_dtb ${tmpval} + 0x28; " \
@@ -304,7 +318,14 @@
 	"cp.l ${addr_src_kernel} ${addr_dst_kernel} ${sz_kernel}; " \
 	dbg_scr("echo sp_go ${addr_dst_kernel} ${addr_dst_dtb}; ") \
 	"sp_go ${addr_dst_kernel} ${addr_dst_dtb}\0" \
-"emmc_boot=mmc read ${addr_tmp_header} ${addr_src_dtb} 0x1; " \
+"emmc_boot=	mmc read ${addr_tmp_header} ${addr_src_nonos} 0x1; " \
+	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
+	"setexpr sz_nonos ${tmpval} + 0x40; " \
+	"setexpr sz_nonos ${sz_nonos} + 0x200; setexpr sz_nonos ${sz_nonos} / 0x200; " \
+	dbg_scr("echo nonosize ${sz_nonos}  addr_dst_nonos ${addr_dst_nonos};")\
+	"mmc read ${addr_dst_nonos} ${addr_src_nonos} ${sz_nonos}; " \
+	"sp_nonos_go ${addr_dst_nonos};"\
+	"mmc read ${addr_tmp_header} ${addr_src_dtb} 0x1; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x4; run be2le; " \
 	"setexpr sz_dtb ${tmpval} + 0x28; " \
 	"setexpr sz_dtb ${sz_dtb} + 0x200; setexpr sz_dtb ${sz_dtb} / 0x200; " \
@@ -328,7 +349,13 @@
 	"setexpr sz_kernel ${sz_kernel} + 0x200; setexpr sz_kernel ${sz_kernel} / 0x200; " \
 	"mmc read ${addr_dst_kernel} ${addr_src_kernel} ${sz_kernel}; " \
 	"sp_go ${addr_dst_kernel} ${addr_dst_dtb}\0" \
-"nand_boot=nand read ${addr_tmp_header} dtb 0x40; " \
+"nand_boot=nand read ${addr_tmp_header} nonos 0x40; " \
+	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
+	"setexpr sz_nonos ${tmpval} + 0x40; " \
+	"nand read ${addr_dst_nonos} nonos ${sz_nonos}; " \
+	dbg_scr("echo nonosize ${sz_nonos}  addr_dst_nonos ${addr_dst_nonos};")\
+	"sp_nonos_go ${addr_dst_nonos};"\
+	"nand read ${addr_tmp_header} dtb 0x40; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x4; run be2le; " \
 	dbg_scr("md ${addr_tmp_header} 0x10; printenv tmpval; ") \
 	"setexpr sz_dtb ${tmpval} + 0x40; " \
