@@ -43,6 +43,9 @@ DECLARE_GLOBAL_DATA_PTR;
 
 int board_init(void)
 {
+#ifdef A_SYS_COUNTER
+	*(volatile unsigned int *)A_SYS_COUNTER = 3; // enable A_SYS_COUNTER
+#endif
 	return 0;
 }
 
@@ -92,3 +95,17 @@ void board_nand_init(void)
 #endif
 }
 
+#ifdef CONFIG_ARMV7_NONSEC
+//void smp_kick_all_cpus(void) {}
+void smp_set_core_boot_addr(unsigned long addr, int corenr)
+{
+	volatile unsigned int *cpu_boot_regs = (void *)(CONFIG_SMP_PEN_ADDR - 12);
+
+	/* wakeup core 1~3 */
+	cpu_boot_regs[0] = addr;
+	cpu_boot_regs[1] = addr;
+	cpu_boot_regs[2] = addr;
+
+	__asm__ __volatile__ ("dsb ishst; sev");
+}
+#endif
