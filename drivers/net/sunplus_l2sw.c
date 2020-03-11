@@ -679,7 +679,9 @@ static int l2sw_emac_eth_init(struct emac_eth_dev *priv, u8 *enetaddr)
 	HWREG_W(cpu_cntl, (reg & (~((0x1<<14)|(0x3c<<0)))) | (0x1<<12));
 
 	// Write mac address.
-	_l2sw_write_hwaddr(priv, enetaddr);
+	if (is_valid_ethaddr(enetaddr)) {
+		_l2sw_write_hwaddr(priv, enetaddr);
+	}
 
 	// Initialize rx/tx descriptor.
 	rx_descs_init(priv);
