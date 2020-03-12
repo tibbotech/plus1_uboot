@@ -166,7 +166,6 @@ static int do_sp_nonos_go(cmd_tbl_t *cmdtp, int flag, int argc, char * const arg
 	nonos_addr = simple_strtoul(argv[1], NULL, 16);
 
 	if (!sp_qk_uimage_verify(nonos_addr, 1)){
-		printf(" ## nonos data check error !!!\n");
 		return CMD_RET_FAILURE;
 	}
 

@@ -228,6 +228,8 @@
 #define DSTADDR_ROOTFS		0x13FFFC0
 #define DSTADDR_NONOS	0x10000
 
+#define XBOOT_SIZE	0x10000	/* for sdcard .ISPBOOOT.BIN size is equal to xboot.img size, do boot.otherwise do ISP*/
+
 #if defined(CONFIG_SP_SPINAND) && defined(CONFIG_MMC_SP_EMMC)
 #define SDCARD_DEVICE_ID	0
 #else
@@ -391,14 +393,30 @@
 	"dhcp ${addr_dst_kernel} ${serverip}:uImage" __stringify(USER_NAME) "; " \
 	"bootm ${addr_dst_kernel} - ${addr_dst_dtb}; " \
 	"\0" \
+"sdcard_boot=fatsize $isp_if $isp_dev /uImage; " \
+	"fatload $isp_if $isp_dev $addr_dst_kernel /uImage $filesize 0 ;"\
+	"fatsize $isp_if $isp_dev /dtb;"\
+	"fatload $isp_if $isp_dev $addr_dst_dtb /dtb $filesize 0 ;"\
+	"fatsize $isp_if $isp_dev /nonos.img;"\
+	"fatload $isp_if $isp_dev $addr_dst_nonos /nonos.img $filesize 0 ;"\
+	"sp_nonos_go ${addr_dst_nonos};"\
+	"setenv bootargs console=ttyS0,115200 earlyprintk root=/dev/mmcblk1p2 rw user_debug=255 rootwait;"\
+	"bootm ${addr_dst_kernel} - ${addr_dst_dtb}\0" \
 "isp_usb=setenv isp_if usb && setenv isp_dev 0; " \
 	"$isp_if start; " \
 	"run isp_common; " \
 	"\0" \
 "isp_sdcard=setenv isp_if mmc && setenv isp_dev $sdcard_devid; " \
-	"setenv bootargs console=ttyS0,115200 earlyprintk root=/dev/mmcblk1p2 rw user_debug=255 rootwait;"\
 	"mmc list; " \
-	"run isp_common; " \
+	"fatsize $isp_if $isp_dev /ISPBOOOT.BIN; " \
+	"echo ISPBOOOT filesize = $filesize; "\
+	"if itest.l ${filesize} == " __stringify(XBOOT_SIZE) ";  then " \
+		"echo run sdcard_boot ;"\
+		"run sdcard_boot; " \
+	"else "\
+		"echo run isp_common ;"\
+		"run isp_common; " \
+	"fi" \
 	"\0" \
 "isp_common=setenv isp_ram_addr 0x1000000; " \
 	RASPBIAN_INIT \
