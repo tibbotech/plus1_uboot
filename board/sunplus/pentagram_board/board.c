@@ -11,6 +11,11 @@ extern void board_spinand_init(void);
 #define Q628_RF_GRP(_grp, _reg)		((((_grp)*32+(_reg))*4)+Q628_REG_BASE)
 #define Q628_RF_MASK_V_CLR(_mask)	(((_mask)<<16)| 0)
 
+#define A_REG_BASE 					(0x9ec00000)
+#define A_RF_GRP(_grp, _reg)		((((_grp)*32+(_reg))*4)+A_REG_BASE)
+
+typedef volatile u32 * reg_ptr;
+
 struct Q628_moon0_regs{
 	unsigned int stamp;
 	unsigned int clken[10];
@@ -44,7 +49,11 @@ DECLARE_GLOBAL_DATA_PTR;
 int board_init(void)
 {
 #ifdef A_SYS_COUNTER
-	*(volatile unsigned int *)A_SYS_COUNTER = 3; // enable A_SYS_COUNTER
+	*(reg_ptr)A_SYS_COUNTER = 3; // enable A_SYS_COUNTER
+#endif
+#ifdef CONFIG_CPU_V7_HAS_NONSEC
+	/* set Achip RGST,AMBA to NonSec state */
+	memset((reg_ptr)A_RF_GRP(502, 0), 0, 0x100); // G502~503 set to 0:NS
 #endif
 	return 0;
 }
@@ -99,7 +108,7 @@ void board_nand_init(void)
 //void smp_kick_all_cpus(void) {}
 void smp_set_core_boot_addr(unsigned long addr, int corenr)
 {
-	volatile unsigned int *cpu_boot_regs = (void *)(CONFIG_SMP_PEN_ADDR - 12);
+	reg_ptr cpu_boot_regs = (void *)(CONFIG_SMP_PEN_ADDR - 12);
 
 	/* wakeup core 1~3 */
 	cpu_boot_regs[0] = addr;
