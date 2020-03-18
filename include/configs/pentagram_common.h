@@ -249,6 +249,18 @@
 #define RASPBIAN_INIT		""
 #endif
 
+
+#define SDCARD_EXT_CMD "bootenv=/uEnv.txt; " \
+		"fatsize $isp_if $isp_dev $bootenv; " \
+		"setenv isp_ram_addr 0x1000000; "\
+		"if itest.l ${filesize} != 0;  then " \
+		    "if run loadbootenv; then " \
+		       " echo Loaded environment from $bootenv; " \
+		       " env import -t $isp_ram_addr $filesize; " \
+		       " run uenvcmd; " \
+		   " fi; " \
+		"fi; "
+
 #define CONFIG_EXTRA_ENV_SETTINGS \
 "bootinfo_base="		__stringify(SP_BOOTINFO_BASE) "\0" \
 "addr_src_kernel="		__stringify(CONFIG_SRCADDR_KERNEL) "\0" \
@@ -265,6 +277,7 @@
 "serverip=" 			__stringify(TFTP_SERVER_IP) "\0" \
 "macaddr="			__stringify(BOARD_MAC_ADDR) "\0" \
 "sdcard_devid="			__stringify(SDCARD_DEVICE_ID) "\0" \
+"loadbootenv=fatload $isp_if $isp_dev $isp_ram_addr $bootenv $filesize 0 \0" \
 "be2le=setexpr byte *${tmpaddr} '&' 0x000000ff; " \
 	"setexpr tmpval $tmpval + $byte; " \
 	"setexpr tmpval $tmpval * 0x100; " \
@@ -393,15 +406,6 @@
 	"dhcp ${addr_dst_kernel} ${serverip}:uImage" __stringify(USER_NAME) "; " \
 	"bootm ${addr_dst_kernel} - ${addr_dst_dtb}; " \
 	"\0" \
-"sdcard_boot=fatsize $isp_if $isp_dev /uImage; " \
-	"fatload $isp_if $isp_dev $addr_dst_kernel /uImage $filesize 0 ;"\
-	"fatsize $isp_if $isp_dev /dtb;"\
-	"fatload $isp_if $isp_dev $addr_dst_dtb /dtb $filesize 0 ;"\
-	"fatsize $isp_if $isp_dev /nonos.img;"\
-	"fatload $isp_if $isp_dev $addr_dst_nonos /nonos.img $filesize 0 ;"\
-	"sp_nonos_go ${addr_dst_nonos};"\
-	"setenv bootargs console=ttyS0,115200 earlyprintk root=/dev/mmcblk1p2 rw user_debug=255 rootwait;"\
-	"bootm ${addr_dst_kernel} - ${addr_dst_dtb}\0" \
 "isp_usb=setenv isp_if usb && setenv isp_dev 0; " \
 	"$isp_if start; " \
 	"run isp_common; " \
@@ -412,7 +416,7 @@
 	"echo ISPBOOOT filesize = $filesize; "\
 	"if itest.l ${filesize} == " __stringify(XBOOT_SIZE) ";  then " \
 		"echo run sdcard_boot ;"\
-		"run sdcard_boot; " \
+		SDCARD_EXT_CMD \
 	"else "\
 		"echo run isp_common ;"\
 		"run isp_common; " \

@@ -168,15 +168,14 @@ static int do_sp_nonos_go(cmd_tbl_t *cmdtp, int flag, int argc, char * const arg
 	if (!sp_qk_uimage_verify(nonos_addr, 1)){
 		return CMD_RET_FAILURE;
 	}
-
+	
 	hdr = (image_header_t *)nonos_addr;
 	nonos_size = image_get_data_size(hdr);
 
-	printf("[u-boot] nonos address 0x%08x  nonos_size= %d \n",nonos_addr,nonos_size);
+	printf("[u-boot] nonos_B address 0x%08x  nonos_size= %d \n",nonos_addr,nonos_size);
 	flush_cache((u32)nonos_addr, nonos_size);
 
 	nonos_addr += 0x40;
-	printf ("## Starting application at 0x%08X ...\n", nonos_addr);
 
 	// set nonos run addr to B_START_POS,and the B will start boot from this addr in iboot/xboot
 	*(volatile unsigned int *)B_START_POS = nonos_addr;
