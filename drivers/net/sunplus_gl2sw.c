@@ -629,9 +629,6 @@ static void l2sw_emac_board_setup(struct emac_eth_dev *priv)
 	// Set polarity of TX & RX
 	//reg = MOON5REG_R(mo4_l2sw_clksw_ctl);
 	//MOON5REG_W(mo4_l2sw_clksw_ctl, reg | (0xf<<16) | 0xf);
-	volatile u32 *moon1_reg_base = (void*)0x9c000080;
-	moon1_reg_base[1] = (1 << (16+3)) | (1 << 3);   // Enable GL2SW pin-out.
-	//eth_info("moon1_reg_base[1] = %08x\n", moon1_reg_base[1]);
 
 #ifdef ZEBU_XTOR
 	volatile u32 *moon4_reg_base = (void*)0x9c000200;

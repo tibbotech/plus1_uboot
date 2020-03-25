@@ -1,8 +1,5 @@
-
-config PINCTRL_SUNPLUS
+config PINCTRL_SUNPLUS_I143
 	depends on DM
-	default y
-	bool "Sunplus sp7021 pin control driver"
+	bool "Sunplus i143 pin control driver"
 	help
-	   Support pin multiplexing and pin configuration control on
-	   Sunplus's SP7021 SoC.
+	   Support pin configuration control on Sunplus's i143 SoC.

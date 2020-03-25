@@ -174,7 +174,7 @@
 			compatible = "sunplus,sunplus-uart";
 			reg = <0x0 0x9c000900 0x0 0x80>;
 		};
-		
+
 		mmc@sp_emmc {
 			compatible = "sunplus,sunplus-q628-emmc";
 			reg = <0x0 0x9C003B00 0x0 0x180>;
@@ -200,7 +200,7 @@
 		sp_usb0: usb@9C102100 {
 			compatible = "sunplus,sunplus-i143-usb-ehci0";
 			reg = <0x0 0x9C102100 0x0 0x68>;
-    };
+		};
 
 		sp_usb1: usb@9C103100 {
 			compatible = "sunplus,sunplus-i143-usb-ehci1";
