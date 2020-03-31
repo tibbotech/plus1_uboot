@@ -29,11 +29,11 @@
 #if defined(CONFIG_SYS_ENV_ZEBU)
 #define CONFIG_SYS_SDRAM_SIZE           (64 << 20)
 #elif defined(CONFIG_SYS_ENV_8388)
-#define CONFIG_SYS_SDRAM_SIZE		(256 << 20)
+#define CONFIG_SYS_SDRAM_SIZE          (256 << 20)
 #else /* normal SP7021 evb environment can have larger DRAM size */
-#define CONFIG_SYS_SDRAM_SIZE		(512 << 20)
+#define CONFIG_SYS_SDRAM_SIZE          (512 << 20)
 #endif
-#define CONFIG_SYS_MALLOC_LEN		(6 << 20)
+#define CONFIG_SYS_MALLOC_LEN          (6 << 20)
 
 #ifndef CONFIG_SYS_TEXT_BASE		/* where U-Boot is loaded by xBoot */
 /* It is defined in arch/arm/mach-pentagram/Kconfig */
@@ -111,6 +111,7 @@
 #else
 #define dbg_scr(s) ""
 #endif
+
 
 #ifdef CONFIG_SP_SPINAND
 //#define CONFIG_MTD_PARTITIONS
@@ -300,13 +301,6 @@
 	dbg_scr("echo nonosize ${sz_nonos}  addr_dst_nonos ${addr_dst_nonos};") \
 	"cp.l ${addr_src_nonos} ${addr_dst_nonos} ${sz_nonos}; " \
 	"sp_nonos_go ${addr_dst_nonos};"\
-	"cp.b ${addr_src_dtb} ${addr_tmp_header} 0x28; " \
-	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x4; run be2le; " \
-	dbg_scr("md ${addr_tmp_header} 0x10; printenv tmpval; ") \
-	"setexpr sz_dtb ${tmpval} + 0x28; " \
-	"setexpr sz_dtb ${sz_dtb} + 4; setexpr sz_dtb ${sz_dtb} / 4; " \
-	dbg_scr("echo dtb from ${addr_src_dtb} to ${addr_dst_dtb} sz ${sz_dtb}; ") \
-	"cp.l ${addr_src_dtb} ${addr_dst_dtb} ${sz_dtb}; " \
 	"cp.b ${addr_src_kernel} ${addr_tmp_header} 0x40; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
 	dbg_scr("md ${addr_tmp_header} 0x10; printenv tmpval; ") \
@@ -340,11 +334,6 @@
 	dbg_scr("echo nonosize ${sz_nonos}  addr_dst_nonos ${addr_dst_nonos};")\
 	"mmc read ${addr_dst_nonos} ${addr_src_nonos} ${sz_nonos}; " \
 	"sp_nonos_go ${addr_dst_nonos};"\
-	"mmc read ${addr_tmp_header} ${addr_src_dtb} 0x1; " \
-	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x4; run be2le; " \
-	"setexpr sz_dtb ${tmpval} + 0x28; " \
-	"setexpr sz_dtb ${sz_dtb} + 0x200; setexpr sz_dtb ${sz_dtb} / 0x200; " \
-	"mmc read ${addr_dst_dtb} ${addr_src_dtb} ${sz_dtb}; " \
 	"mmc read ${addr_tmp_header} ${addr_src_kernel} 0x1; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
 	"setexpr sz_kernel ${tmpval} + 0x40; " \
@@ -370,12 +359,6 @@
 	"nand read ${addr_dst_nonos} nonos ${sz_nonos}; " \
 	dbg_scr("echo nonosize ${sz_nonos}  addr_dst_nonos ${addr_dst_nonos};")\
 	"sp_nonos_go ${addr_dst_nonos};"\
-	"nand read ${addr_tmp_header} dtb 0x40; " \
-	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x4; run be2le; " \
-	dbg_scr("md ${addr_tmp_header} 0x10; printenv tmpval; ") \
-	"setexpr sz_dtb ${tmpval} + 0x40; " \
-	dbg_scr("echo from dtb partition to ${addr_dst_dtb} sz ${sz_dtb}; ") \
-	"nand read ${addr_dst_dtb} dtb ${sz_dtb}; " \
 	"nand read ${addr_tmp_header} kernel 0x40; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
 	dbg_scr("md ${addr_tmp_header} 0x10; printenv tmpval; ") \

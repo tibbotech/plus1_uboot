@@ -1556,10 +1556,18 @@ err_out:
 
 static int sp_spinand_probe(struct udevice *dev)
 {
+#if 1
+	int ret;
+	struct sp_spinand_info *info;
+	info = our_spinfc = dev_get_priv(dev);
+	info->regs = (void __iomem *)0x9c002b80;
+	info->bch_regs = (void __iomem *)0x9c101000;
+	ret = sp_spinand_init(info);
+	return ret;
+#else
 	struct resource res;
 	int ret;
 	struct sp_spinand_info *info;
-
 	info = our_spinfc = dev_get_priv(dev);
 
 	/* get spi-nand reg */
@@ -1568,6 +1576,7 @@ static int sp_spinand_probe(struct udevice *dev)
 		return ret;
 
 	info->regs = devm_ioremap(dev, res.start, resource_size(&res));
+	
 	SPINAND_LOGI("sp_spinand: regs@0x%p\n", info->regs);
 
 	/* get bch reg */
@@ -1577,16 +1586,18 @@ static int sp_spinand_probe(struct udevice *dev)
 
 	info->bch_regs = devm_ioremap(dev, res.start, resource_size(&res));
 	SPINAND_LOGI("sp_bch    : regs@0x%p\n", info->bch_regs);
-
 	ret = sp_spinand_init(info);
 	return ret;
+#endif
 
 }
 
 static const struct udevice_id sunplus_spinand[] = {
-	{
-		.compatible = "sunplus,sunplus-q628-spinand",
-	},
+	{ .compatible = "sunplus,sp7021-spinand"},
+	{ .compatible = "sunplus,sp7021-bch"},
+	{ .compatible = "sunplus,sunplus-q628-spinand"},
+	{}
+
 };
 
 

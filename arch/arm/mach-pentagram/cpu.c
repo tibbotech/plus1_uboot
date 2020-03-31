@@ -1,4 +1,5 @@
 #include <common.h>
+#include <fdtdec.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -52,6 +53,7 @@ typedef struct {
 #define WATCHDOG_CMD_PAUSE		0x3877
 #define WATCHDOG_CMD_RESUME		0x4A4B
 #define WATCHDOG_CMD_INTR_CLR		0x7482
+
 
 void s_init(void)
 {
@@ -158,13 +160,27 @@ int dram_get_size(void)
 int dram_init(void)
 {
 #ifdef CONFIG_BOOTARGS_WITH_MEM
-	int dramsize = dram_get_size();
-	gd->ram_size = dramsize;
+	gd->ram_size = dram_get_size();
+#elif defined(CONFIG_SYS_ENV_ZEBU)
+	gd->ram_size = CONFIG_SYS_SDRAM_SIZE;
+#else
+#ifdef CONFIG_OF_PRIOR_STAGE
+	fdtdec_setup_mem_size_base();
 #else
 	gd->ram_size = CONFIG_SYS_SDRAM_SIZE;
 #endif
-	return 0;
+
+#endif
+
+
+return 0;
 }
+#ifdef CONFIG_OF_PRIOR_STAGE
+int dram_init_banksize(void)
+{
+	return fdtdec_setup_memory_banksize();
+}
+#endif
 
 #ifdef CONFIG_DISPLAY_CPUINFO
 int print_cpuinfo(void)

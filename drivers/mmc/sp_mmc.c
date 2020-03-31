@@ -1536,9 +1536,17 @@ static const struct udevice_id sunplus_mmc_ids[] = {
 		.compatible	= "sunplus,sunplus-q628-sd",
 		.data		= (ulong)&q628_dev_info[1],
 	},
+	{
+		.compatible	= "sunplus,sp7021-card1",
+		.data		= (ulong)&q628_dev_info[1],
+	},
 #ifndef CONFIG_SP_SPINAND
 	{
 		.compatible	= "sunplus,sunplus-q628-emmc",
+		.data		= (ulong)&q628_dev_info[0],
+	},
+	{
+		.compatible	= "sunplus,sp7021-emmc",
 		.data		= (ulong)&q628_dev_info[0],
 	},
 #endif

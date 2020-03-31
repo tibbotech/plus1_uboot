@@ -268,6 +268,8 @@ static int ehci_usb_remove(struct udevice *dev)
 
 static const struct udevice_id ehci_sunplus_ids[] = {
 	{ .compatible = "sunplus,sunplus-q628-usb-ehci0" },
+	{ .compatible = "sunplus,sp7021-usb-ehci0" },
+	{ .compatible = "sunplus,sp7021-usb-ehci1" },
 	{ .compatible = "sunplus,sunplus-q628-usb-ehci1" },
 	{ }
 };

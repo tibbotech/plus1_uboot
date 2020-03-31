@@ -71,8 +71,8 @@
 		pinctrl-0 = <&l2sw_demo_board_v3_pins>;
 #endif
 
-		phy0 = <&phy0>;
-		phy1 = <&phy1>;
+		phy-handle1 = <&phy0>;
+		phy-handle2 = <&phy1>;
 		mac-addr1 = <52>;
 		#address-cells = <1>;
 		#size-cells = <0>;
