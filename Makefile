@@ -1033,7 +1033,17 @@ ifeq ($(CONFIG_RISCV),y)
 	 $(Q)$(MAKE) -C ../opensbi distclean && $(MAKE) -C ../opensbi  FW_PAYLOAD_PATH=../uboot/u-boot.bin CROSS_COMPILE=$(CROSS_COMPILE)
 	
 	@echo >&2 "===================== OpenSBI+U-boot.bin=U-boot.img  ======================"
-	./tools/add_uhdr.sh $(img_name) ../opensbi/out/fw_payload.bin u-boot.img riscv 0xA0100000 0xA0100000 
+	$(Q)if [ -f ../../linux/kernel/dtb ]; then \
+		dd if=/dev/zero of=dtb_temp bs=1k count=32 ;\
+		dd if=../../linux/kernel/dtb of=dtb_temp conv=notrunc ;\
+		cat ../opensbi/out/fw_payload.bin > uboot_new.bin ;\
+		cat dtb_temp >> uboot_new.bin ;\
+		rm -rf dtb_temp ;\
+	else\
+		echo "[Error]:please make dtb first !!!" ; \
+		exit 1; \
+	fi
+	./tools/add_uhdr.sh $(img_name) uboot_new.bin u-boot.img riscv 0xA0100000 0xA0100000 
 else
 	./tools/add_uhdr.sh $(img_name) u-boot.bin u-boot.img arm 0x200040 0x200040 
 endif	
