@@ -13,7 +13,10 @@ int gpio_pin_mux_set(u32 func, u32 pin)
 		pctl_err("[%s] Invalid function: %d\n", __func__, func);
 		return -EINVAL;
 	}
-	if (pin > 71) {
+	if (pin == 0) {
+		// zero_func
+		pin = 7;
+	} else if ((pin < 8) || (pin > 71)) {
 		pctl_err("[%s] Invalid G_MX%d\n", __func__, pin);
 		return -EINVAL;
 	}

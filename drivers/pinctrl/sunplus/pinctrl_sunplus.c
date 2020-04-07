@@ -128,12 +128,11 @@ static int unregister_pin(int pin)
 	return -1;
 }
 
-static int sunplus_pinctrl_config(struct udevice *dev)
+
+static int sunplus_pinctrl_pins(struct udevice *dev)
 {
 	int offset = dev_of_offset(dev);
 	u32 pin_mux[MAX_PINS];
-	const char *pin_func;
-	const char *pin_group;
 	int len, i;
 
 	// Get property: "sppctl,pins"
@@ -201,6 +200,41 @@ static int sunplus_pinctrl_config(struct udevice *dev)
 		}
 	}
 
+	return 0;
+}
+
+static int sunplus_pinctrl_zero(struct udevice *dev)
+{
+	int offset = dev_of_offset(dev);
+	u32 pin_mux[MAX_PINS];
+	int len, i;
+
+	// Get property: "sppctl,zero_func"
+	len = fdtdec_get_int_array_count(gd->fdt_blob, offset,
+					"sppctl,zero_func", pin_mux,
+					ARRAY_SIZE(pin_mux));
+	pctl_info("Number of entries of 'sppctl,zero_func' = %d\n", len);
+
+	// All pins were registered successfully, set up all pins.
+	for (i = 0; i < len; i++) {
+		int func = pin_mux[i];
+		pctl_info("sppctl,zero_func = 0x%08x\n", func);
+
+		// Set it to no use.
+		gpio_pin_mux_set(func, 0);
+		pctl_info("pinmux get = 0x%02x \n", gpio_pin_mux_get(func));
+	}
+
+	return 0;
+}
+
+static int sunplus_pinctrl_function(struct udevice *dev)
+{
+	int offset = dev_of_offset(dev);
+	const char *pin_func;
+	const char *pin_group;
+	int len, i;
+
 	// Get property: 'sppctl,function'
 	pin_func = fdt_getprop(gd->fdt_blob, offset, "sppctl,function", &len);
 	pctl_info("sppctl,function = %s (%d)\n", pin_func, len);
@@ -260,6 +294,22 @@ static int sunplus_pinctrl_config(struct udevice *dev)
 		return -1;
 	}
 
+	return 0;
+}
+
+static int sunplus_pinctrl_set_state(struct udevice *dev, struct udevice *config)
+{
+	int ret;
+
+	pctl_info("\nConfig node: %s\n",config->name);
+	ret = sunplus_pinctrl_pins(config);
+	if (ret != 0) return ret;
+
+	sunplus_pinctrl_zero(config);
+
+	ret = sunplus_pinctrl_function(config);
+	if (ret != 0) return ret;
+
 #ifdef PINCTRL_DEBUG
 	pinmux_reg_dump();
 	gpio_reg_dump();
@@ -318,12 +368,6 @@ static int sunplus_pinctrl_probe(struct udevice *dev)
 	}
 
 	return 0;
-}
-
-
-static int sunplus_pinctrl_set_state(struct udevice *dev, struct udevice *config)
-{
-	return sunplus_pinctrl_config(config);
 }
 
 static struct pinctrl_ops sunplus_pinctrl_ops = {
