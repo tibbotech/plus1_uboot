@@ -1034,6 +1034,7 @@ ifneq ($(BOOT_FROM),SDCARD)
 		dd if=/dev/zero of=dtb_temp bs=1k count=32 ;\
 		dd if=../../linux/kernel/dtb of=dtb_temp conv=notrunc ;\
 		cat dtb_temp >> u-boot.bin ;\
+		rm -rf dtb_temp ;\
 	else\
 		echo "[Error]:please make dtb first !!!" ; \
 		exit 1; \

@@ -85,7 +85,6 @@
 	#endif
 #endif
 
-
 #define B_START_POS		(0x9e809ff8) 
 
 //#define CONFIG_CMDLINE_EDITING
@@ -231,6 +230,13 @@
 
 #define XBOOT_SIZE	0x10000	/* for sdcard .ISPBOOOT.BIN size is equal to xboot.img size, do boot.otherwise do ISP*/
 
+//#define USE_NFS_ROOTFS  1	/* whether use the nfs rootfs or not,used for customer develop */
+#define NFS_ROOTFS_DIR			"/home/rootfsdir"
+#define NFS_ROOTFS_SERVER_IP 	172.28.114.216
+#define NFS_ROOTFS_CLINT_IP 	172.28.114.7
+#define NFS_ROOTFS_GATEWAY_IP 	172.28.114.1
+#define NFS_ROOTFS_NETMASK 		255.255.255.0
+
 #if defined(CONFIG_SP_SPINAND) && defined(CONFIG_MMC_SP_EMMC)
 #define SDCARD_DEVICE_ID	0
 #else
@@ -272,6 +278,12 @@
 "addr_dst_dtb="			__stringify(DSTADDR_DTB) "\0" \
 "addr_dst_rootfs="		__stringify(DSTADDR_ROOTFS) "\0" \
 "addr_tmp_header="		__stringify(TMPADDR_HEADER) "\0" \
+"nfs_gatewayip="		__stringify(NFS_ROOTFS_GATEWAY_IP) "\0" \
+"nfs_netmask="			__stringify(NFS_ROOTFS_NETMASK) "\0" \
+"nfs_clintip=" 		__stringify(NFS_ROOTFS_CLINT_IP) "\0" \
+"nfs_serverip="			__stringify(NFS_ROOTFS_SERVER_IP) "\0" \
+"nfs_rootfs_dir="		__stringify(NFS_ROOTFS_DIR) "\0" \
+"if_use_nfs_rootfs="	__stringify(USE_NFS_ROOTFS) "\0" \
 "if_zebu="			__stringify(CONFIG_SYS_ENV_ZEBU) "\0" \
 "if_qkboot="			__stringify(CONFIG_SYS_USE_QKBOOT_HEADER) "\0" \
 "sp_main_storage="		SP_MAIN_STORAGE "\0" \
@@ -309,6 +321,9 @@
 	"setexpr sz_kernel ${sz_kernel} + 4; setexpr sz_kernel ${sz_kernel} / 4; " \
 	dbg_scr("echo kernel from ${addr_src_kernel} to ${addr_dst_kernel} sz ${sz_kernel}; ") \
 	"cp.l ${addr_src_kernel} ${addr_dst_kernel} ${sz_kernel}; " \
+	"if itest ${if_use_nfs_rootfs} == 1; then " \
+		"setenv bootargs root=/dev/nfs nfsroot=${nfs_serverip}:${nfs_rootfs_dir} ip=${nfs_clintip}:${nfs_serverip}:${nfs_gatewayip}:${nfs_netmask}::eth0:off init=/linuxrc rw console=ttyS0,115200; "\
+	"fi; " \
 	dbg_scr("echo bootm ${addr_dst_kernel} - ${addr_dst_dtb}; ") \
 	"bootm ${addr_dst_kernel} - ${addr_dst_dtb}\0" \
 "qk_romter_boot=cp.b ${addr_src_dtb} ${addr_tmp_header} 0x40; " \
@@ -340,7 +355,11 @@
 	"setexpr sz_kernel ${sz_kernel} + 72; " \
 	"setexpr sz_kernel ${sz_kernel} + 0x200; setexpr sz_kernel ${sz_kernel} / 0x200; " \
 	"mmc read ${addr_dst_kernel} ${addr_src_kernel} ${sz_kernel}; " \
-	"setenv bootargs console=ttyS0,115200 earlyprintk root=/dev/mmcblk0p8 rw user_debug=255 rootwait ;" \
+	"if itest ${if_use_nfs_rootfs} == 1; then " \
+		"setenv bootargs root=/dev/nfs nfsroot=${nfs_serverip}:${nfs_rootfs_dir} ip=${nfs_clintip}:${nfs_serverip}:${nfs_gatewayip}:${nfs_netmask}::eth0:off init=/linuxrc rw console=ttyS0,115200; "\
+	"else " \
+		"setenv bootargs console=ttyS0,115200 earlyprintk root=/dev/mmcblk0p8 rw user_debug=255 rootwait ;" \
+	"fi; " \
 	"bootm ${addr_dst_kernel} - ${addr_dst_dtb}\0" \
 "qk_emmc_boot=mmc read ${addr_tmp_header} ${addr_src_dtb} 0x1; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
@@ -366,7 +385,11 @@
 	"setexpr sz_kernel ${sz_kernel} + 72; " \
 	dbg_scr("echo from kernel partition to ${addr_dst_kernel} sz ${sz_kernel}; ") \
 	"nand read ${addr_dst_kernel} kernel ${sz_kernel}; " \
-	"setenv bootargs console=ttyS0,115200 earlyprintk root=ubi0:rootfs rw ubi.mtd=9,2048 rootflags=sync rootfstype=ubifs mtdparts=sp_spinand:128k(nand_header),128k(xboot1),768k(uboot1),3m(uboot2),512k(env),512k(env_redund),1m(nonos),256k(dtb),15m(kernel),-(rootfs) user_debug=255 rootwait ;" \
+	"if itest ${if_use_nfs_rootfs} == 1; then " \
+		"setenv bootargs root=/dev/nfs nfsroot=${nfs_serverip}:${nfs_rootfs_dir} ip=${nfs_clintip}:${nfs_serverip}:${nfs_gatewayip}:${nfs_netmask}::eth0:off init=/linuxrc rw console=ttyS0,115200; "\
+	"else " \
+		"setenv bootargs console=ttyS0,115200 earlyprintk root=ubi0:rootfs rw ubi.mtd=9,2048 rootflags=sync rootfstype=ubifs mtdparts=sp_spinand:128k(nand_header),128k(xboot1),768k(uboot1),3m(uboot2),512k(env),512k(env_redund),1m(nonos),256k(dtb),15m(kernel),-(rootfs) user_debug=255 rootwait ;" \
+	"fi; " \
 	"bootm ${addr_dst_kernel} - ${addr_dst_dtb}\0" \
 "qk_zmem_boot=sp_go ${addr_dst_kernel} ${addr_dst_dtb}\0" \
 "zmem_boot=bootm ${addr_dst_kernel} - ${addr_dst_dtb}\0" \
