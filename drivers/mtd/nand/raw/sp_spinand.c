@@ -1556,48 +1556,37 @@ err_out:
 
 static int sp_spinand_probe(struct udevice *dev)
 {
-#if 1
-	int ret;
 	struct sp_spinand_info *info;
 	info = our_spinfc = dev_get_priv(dev);
-	info->regs = (void __iomem *)0x9c002b80;
-	info->bch_regs = (void __iomem *)0x9c101000;
-	ret = sp_spinand_init(info);
-	return ret;
-#else
-	struct resource res;
+	const void *blob = gd->fdt_blob;
+	int node, depth = 0;
 	int ret;
-	struct sp_spinand_info *info;
-	info = our_spinfc = dev_get_priv(dev);
+
+	printk("\n");   // used for message alignment
 
 	/* get spi-nand reg */
-	ret = dev_read_resource_byname(dev, "spinand_reg", &res);
-	if (ret)
-		return ret;
-
-	info->regs = devm_ioremap(dev, res.start, resource_size(&res));
-	
+	info->regs = (void __iomem*)devfdt_get_addr(dev);
 	SPINAND_LOGI("sp_spinand: regs@0x%p\n", info->regs);
 
 	/* get bch reg */
-	ret = dev_read_resource_byname(dev, "bch_reg", &res);
-	if (ret)
-		return ret;
+	node = fdt_next_node(blob, dev_of_offset(dev), &depth);
+	info->bch_regs = (void __iomem *)fdtdec_get_addr_size_auto_parent(blob,
+		dev_of_offset(dev->parent), node, "reg", 0, NULL, false);
 
-	info->bch_regs = devm_ioremap(dev, res.start, resource_size(&res));
 	SPINAND_LOGI("sp_bch    : regs@0x%p\n", info->bch_regs);
-	ret = sp_spinand_init(info);
-	return ret;
-#endif
+	SPINAND_LOGI("node: %s, offset: 0x%08x, depth: %d\n",
+		fdt_get_name(blob, node, NULL), node, depth);
 
+	/* do sp_spinand initialization */
+	ret = sp_spinand_init(info);
+
+	return ret;
 }
 
 static const struct udevice_id sunplus_spinand[] = {
 	{ .compatible = "sunplus,sp7021-spinand"},
-	{ .compatible = "sunplus,sp7021-bch"},
 	{ .compatible = "sunplus,sunplus-q628-spinand"},
 	{}
-
 };
 
 
