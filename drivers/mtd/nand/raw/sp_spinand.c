@@ -1559,23 +1559,22 @@ static int sp_spinand_probe(struct udevice *dev)
 	struct sp_spinand_info *info;
 	info = our_spinfc = dev_get_priv(dev);
 	const void *blob = gd->fdt_blob;
-	int node, depth = 0;
+	int node;
 	int ret;
 
-	printk("\n");   // used for message alignment
+	printk(KERN_INFO "\n");     // used for message alignment
 
 	/* get spi-nand reg */
 	info->regs = (void __iomem*)devfdt_get_addr(dev);
 	SPINAND_LOGI("sp_spinand: regs@0x%p\n", info->regs);
 
 	/* get bch reg */
-	node = fdt_next_node(blob, dev_of_offset(dev), &depth);
+	node = fdt_node_offset_by_compatible(blob, 0, "sunplus,sp7021-bch");
 	info->bch_regs = (void __iomem *)fdtdec_get_addr_size_auto_parent(blob,
 		dev_of_offset(dev->parent), node, "reg", 0, NULL, false);
 
 	SPINAND_LOGI("sp_bch    : regs@0x%p\n", info->bch_regs);
-	SPINAND_LOGI("node: %s, offset: 0x%08x, depth: %d\n",
-		fdt_get_name(blob, node, NULL), node, depth);
+	SPINAND_LOGI("node: %s, offset: 0x%08x\n", fdt_get_name(blob, node, NULL), node);
 
 	/* do sp_spinand initialization */
 	ret = sp_spinand_init(info);
