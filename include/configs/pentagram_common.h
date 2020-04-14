@@ -85,7 +85,7 @@
 	#endif
 #endif
 
-#define B_START_POS		(0x9e809ff8) 
+#define B_START_POS			(0x9e809ff8)
 
 //#define CONFIG_CMDLINE_EDITING
 //#define CONFIG_AUTO_COMPLETE
@@ -226,16 +226,16 @@
 #define DSTADDR_DTB		0x2FFFC0
 #define TMPADDR_HEADER		0x800000
 #define DSTADDR_ROOTFS		0x13FFFC0
-#define DSTADDR_NONOS	0x10000
+#define DSTADDR_NONOS		0x10000
 
-#define XBOOT_SIZE	0x10000	/* for sdcard .ISPBOOOT.BIN size is equal to xboot.img size, do boot.otherwise do ISP*/
+#define XBOOT_SIZE		0x10000	/* for sdcard .ISPBOOOT.BIN size is equal to xboot.img size, do boot.otherwise do ISP*/
 
-//#define USE_NFS_ROOTFS  1	/* whether use the nfs rootfs or not,used for customer develop */
-#define NFS_ROOTFS_DIR			"/home/rootfsdir"
+//#define USE_NFS_ROOTFS	1	/* whether use the nfs rootfs or not,used for customer develop */
+#define NFS_ROOTFS_DIR		"/home/rootfsdir"
 #define NFS_ROOTFS_SERVER_IP 	172.28.114.216
 #define NFS_ROOTFS_CLINT_IP 	172.28.114.7
 #define NFS_ROOTFS_GATEWAY_IP 	172.28.114.1
-#define NFS_ROOTFS_NETMASK 		255.255.255.0
+#define NFS_ROOTFS_NETMASK 	255.255.255.0
 
 #if defined(CONFIG_SP_SPINAND) && defined(CONFIG_MMC_SP_EMMC)
 #define SDCARD_DEVICE_ID	0
@@ -257,16 +257,22 @@
 #endif
 
 
-#define SDCARD_EXT_CMD "bootenv=/uEnv.txt; " \
-		"fatsize $isp_if $isp_dev $bootenv; " \
-		"setenv isp_ram_addr 0x1000000; "\
-		"if itest.l ${filesize} != 0;  then " \
-		    "if run loadbootenv; then " \
-		       " echo Loaded environment from $bootenv; " \
-		       " env import -t $isp_ram_addr $filesize; " \
-		       " run uenvcmd; " \
-		   " fi; " \
-		"fi; "
+#define SDCARD_EXT_CMD \
+	"scriptaddr=0x1000000; " \
+	"bootscr=boot.scr; " \
+	"bootenv=uEnv.txt; " \
+	"if run loadbootenv; then " \
+		"echo Loaded environment from ${bootenv}; " \
+		"env import -t ${scriptaddr} ${filesize}; " \
+	"fi; " \
+	"if test -n ${uenvcmd}; then " \
+		"echo Running uenvcmd ...; " \
+		"run uenvcmd; " \
+	"fi; " \
+	"if run loadbootscr; then " \
+		"echo Jumping to ${bootscr}; " \
+		"source ${scriptaddr}; "\
+	"fi; "
 
 #define CONFIG_EXTRA_ENV_SETTINGS \
 "bootinfo_base="		__stringify(SP_BOOTINFO_BASE) "\0" \
@@ -280,17 +286,24 @@
 "addr_tmp_header="		__stringify(TMPADDR_HEADER) "\0" \
 "nfs_gatewayip="		__stringify(NFS_ROOTFS_GATEWAY_IP) "\0" \
 "nfs_netmask="			__stringify(NFS_ROOTFS_NETMASK) "\0" \
-"nfs_clintip=" 		__stringify(NFS_ROOTFS_CLINT_IP) "\0" \
+"nfs_clintip=" 			__stringify(NFS_ROOTFS_CLINT_IP) "\0" \
 "nfs_serverip="			__stringify(NFS_ROOTFS_SERVER_IP) "\0" \
 "nfs_rootfs_dir="		__stringify(NFS_ROOTFS_DIR) "\0" \
-"if_use_nfs_rootfs="	__stringify(USE_NFS_ROOTFS) "\0" \
+"if_use_nfs_rootfs="		__stringify(USE_NFS_ROOTFS) "\0" \
 "if_zebu="			__stringify(CONFIG_SYS_ENV_ZEBU) "\0" \
 "if_qkboot="			__stringify(CONFIG_SYS_USE_QKBOOT_HEADER) "\0" \
 "sp_main_storage="		SP_MAIN_STORAGE "\0" \
 "serverip=" 			__stringify(TFTP_SERVER_IP) "\0" \
 "macaddr="			__stringify(BOARD_MAC_ADDR) "\0" \
 "sdcard_devid="			__stringify(SDCARD_DEVICE_ID) "\0" \
-"loadbootenv=fatload $isp_if $isp_dev $isp_ram_addr $bootenv $filesize 0 \0" \
+"loadbootscr=fatload ${isp_if} ${isp_dev}:1 ${scriptaddr} /${bootscr} || " \
+	"fatload ${isp_if} ${isp_dev}:1 ${scriptaddr} /boot/${bootscr} || " \
+	"fatload ${isp_if} ${isp_dev}:1 ${scriptaddr} /sunplus/sp7021/${bootscr}; " \
+	"\0" \
+"loadbootenv=fatload ${isp_if} ${isp_dev}:1 ${scriptaddr} /${bootenv} || " \
+	"fatload ${isp_if} ${isp_dev}:1 ${scriptaddr} /boot/${bootenv} || " \
+	"fatload ${isp_if} ${isp_dev}:1 ${scriptaddr} /sunplus/sp7021/${bootenv}; " \
+	"\0" \
 "be2le=setexpr byte *${tmpaddr} '&' 0x000000ff; " \
 	"setexpr tmpval $tmpval + $byte; " \
 	"setexpr tmpval $tmpval * 0x100; " \
@@ -421,10 +434,10 @@
 	"fatsize $isp_if $isp_dev /ISPBOOOT.BIN; " \
 	"echo ISPBOOOT filesize = $filesize; "\
 	"if itest.l ${filesize} == " __stringify(XBOOT_SIZE) ";  then " \
-		"echo run sdcard_boot ;"\
+		"echo run sdcard_boot; "\
 		SDCARD_EXT_CMD \
 	"else "\
-		"echo run isp_common ;"\
+		"echo run isp_common; "\
 		"run isp_common; " \
 	"fi" \
 	"\0" \
