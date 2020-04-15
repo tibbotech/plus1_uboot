@@ -230,12 +230,15 @@
 
 #define XBOOT_SIZE		0x10000	/* for sdcard .ISPBOOOT.BIN size is equal to xboot.img size, do boot.otherwise do ISP*/
 
-//#define USE_NFS_ROOTFS	1	/* whether use the nfs rootfs or not,used for customer develop */
-#define NFS_ROOTFS_DIR		"/home/rootfsdir"
+//#define SUPPROT_NFS_ROOTFS
+#ifdef SUPPROT_NFS_ROOTFS
+#define USE_NFS_ROOTFS  1	
+#define NFS_ROOTFS_DIR			"/home/rootfsdir"
 #define NFS_ROOTFS_SERVER_IP 	172.28.114.216
 #define NFS_ROOTFS_CLINT_IP 	172.28.114.7
 #define NFS_ROOTFS_GATEWAY_IP 	172.28.114.1
-#define NFS_ROOTFS_NETMASK 	255.255.255.0
+#define NFS_ROOTFS_NETMASK 		255.255.255.0
+#endif
 
 #if defined(CONFIG_SP_SPINAND) && defined(CONFIG_MMC_SP_EMMC)
 #define SDCARD_DEVICE_ID	0
@@ -277,12 +280,10 @@
 #define CONFIG_EXTRA_ENV_SETTINGS \
 "bootinfo_base="		__stringify(SP_BOOTINFO_BASE) "\0" \
 "addr_src_kernel="		__stringify(CONFIG_SRCADDR_KERNEL) "\0" \
-"addr_src_dtb="			__stringify(CONFIG_SRCADDR_DTB) "\0" \
 "addr_src_nonos="		__stringify(CONFIG_SRCADDR_NONOS) "\0" \
 "addr_dst_nonos="		__stringify(DSTADDR_NONOS) "\0" \
 "addr_dst_kernel="		__stringify(DSTADDR_KERNEL) "\0" \
 "addr_dst_dtb="			__stringify(DSTADDR_DTB) "\0" \
-"addr_dst_rootfs="		__stringify(DSTADDR_ROOTFS) "\0" \
 "addr_tmp_header="		__stringify(TMPADDR_HEADER) "\0" \
 "nfs_gatewayip="		__stringify(NFS_ROOTFS_GATEWAY_IP) "\0" \
 "nfs_netmask="			__stringify(NFS_ROOTFS_NETMASK) "\0" \
@@ -334,27 +335,17 @@
 	"setexpr sz_kernel ${sz_kernel} + 4; setexpr sz_kernel ${sz_kernel} / 4; " \
 	dbg_scr("echo kernel from ${addr_src_kernel} to ${addr_dst_kernel} sz ${sz_kernel}; ") \
 	"cp.l ${addr_src_kernel} ${addr_dst_kernel} ${sz_kernel}; " \
-	"if itest ${if_use_nfs_rootfs} == 1; then " \
-		"setenv bootargs root=/dev/nfs nfsroot=${nfs_serverip}:${nfs_rootfs_dir} ip=${nfs_clintip}:${nfs_serverip}:${nfs_gatewayip}:${nfs_netmask}::eth0:off init=/linuxrc rw console=ttyS0,115200; "\
-	"fi; " \
-	dbg_scr("echo bootm ${addr_dst_kernel} - ${addr_dst_dtb}; ") \
-	"bootm ${addr_dst_kernel} - ${addr_dst_dtb}\0" \
-"qk_romter_boot=cp.b ${addr_src_dtb} ${addr_tmp_header} 0x40; " \
-	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
-	dbg_scr("md ${addr_tmp_header} 0x10; printenv tmpval; ") \
-	"setexpr sz_dtb ${tmpval} + 0x40; " \
-	"setexpr sz_dtb ${sz_dtb} + 4; setexpr sz_dtb ${sz_dtb} / 4; " \
-	dbg_scr("echo dtb from ${addr_src_dtb} to ${addr_dst_dtb} sz ${sz_dtb}; ") \
-	"cp.l ${addr_src_dtb} ${addr_dst_dtb} ${sz_dtb}; " \
-	"cp.b ${addr_src_kernel} ${addr_tmp_header} 0x40; " \
+	dbg_scr("echo bootm ${addr_dst_kernel} - ${fdtcontroladdr}; ") \
+	"run boot_kernel \0" \
+"qk_romter_boot=cp.b ${addr_src_kernel} ${addr_tmp_header} 0x40; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
 	dbg_scr("md ${addr_tmp_header} 0x10; printenv tmpval; ") \
 	"setexpr sz_kernel ${tmpval} + 0x40; " \
 	"setexpr sz_kernel  ${sz_kernel} + 4; setexpr sz_kernel ${sz_kernel} / 4; " \
 	dbg_scr("echo kernel from ${addr_src_kernel} to ${addr_dst_kernel} sz ${sz_kernel}; ") \
 	"cp.l ${addr_src_kernel} ${addr_dst_kernel} ${sz_kernel}; " \
-	dbg_scr("echo sp_go ${addr_dst_kernel} ${addr_dst_dtb}; ") \
-	"sp_go ${addr_dst_kernel} ${addr_dst_dtb}\0" \
+	dbg_scr("echo sp_go ${addr_dst_kernel} ${fdtcontroladdr}; ") \
+	"sp_go ${addr_dst_kernel} ${fdtcontroladdr}\0" \
 "emmc_boot=	mmc read ${addr_tmp_header} ${addr_src_nonos} 0x1; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
 	"setexpr sz_nonos ${tmpval} + 0x40; " \
@@ -368,23 +359,14 @@
 	"setexpr sz_kernel ${sz_kernel} + 72; " \
 	"setexpr sz_kernel ${sz_kernel} + 0x200; setexpr sz_kernel ${sz_kernel} / 0x200; " \
 	"mmc read ${addr_dst_kernel} ${addr_src_kernel} ${sz_kernel}; " \
-	"if itest ${if_use_nfs_rootfs} == 1; then " \
-		"setenv bootargs root=/dev/nfs nfsroot=${nfs_serverip}:${nfs_rootfs_dir} ip=${nfs_clintip}:${nfs_serverip}:${nfs_gatewayip}:${nfs_netmask}::eth0:off init=/linuxrc rw console=ttyS0,115200; "\
-	"else " \
-		"setenv bootargs console=ttyS0,115200 earlyprintk root=/dev/mmcblk0p8 rw user_debug=255 rootwait ;" \
-	"fi; " \
-	"bootm ${addr_dst_kernel} - ${addr_dst_dtb}\0" \
-"qk_emmc_boot=mmc read ${addr_tmp_header} ${addr_src_dtb} 0x1; " \
-	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
-	"setexpr sz_dtb ${tmpval} + 0x40; " \
-	"setexpr sz_dtb ${sz_dtb} + 0x200; setexpr sz_dtb ${sz_dtb} / 0x200; " \
-	"mmc read ${addr_dst_dtb} ${addr_src_dtb} ${sz_dtb}; " \
-	"mmc read ${addr_tmp_header} ${addr_src_kernel} 0x1; " \
+	"setenv bootargs console=ttyS0,115200 earlyprintk root=/dev/mmcblk0p7 rw user_debug=255 rootwait ;" \
+	"run boot_kernel \0" \
+"qk_emmc_boot=mmc read ${addr_tmp_header} ${addr_src_kernel} 0x1; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
 	"setexpr sz_kernel ${tmpval} + 0x40; " \
 	"setexpr sz_kernel ${sz_kernel} + 0x200; setexpr sz_kernel ${sz_kernel} / 0x200; " \
 	"mmc read ${addr_dst_kernel} ${addr_src_kernel} ${sz_kernel}; " \
-	"sp_go ${addr_dst_kernel} ${addr_dst_dtb}\0" \
+	"sp_go ${addr_dst_kernel} ${fdtcontroladdr}\0" \
 "nand_boot=nand read ${addr_tmp_header} nonos 0x40; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
 	"setexpr sz_nonos ${tmpval} + 0x40; " \
@@ -398,27 +380,24 @@
 	"setexpr sz_kernel ${sz_kernel} + 72; " \
 	dbg_scr("echo from kernel partition to ${addr_dst_kernel} sz ${sz_kernel}; ") \
 	"nand read ${addr_dst_kernel} kernel ${sz_kernel}; " \
+	"setenv bootargs console=ttyS0,115200 earlyprintk root=ubi0:rootfs rw ubi.mtd=8,2048 rootflags=sync rootfstype=ubifs mtdparts=sp_spinand:128k(nand_header),128k(xboot1),768k(uboot1),3m(uboot2),512k(env),512k(env_redund),1m(nonos),15m(kernel),-(rootfs) user_debug=255 rootwait ;" \
+	"run boot_kernel \0" \
+"boot_kernel= "\
 	"if itest ${if_use_nfs_rootfs} == 1; then " \
-		"setenv bootargs root=/dev/nfs nfsroot=${nfs_serverip}:${nfs_rootfs_dir} ip=${nfs_clintip}:${nfs_serverip}:${nfs_gatewayip}:${nfs_netmask}::eth0:off init=/linuxrc rw console=ttyS0,115200; "\
-	"else " \
-		"setenv bootargs console=ttyS0,115200 earlyprintk root=ubi0:rootfs rw ubi.mtd=9,2048 rootflags=sync rootfstype=ubifs mtdparts=sp_spinand:128k(nand_header),128k(xboot1),768k(uboot1),3m(uboot2),512k(env),512k(env_redund),1m(nonos),256k(dtb),15m(kernel),-(rootfs) user_debug=255 rootwait ;" \
+		"setenv bootargs root=/dev/nfs nfsroot=${nfs_serverip}:${nfs_rootfs_dir} ip=${nfs_clintip}:${nfs_serverip}:${nfs_gatewayip}:${nfs_netmask}::eth0:off rdinit=/linuxrc noinitrd rw console=ttyS0,115200; "\
 	"fi; " \
-	"bootm ${addr_dst_kernel} - ${addr_dst_dtb}\0" \
-"qk_zmem_boot=sp_go ${addr_dst_kernel} ${addr_dst_dtb}\0" \
-"zmem_boot=bootm ${addr_dst_kernel} - ${addr_dst_dtb}\0" \
+	"bootm ${addr_dst_kernel} - ${fdtcontroladdr}; " \
+	"\0" \
+"qk_zmem_boot=sp_go ${addr_dst_kernel} ${fdtcontroladdr}\0" \
+"zmem_boot=bootm ${addr_dst_kernel} - ${fdtcontroladdr}\0" \
 "zebu_emmc_boot=mmc rescan; mmc part; " \
-	"mmc read ${addr_tmp_header} ${addr_src_dtb} 0x1; " \
-	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
-	"setexpr sz_dtb ${tmpval} + 0x40; " \
-	"setexpr sz_dtb ${sz_dtb} + 0x200; setexpr sz_dtb ${sz_dtb} / 0x200; " \
-	"mmc read ${addr_dst_dtb} ${addr_src_dtb} ${sz_dtb}; " \
 	"mmc read ${addr_tmp_header} ${addr_src_kernel} 0x1; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
 	"setexpr sz_kernel ${tmpval} + 0x40; " \
 	"setexpr sz_kernel ${sz_kernel} + 72; " \
 	"setexpr sz_kernel ${sz_kernel} + 0x200; setexpr sz_kernel ${sz_kernel} / 0x200; " \
 	"mmc read ${addr_dst_kernel} ${addr_src_kernel} ${sz_kernel}; " \
-	"sp_go ${addr_dst_kernel} ${addr_dst_dtb}\0" \
+	"sp_go ${addr_dst_kernel} ${fdtcontroladdr}\0" \
 "tftp_boot=setenv ethaddr ${macaddr} && printenv ethaddr; " \
 	"printenv serverip; " \
 	"dhcp ${addr_dst_dtb} ${serverip}:dtb" __stringify(USER_NAME) "; " \

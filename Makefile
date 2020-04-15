@@ -1029,17 +1029,12 @@ endif
 	@# create u-boot.img
 	@echo "Wrap u-boot image..."
 	
-ifneq ($(BOOT_FROM),SDCARD)
 	$(Q)if [ -f ../../linux/kernel/dtb ]; then \
-		dd if=/dev/zero of=dtb_temp bs=1k count=32 ;\
-		dd if=../../linux/kernel/dtb of=dtb_temp conv=notrunc ;\
-		cat dtb_temp >> u-boot.bin ;\
-		rm -rf dtb_temp ;\
+		cat u-boot-nodtb.bin ../../linux/kernel/dtb > u-boot.bin ;\
 	else\
 		echo "[Error]:please make dtb first !!!" ; \
 		exit 1; \
 	fi
-endif
 	./tools/add_uhdr.sh $(img_name) u-boot.bin u-boot.img 0x200040 0x200040
 	@img_sz=`du -sb u-boot.img | cut -f1` ; \
 	printf "size: %d (hex %x)\n" $$img_sz $$img_sz

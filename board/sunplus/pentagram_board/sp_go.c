@@ -173,6 +173,8 @@ static int do_sp_nonos_go(cmd_tbl_t *cmdtp, int flag, int argc, char * const arg
 	nonos_size = image_get_data_size(hdr);
 
 	printf("[u-boot] nonos_B address 0x%08x  nonos_size= %d \n",nonos_addr,nonos_size);
+
+	nonos_size = ALIGN(nonos_size, CONFIG_SYS_CACHELINE_SIZE);
 	flush_cache((u32)nonos_addr, nonos_size);
 
 	nonos_addr += 0x40;
