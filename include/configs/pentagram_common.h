@@ -21,6 +21,8 @@
 #error "No board configuration is defined"
 #endif
 
+#define CONFIG_CLOCKS
+
 /* Disable some options which is enabled by default: */
 #undef CONFIG_CMD_IMLS
 

@@ -669,6 +669,7 @@ config ARCH_PENTAGRAM
 	imply FIT
 	select DM
 	select DM_SERIAL
+	select CLK
 
 config ARCH_MESON
 	bool "Amlogic Meson"
