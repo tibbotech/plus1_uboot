@@ -53,16 +53,21 @@ int sunplus_clk_get_by_index(int index, struct clk *clk)
 
 int sunplus_clk_request(struct udevice *dev, struct clk *clk)
 {
-	uint clkd[2]; /* phandle & clk_id */
-	int ret;
+	u32 n = (clk->id + 1) * 2;
+	u32 *clkd = malloc(n * sizeof(u32));
 
-	ret = fdtdec_get_int_array(gd->fdt_blob, dev_of_offset(dev), "clocks", clkd, 2);
-	if (ret) {
+	if (!clkd)
+		return -ENOMEM;
+
+	if (fdtdec_get_int_array(gd->fdt_blob, dev_of_offset(dev), "clocks", clkd, n)) {
 		pr_err("Faild to find clocks node. Check device tree\n");
-		return ret;
+		free(clkd);
+		return -ENOENT;
 	}
+	n = clkd[n - 1];
+	free(clkd);
 
-	return sunplus_clk_get_by_index(clkd[1], clk);
+	return sunplus_clk_get_by_index(n, clk);
 }
 
 static struct clk_ops sunplus_clk_ops = {
@@ -135,10 +140,10 @@ int set_cpu_clk_info(void)
 	}
 
 #ifdef SP_CLK_TEST
-	printf("===== SP_CLK_TEST: disable/enable uart1 clock\n");
-	ret = uclass_get_device_by_name(UCLASS_SERIAL, "serial@sp_uart1", &dev);
+	printf("===== SP_CLK_TEST: disable/enable uartdmarx0 clock #1\n");
+	ret = uclass_get_device_by_name(UCLASS_SERIAL, "serial@sp_uartdmarx0", &dev);
 	if (!ret) {
-		clk.id = 0;
+		clk.id = 1;
 		ret = sunplus_clk_request(dev, &clk);
 		if (!ret) {
 			sp_clk_dump(&clk);
