@@ -668,6 +668,7 @@ config ARCH_PENTAGRAM
 	select OF_CONTROL
 	imply FIT
 	select DM
+	select DM_RESET
 	select DM_SERIAL
 	select CLK
 

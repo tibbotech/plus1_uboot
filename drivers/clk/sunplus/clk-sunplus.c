@@ -139,6 +139,14 @@ int set_cpu_clk_info(void)
 		}
 	}
 
+#ifdef CONFIG_RESET_SP7021
+	ret = uclass_get_device(UCLASS_RESET, 0, &dev);
+	if (ret) {
+		pr_err("Failed to find reset node. Check device tree\n");
+		return ret;
+	}
+#endif
+
 #ifdef SP_CLK_TEST
 	printf("===== SP_CLK_TEST: disable/enable uartdmarx0 clock #1\n");
 	ret = uclass_get_device_by_name(UCLASS_SERIAL, "serial@sp_uartdmarx0", &dev);
