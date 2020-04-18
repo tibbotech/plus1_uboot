@@ -5,7 +5,7 @@
 #include <asm/io.h>
 
 #include "pinctrl_sunplus.h"
-#include <dt-bindings/pinctrl/sp-q628.h>
+#include <dt-bindings/pinctrl/sp7021.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
