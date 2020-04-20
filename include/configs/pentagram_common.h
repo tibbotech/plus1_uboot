@@ -283,6 +283,7 @@
 "bootinfo_base="		__stringify(SP_BOOTINFO_BASE) "\0" \
 "addr_src_kernel="		__stringify(CONFIG_SRCADDR_KERNEL) "\0" \
 "addr_src_nonos="		__stringify(CONFIG_SRCADDR_NONOS) "\0" \
+"addr_src_dtb="			__stringify(CONFIG_SRCADDR_DTB) "\0" \
 "addr_dst_nonos="		__stringify(DSTADDR_NONOS) "\0" \
 "addr_dst_kernel="		__stringify(DSTADDR_KERNEL) "\0" \
 "addr_dst_dtb="			__stringify(DSTADDR_DTB) "\0" \
