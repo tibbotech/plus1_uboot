@@ -234,7 +234,7 @@
 
 //#define SUPPROT_NFS_ROOTFS
 #ifdef SUPPROT_NFS_ROOTFS
-#define USE_NFS_ROOTFS  1	
+#define USE_NFS_ROOTFS  1
 #define NFS_ROOTFS_DIR			"/home/rootfsdir"
 #define NFS_ROOTFS_SERVER_IP 	172.28.114.216
 #define NFS_ROOTFS_CLINT_IP 	172.28.114.7
@@ -403,6 +403,11 @@
 	"sp_go ${addr_dst_kernel} ${fdtcontroladdr}\0" \
 "tftp_boot=setenv ethaddr ${macaddr} && printenv ethaddr; " \
 	"printenv serverip; " \
+	"dhcp ${addr_dst_nonos} ${serverip}:a926" __stringify(USER_NAME) "; " \
+	"if test $filesize != 0; then " \
+		"echo \"## Booting A926 from image at ${addr_dst_nonos}\"; " \
+		"sp_nonos_go ${addr_dst_nonos}; " \
+	"fi; " \
 	"dhcp ${addr_dst_dtb} ${serverip}:dtb" __stringify(USER_NAME) "; " \
 	"dhcp ${addr_dst_kernel} ${serverip}:uImage" __stringify(USER_NAME) "; " \
 	"bootm ${addr_dst_kernel} - ${addr_dst_dtb}; " \
