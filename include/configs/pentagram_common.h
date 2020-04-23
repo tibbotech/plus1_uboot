@@ -234,7 +234,7 @@
 
 //#define SUPPROT_NFS_ROOTFS
 #ifdef SUPPROT_NFS_ROOTFS
-#define USE_NFS_ROOTFS  1	
+#define USE_NFS_ROOTFS  1
 #define NFS_ROOTFS_DIR			"/home/rootfsdir"
 #define NFS_ROOTFS_SERVER_IP 	172.28.114.216
 #define NFS_ROOTFS_CLINT_IP 	172.28.114.7
@@ -383,7 +383,7 @@
 	"setexpr sz_kernel ${sz_kernel} + 72; " \
 	dbg_scr("echo from kernel partition to ${addr_dst_kernel} sz ${sz_kernel}; ") \
 	"nand read ${addr_dst_kernel} kernel ${sz_kernel}; " \
-	"setenv bootargs console=ttyS0,115200 earlyprintk root=ubi0:rootfs rw ubi.mtd=8,2048 rootflags=sync rootfstype=ubifs mtdparts=sp_spinand:128k(nand_header),128k(xboot1),768k(uboot1),3m(uboot2),512k(env),512k(env_redund),1m(nonos),15m(kernel),-(rootfs) user_debug=255 rootwait ;" \
+	"setenv bootargs console=ttyS0,115200 earlyprintk root=ubi0:rootfs rw ubi.mtd=9,2048 rootflags=sync rootfstype=ubifs mtdparts=sp_spinand:128k(nand_header),128k(xboot1),1280k(uboot1),2560k(uboot2),512k(env),512k(env_redund),1m(nonos),256k(dtb),15m(kernel),-(rootfs) user_debug=255 rootwait ;" \
 	"run boot_kernel \0" \
 "boot_kernel= "\
 	"if itest ${if_use_nfs_rootfs} == 1; then " \
@@ -403,6 +403,11 @@
 	"sp_go ${addr_dst_kernel} ${fdtcontroladdr}\0" \
 "tftp_boot=setenv ethaddr ${macaddr} && printenv ethaddr; " \
 	"printenv serverip; " \
+	"dhcp ${addr_dst_nonos} ${serverip}:a926" __stringify(USER_NAME) "; " \
+	"if test $filesize != 0; then " \
+		"echo \"## Booting A926 from image at ${addr_dst_nonos}\"; " \
+		"sp_nonos_go ${addr_dst_nonos}; " \
+	"fi; " \
 	"dhcp ${addr_dst_dtb} ${serverip}:dtb" __stringify(USER_NAME) "; " \
 	"dhcp ${addr_dst_kernel} ${serverip}:uImage" __stringify(USER_NAME) "; " \
 	"bootm ${addr_dst_kernel} - ${addr_dst_dtb}; " \
