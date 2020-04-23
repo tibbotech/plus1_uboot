@@ -723,6 +723,19 @@ static const struct eth_ops l2sw_emac_eth_ops = {
 	.stop           = l2sw_emac_eth_stop,
 };
 
+static void check_mac_vendor_id_and_convert(u8 *mac_addr)
+{
+	// Byte order of MAC address of some samples are reversed.
+	// Check vendor id and convert byte order if it is wrong.
+	if ((mac_addr[5] == 0xFC) && (mac_addr[4] == 0x4B) && (mac_addr[3] == 0xBC) &&
+		((mac_addr[0] != 0xFC) || (mac_addr[1] != 0x4B) || (mac_addr[2] != 0xBC))) {
+		char tmp;
+		tmp = mac_addr[0]; mac_addr[0] = mac_addr[5]; mac_addr[5] = tmp;
+		tmp = mac_addr[1]; mac_addr[1] = mac_addr[4]; mac_addr[4] = tmp;
+		tmp = mac_addr[2]; mac_addr[2] = mac_addr[3]; mac_addr[3] = tmp;
+	}
+}
+
 static int l2sw_emac_eth_ofdata_to_platdata(struct udevice *dev)
 {
 	struct eth_pdata *pdata = dev_get_platdata(dev);
@@ -785,6 +798,7 @@ static int l2sw_emac_eth_ofdata_to_platdata(struct udevice *dev)
 			read_otp_data(priv->otp_mac_addr+i, (char*)&otp_mac[i]);
 		}
 		//eth_info("mac address = %pM\n", otp_mac);
+		check_mac_vendor_id_and_convert(otp_mac);
 
 		if (is_valid_ethaddr(otp_mac)) {
 			memcpy(pdata->enetaddr, otp_mac, ARP_HLEN);
