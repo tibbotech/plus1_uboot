@@ -1026,11 +1026,6 @@ endif
 	@# Check that this build does not use CONFIG options that we do not
 	@# know about unless they are in Kconfig. All the existing CONFIG
 	@# options are whitelisted, so new ones should not be added.
-	@# create u-boot.img
-	@echo "Wraping u-boot image..."
-	./tools/add_uhdr.sh $(img_name) u-boot.bin u-boot.img 0x200040 0x200040
-	@img_sz=`du -sb u-boot.img | cut -f1` ; \
-	printf "size: %d (hex %x)\n" $$img_sz $$img_sz
 	$(call cmd,cfgcheck,u-boot.cfg)
 
 PHONY += dtbs
