@@ -1028,13 +1028,7 @@ endif
 	@# options are whitelisted, so new ones should not be added.
 	@# create u-boot.img
 	@echo "Wrap u-boot image..."
-	
-	$(Q)if [ -f ../../linux/kernel/dtb ]; then \
-		cat u-boot-nodtb.bin ../../linux/kernel/dtb > u-boot.bin ;\
-	else\
-		echo "[Error]:please make dtb first !!!" ; \
-		exit 1; \
-	fi
+
 	./tools/add_uhdr.sh $(img_name) u-boot.bin u-boot.img 0x200040 0x200040
 	@img_sz=`du -sb u-boot.img | cut -f1` ; \
 	printf "size: %d (hex %x)\n" $$img_sz $$img_sz
