@@ -242,10 +242,6 @@ export	HOSTARCH HOSTOS
 # set default to nothing for native builds
 ifeq ($(HOSTARCH),$(ARCH))
 CROSS_COMPILE ?=
-BOOT_KERNEL_FROM_TFTP ?=
-TFTP_SERVER_IP ?=
-BOARD_MAC_ADDR ?=
-USER_NAME ?=
 endif
 
 KCONFIG_CONFIG	?= .config
@@ -379,11 +375,6 @@ CHECKFLAGS     := -D__linux__ -Dlinux -D__STDC__ -Dunix -D__unix__ \
 		  -Wbitwise -Wno-return-void -D__CHECK_ENDIAN__ $(CF)
 
 KBUILD_CPPFLAGS := -D__KERNEL__ -D__UBOOT__
-
-ifeq ($(BOOT_KERNEL_FROM_TFTP), 1)
-KBUILD_CPPFLAGS += -DBOOT_KERNEL_FROM_TFTP=$(BOOT_KERNEL_FROM_TFTP) -DTFTP_SERVER_IP=$(TFTP_SERVER_IP) \
-		   -DBOARD_MAC_ADDR=$(BOARD_MAC_ADDR) -DUSER_NAME=$(USER_NAME)
-endif
 
 KBUILD_CFLAGS   := -Wall -Wstrict-prototypes \
 		   -Wno-format-security \
