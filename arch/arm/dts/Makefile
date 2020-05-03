@@ -681,6 +681,11 @@ dtb-$(CONFIG_ARCH_STI) += stih410-b2260.dtb
 dtb-$(CONFIG_ARCH_PENTAGRAM) += pentagram-common.dtb
 dtb-$(CONFIG_ARCH_PENTAGRAM) += pentagram-tppg2.dtb
 dtb-$(CONFIG_ARCH_PENTAGRAM) += sp7021-unset.dtb
+dtb-$(CONFIG_ARCH_PENTAGRAM) += sp7021-bpi-f2p.dts
+dtb-$(CONFIG_ARCH_PENTAGRAM) += sp7021-bpi-f2s.dts
+dtb-$(CONFIG_ARCH_PENTAGRAM) += sp7021-demov2.dts
+dtb-$(CONFIG_ARCH_PENTAGRAM) += sp7021-demov3.dts
+dtb-$(CONFIG_ARCH_PENTAGRAM) += sp7021-ev.dts
 dtb-$(CONFIG_ARCH_PENTAGRAM) += sp7021-ltpp3g2revD.dtb
 
 dtb-$(CONFIG_TARGET_STM32MP1) += \
