@@ -917,15 +917,6 @@ quiet_cmd_cfgcheck = CFGCHK  $2
 cmd_cfgcheck = $(srctree)/scripts/check-config.sh $2 \
 		$(srctree)/scripts/config_whitelist.txt $(srctree)
 
-# xboot uses name field of u-boot header to differeciate between A boot
-# image and B boot image. If name field has prefix "uboot_B", it boots from
-# B chip.
-ifeq ($(CONFIG_TARGET_PENTAGRAM_B_BOOT),y)
-img_name = "uboot_B_$(CONFIG_SYS_BOARD)"
-else
-img_name = "uboot_$(CONFIG_SYS_BOARD)"
-endif
-
 BOOT_FROM ?=
 all:		$(ALL-y)
 ifeq ($(CONFIG_DM_I2C_COMPAT)$(CONFIG_SANDBOX),y)
