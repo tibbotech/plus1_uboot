@@ -242,10 +242,6 @@ export	HOSTARCH HOSTOS
 # set default to nothing for native builds
 ifeq ($(HOSTARCH),$(ARCH))
 CROSS_COMPILE ?=
-BOOT_KERNEL_FROM_TFTP ?=
-TFTP_SERVER_IP ?=
-BOARD_MAC_ADDR ?=
-USER_NAME ?=
 endif
 
 KCONFIG_CONFIG	?= .config
@@ -379,11 +375,6 @@ CHECKFLAGS     := -D__linux__ -Dlinux -D__STDC__ -Dunix -D__unix__ \
 		  -Wbitwise -Wno-return-void -D__CHECK_ENDIAN__ $(CF)
 
 KBUILD_CPPFLAGS := -D__KERNEL__ -D__UBOOT__
-
-ifeq ($(BOOT_KERNEL_FROM_TFTP), 1)
-KBUILD_CPPFLAGS += -DBOOT_KERNEL_FROM_TFTP=$(BOOT_KERNEL_FROM_TFTP) -DTFTP_SERVER_IP=$(TFTP_SERVER_IP) \
-		   -DBOARD_MAC_ADDR=$(BOARD_MAC_ADDR) -DUSER_NAME=$(USER_NAME)
-endif
 
 KBUILD_CFLAGS   := -Wall -Wstrict-prototypes \
 		   -Wno-format-security \
@@ -1026,12 +1017,6 @@ endif
 	@# Check that this build does not use CONFIG options that we do not
 	@# know about unless they are in Kconfig. All the existing CONFIG
 	@# options are whitelisted, so new ones should not be added.
-	@# create u-boot.img
-	@echo "Wrap u-boot image..."
-
-	./tools/add_uhdr.sh $(img_name) u-boot.bin u-boot.img 0x200040 0x200040
-	@img_sz=`du -sb u-boot.img | cut -f1` ; \
-	printf "size: %d (hex %x)\n" $$img_sz $$img_sz
 	$(call cmd,cfgcheck,u-boot.cfg)
 
 PHONY += dtbs
