@@ -204,3 +204,13 @@ int arch_misc_init(void)
 	return 0;
 }
 #endif
+
+#ifndef CONFIG_SYS_DCACHE_OFF
+#ifdef CONFIG_VIDEO_SP7021
+void enable_caches(void)
+{
+	/* Enable D-cache. I-cache is already enabled in start.S */
+	dcache_enable();
+}
+#endif
+#endif

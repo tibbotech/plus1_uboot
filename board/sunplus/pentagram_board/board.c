@@ -2,6 +2,7 @@
  * SPDX-License-Identifier:	GPL-2.0+
  */
 #include <common.h>
+#include <asm/arch/sp7021_common.h>
 
 #ifdef CONFIG_SP_SPINAND
 extern void board_spinand_init(void);
@@ -57,6 +58,7 @@ int board_init(void)
 		for (int j = 0; j < 32; j++)
 			*(reg_ptr)A_RF_GRP(i, j) = 0;
 #endif
+
 	return 0;
 }
 
@@ -105,6 +107,16 @@ void board_nand_init(void)
 	board_spinand_init();
 #endif
 }
+
+#ifdef CONFIG_BOARD_LATE_INIT
+int board_late_init(void)
+{
+#ifdef CONFIG_DM_VIDEO
+	sp7021_video_show_board_info();
+#endif
+	return 0;
+}
+#endif
 
 #ifdef CONFIG_ARMV7_NONSEC
 //void smp_kick_all_cpus(void) {}

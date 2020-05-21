@@ -660,6 +660,7 @@ config VERSION_VARIABLE
 
 config BOARD_LATE_INIT
 	bool "Execute Board late init"
+	default y
 	help
 	  Sometimes board require some initialization code that might
 	  require once the actual init done, example saving board specific env,
