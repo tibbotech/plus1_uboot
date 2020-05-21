@@ -205,8 +205,8 @@ int arch_misc_init(void)
 }
 #endif
 
+#ifdef CONFIG_HAS_THUMB2
 #ifndef CONFIG_SYS_DCACHE_OFF
-#ifdef CONFIG_VIDEO_SP7021
 void enable_caches(void)
 {
 	/* Enable D-cache. I-cache is already enabled in start.S */
