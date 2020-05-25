@@ -496,4 +496,8 @@ mmc read 0x2fffc0 0x1422 0xa ; mmc read 0x307fc0 0x1822 0x30f0 ; sp_go 0x308000 
 #define CONFIG_BMP_32BPP
 #endif
 
+/* USB Config */
+#define CONFIG_USB_OHCI_NEW			1
+
+#define CONFIG_SYS_USB_OHCI_MAX_ROOT_PORTS	2
 #endif /* __CONFIG_PENTAGRAM_H */
