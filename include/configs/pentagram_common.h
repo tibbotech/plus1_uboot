@@ -280,6 +280,9 @@
 	"fi; "
 
 #define CONFIG_EXTRA_ENV_SETTINGS \
+"stdin=" STDIN_CFG "\0" \
+"stdout=" STDOUT_CFG "\0" \
+"stderr=" STDOUT_CFG "\0" \
 "bootinfo_base="		__stringify(SP_BOOTINFO_BASE) "\0" \
 "addr_src_kernel="		__stringify(CONFIG_SRCADDR_KERNEL) "\0" \
 "addr_src_nonos="		__stringify(CONFIG_SRCADDR_NONOS) "\0" \
@@ -494,6 +497,9 @@ mmc read 0x2fffc0 0x1422 0xa ; mmc read 0x307fc0 0x1822 0x30f0 ; sp_go 0x308000 
 #define CONFIG_BMP_16BPP
 #define CONFIG_BMP_24BPP
 #define CONFIG_BMP_32BPP
+#define STDOUT_CFG "vidconsole,serial"
+#else
+#define STDOUT_CFG "serial"
 #endif
 
 /* USB Config */
@@ -501,7 +507,10 @@ mmc read 0x2fffc0 0x1422 0xa ; mmc read 0x307fc0 0x1822 0x30f0 ; sp_go 0x308000 
 #define CONFIG_SYS_USB_OHCI_MAX_ROOT_PORTS	2
 
 #ifdef CONFIG_USB_KEYBOARD
+#define STDIN_CFG "usbkbd,serial"
 #define CONFIG_PREBOOT "usb start"
+#else
+#define STDIN_CFG "serial"
 #endif
 
 #endif /* __CONFIG_PENTAGRAM_H */
