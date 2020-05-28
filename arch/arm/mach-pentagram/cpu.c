@@ -195,6 +195,7 @@ int arch_misc_init(void)
 {
 	volatile unsigned int *ptr;
 
+#ifdef CONFIG_VIDEO_SP7021
 #ifdef CONFIG_DM_VIDEO_SP7021_LOGO
 #else
 #ifdef CONFIG_OF_CONTROL
@@ -215,6 +216,7 @@ int arch_misc_init(void)
 	printf("DRAM: ");
 	print_size(size,"");
 	printf("\n");
+#endif
 #endif
 
 	ptr = (volatile unsigned int *)(PENTAGRAM_RTC_ADDR + (22 << 2));
