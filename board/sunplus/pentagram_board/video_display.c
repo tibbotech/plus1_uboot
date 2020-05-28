@@ -94,10 +94,16 @@ int sp7021_video_show_board_info(void)
 		return ret;
 
 	priv = dev_get_uclass_priv(con);
+#ifdef CONFIG_DM_VIDEO
+#if defined(CONFIG_CMD_BMP)
+#ifdef CONFIG_DM_VIDEO_SP7021_LOGO	
 	vidconsole_position_cursor(con, 0, ( logo_info.logo_height +
 				   priv->y_charsize - 1) / priv->y_charsize);
 	for (s = buf, i = 0; i < len; s++, i++)
 		vidconsole_put_char(con, *s);
+#endif /* CONFIG_DM_VIDEO_SP7021_LOGO */
+#endif /* CONFIG_CMD_BMP */
+#endif /* CONFIG_DM_VIDEO */
 
 	return 0;
 }

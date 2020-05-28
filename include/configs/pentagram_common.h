@@ -497,7 +497,11 @@ mmc read 0x2fffc0 0x1422 0xa ; mmc read 0x307fc0 0x1822 0x30f0 ; sp_go 0x308000 
 #define CONFIG_BMP_16BPP
 #define CONFIG_BMP_24BPP
 #define CONFIG_BMP_32BPP
+#ifdef CONFIG_DM_VIDEO_SP7021_LOGO
+#define STDOUT_CFG "serial"
+#else
 #define STDOUT_CFG "vidconsole,serial"
+#endif
 #else
 #define STDOUT_CFG "serial"
 #endif

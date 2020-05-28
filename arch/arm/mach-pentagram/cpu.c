@@ -195,6 +195,28 @@ int arch_misc_init(void)
 {
 	volatile unsigned int *ptr;
 
+#ifdef CONFIG_DM_VIDEO_SP7021_LOGO
+#else
+#ifdef CONFIG_OF_CONTROL
+	const char *model;
+#endif
+	unsigned long long size;
+	char buf[DISPLAY_OPTIONS_BANNER_LENGTH];
+	display_options_get_banner(true, buf, sizeof(buf));
+	printf("%s",buf);
+
+#ifdef CONFIG_OF_CONTROL
+	model = fdt_getprop(gd->fdt_blob, 0, "model", NULL);
+
+	if (model)
+		printf("Model: %s\n", model);
+#endif
+	size = gd->ram_size;
+	printf("DRAM: ");
+	print_size(size,"");
+	printf("\n");
+#endif
+
 	ptr = (volatile unsigned int *)(PENTAGRAM_RTC_ADDR + (22 << 2));
 	printf("\nReason(s) of reset: REG(116, 22): 0x%04x\n", *ptr);
 	*ptr = 0xFFFF0000;
