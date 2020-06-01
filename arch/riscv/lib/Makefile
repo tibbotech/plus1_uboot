@@ -11,9 +11,12 @@ obj-$(CONFIG_CMD_GO) += boot.o
 obj-y	+= cache.o
 obj-$(CONFIG_RISCV_RDTIME) += rdtime.o
 obj-$(CONFIG_SIFIVE_CLINT) += sifive_clint.o
+obj-$(CONFIG_SBI_IPI) += sbi_ipi.o
 obj-y	+= interrupts.o
 obj-y	+= reset.o
 obj-y   += setjmp.o
+obj-$(CONFIG_SMP) += smp.o
+obj-$(CONFIG_SP_TIMER) += sp_timer.o
 
 # For building EFI apps
 CFLAGS_$(EFI_CRT0) := $(CFLAGS_EFI)
