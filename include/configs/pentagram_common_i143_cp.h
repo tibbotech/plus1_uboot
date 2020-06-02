@@ -344,7 +344,6 @@
 	"setexpr sz_kernel ${sz_kernel} + 0x200; setexpr sz_kernel ${sz_kernel} / 0x200; " \
 	"mmc read ${addr_dst_kernel} ${addr_src_kernel} ${sz_kernel}; " \
 	"sp_go ${addr_dst_kernel} ${addr_dst_dtb}\0" \
-
 "qk_zmem_boot=bootm ${addr_dst_kernel} ${addr_dst_dtb}\0" \
 "zmem_boot=bootm ${addr_dst_kernel} - ${addr_dst_dtb}\0" \
 "zebu_emmc_boot=mmc rescan; mmc part; " \
