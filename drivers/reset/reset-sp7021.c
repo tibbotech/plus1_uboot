@@ -10,7 +10,11 @@
 #include <asm/io.h>
 #include <dm.h>
 #include <reset-uclass.h>
+#ifdef CONFIG_TARGET_SUNPLUS_I143
+#include <dt-bindings/reset/sp-i143.h>
+#else
 #include <dt-bindings/reset/sp-q628.h>
+#endif
 
 #define BITASSERT(id, val)	(BIT(16 + (id)) | ((val) << (id)))
 
@@ -61,10 +65,10 @@ struct reset_ops sp7021_reset_ops = {
 	.rst_status   = sp7021_reset_status,
 };
 
-static const struct udevice_id sp7021_reset_ids[] = {                          
-	{ .compatible = "sunplus,sp7021-reset" },                                  
-	{ /* sentinel */ }                                                                     
-};  
+static const struct udevice_id sp7021_reset_ids[] = {
+	{ .compatible = "sunplus,sp-reset" },
+	{ /* sentinel */ }
+};
 
 static int sp7021_reset_probe(struct udevice *dev)
 {
