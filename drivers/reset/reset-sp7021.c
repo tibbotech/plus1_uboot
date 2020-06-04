@@ -67,6 +67,7 @@ struct reset_ops sp7021_reset_ops = {
 
 static const struct udevice_id sp7021_reset_ids[] = {
 	{ .compatible = "sunplus,sp-reset" },
+	{ .compatible = "sunplus,sp7021-reset" },
 	{ /* sentinel */ }
 };
 

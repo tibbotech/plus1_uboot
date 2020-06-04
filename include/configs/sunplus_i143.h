@@ -260,15 +260,15 @@
 	"setexpr sz_kernel ${sz_kernel} + 4; setexpr sz_kernel ${sz_kernel} / 4; " \
 	dbg_scr("echo kernel from ${addr_src_kernel} to ${addr_dst_kernel} sz ${sz_kernel}; ") \
 	"cp.l ${addr_src_kernel} ${addr_dst_kernel} ${sz_kernel}; " \
-	dbg_scr("echo bootm ${addr_dst_kernel} - ${addr_dst_dtb}; ") \
-	"bootm ${addr_dst_kernel} - ${addr_dst_dtb}\0" \
+	dbg_scr("echo bootm ${addr_dst_kernel} - ${fdtcontroladdr}; ") \
+	"bootm ${addr_dst_kernel} - ${fdtcontroladdr}\0" \
 "qk_romter_boot=cp.b ${addr_src_dtb} ${addr_tmp_header} 0x40; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
 	dbg_scr("md ${addr_tmp_header} 0x10; printenv tmpval; ") \
 	"setexpr sz_dtb ${tmpval} + 0x40; " \
 	"setexpr sz_dtb ${sz_dtb} + 4; setexpr sz_dtb ${sz_dtb} / 4; " \
-	dbg_scr("echo dtb from ${addr_src_dtb} to ${addr_dst_dtb} sz ${sz_dtb}; ") \
-	"cp.l ${addr_src_dtb} ${addr_dst_dtb} ${sz_dtb}; " \
+	dbg_scr("echo dtb from ${addr_src_dtb} to ${fdtcontroladdr} sz ${sz_dtb}; ") \
+	"cp.l ${addr_src_dtb} ${fdtcontroladdr} ${sz_dtb}; " \
 	"cp.b ${addr_src_kernel} ${addr_tmp_header} 0x40; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
 	dbg_scr("md ${addr_tmp_header} 0x10; printenv tmpval; ") \
@@ -276,13 +276,13 @@
 	"setexpr sz_kernel  ${sz_kernel} + 4; setexpr sz_kernel ${sz_kernel} / 4; " \
 	dbg_scr("echo kernel from ${addr_src_kernel} to ${addr_dst_kernel} sz ${sz_kernel}; ") \
 	"cp.l ${addr_src_kernel} ${addr_dst_kernel} ${sz_kernel}; " \
-	dbg_scr("echo sp_go ${addr_dst_kernel} ${addr_dst_dtb}; ") \
-	"sp_go ${addr_dst_kernel} ${addr_dst_dtb}\0" \
+	dbg_scr("echo sp_go ${addr_dst_kernel} ${fdtcontroladdr}; ") \
+	"sp_go ${addr_dst_kernel} ${fdtcontroladdr}\0" \
 "emmc_boot=mmc read ${addr_tmp_header} ${addr_src_dtb} 0x1; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x4; run be2le; " \
 	"setexpr sz_dtb ${tmpval} + 0x28; " \
 	"setexpr sz_dtb ${sz_dtb} + 0x200; setexpr sz_dtb ${sz_dtb} / 0x200; " \
-	"mmc read ${addr_dst_dtb} ${addr_src_dtb} ${sz_dtb}; " \
+	"mmc read ${fdtcontroladdr} ${addr_src_dtb} ${sz_dtb}; " \
 	"mmc read ${addr_tmp_header} ${addr_src_kernel} 0x1; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
 	"setexpr sz_kernel ${tmpval} + 0x40; " \
@@ -290,24 +290,24 @@
 	"setexpr sz_kernel ${sz_kernel} + 0x200; setexpr sz_kernel ${sz_kernel} / 0x200; " \
 	"mmc read ${addr_dst_kernel} ${addr_src_kernel} ${sz_kernel}; " \
 	"setenv bootargs console=ttyS0,115200 earlyprintk root=/dev/mmcblk0p7 rw user_debug=255 rootwait ;" \
-	"bootm ${addr_dst_kernel} - ${addr_dst_dtb}\0" \
+	"bootm ${addr_dst_kernel} - ${fdtcontroladdr}\0" \
 "qk_emmc_boot=mmc read ${addr_tmp_header} ${addr_src_dtb} 0x1; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
 	"setexpr sz_dtb ${tmpval} + 0x40; " \
 	"setexpr sz_dtb ${sz_dtb} + 0x200; setexpr sz_dtb ${sz_dtb} / 0x200; " \
-	"mmc read ${addr_dst_dtb} ${addr_src_dtb} ${sz_dtb}; " \
+	"mmc read ${fdtcontroladdr} ${addr_src_dtb} ${sz_dtb}; " \
 	"mmc read ${addr_tmp_header} ${addr_src_kernel} 0x1; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
 	"setexpr sz_kernel ${tmpval} + 0x40; " \
 	"setexpr sz_kernel ${sz_kernel} + 0x200; setexpr sz_kernel ${sz_kernel} / 0x200; " \
 	"mmc read ${addr_dst_kernel} ${addr_src_kernel} ${sz_kernel}; " \
-	"sp_go ${addr_dst_kernel} ${addr_dst_dtb}\0" \
+	"sp_go ${addr_dst_kernel} ${fdtcontroladdr}\0" \
 "nand_boot=nand read ${addr_tmp_header} dtb 0x40; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x4; run be2le; " \
 	dbg_scr("md ${addr_tmp_header} 0x10; printenv tmpval; ") \
 	"setexpr sz_dtb ${tmpval} + 0x40; " \
-	dbg_scr("echo from dtb partition to ${addr_dst_dtb} sz ${sz_dtb}; ") \
-	"nand read ${addr_dst_dtb} dtb ${sz_dtb}; " \
+	dbg_scr("echo from dtb partition to ${fdtcontroladdr} sz ${sz_dtb}; ") \
+	"nand read ${fdtcontroladdr} dtb ${sz_dtb}; " \
 	"nand read ${addr_tmp_header} kernel 0x40; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
 	dbg_scr("md ${addr_tmp_header} 0x10; printenv tmpval; ") \
@@ -316,15 +316,15 @@
 	dbg_scr("echo from kernel partition to ${addr_dst_kernel} sz ${sz_kernel}; ") \
 	"nand read ${addr_dst_kernel} kernel ${sz_kernel}; " \
 	"setenv bootargs console=ttyS0,115200 earlyprintk root=ubi0:rootfs rw ubi.mtd=8,2048 rootflags=sync rootfstype=ubifs mtdparts=sp_spinand:128k(nand_header),128k(xboot1),768k(uboot1),3m(uboot2),512k(env),512k(env_redund),256k(dtb),15m(kernel),-(rootfs) user_debug=255 rootwait ;" \
-	"bootm ${addr_dst_kernel} - ${addr_dst_dtb}\0" \
-"qk_zmem_boot=sp_go ${addr_dst_kernel} ${addr_dst_dtb}\0" \
-"zmem_boot=bootm ${addr_dst_kernel} - ${addr_dst_dtb}\0" \
+	"bootm ${addr_dst_kernel} - ${fdtcontroladdr}\0" \
+"qk_zmem_boot=sp_go ${addr_dst_kernel} ${fdtcontroladdr}\0" \
+"zmem_boot=bootm ${addr_dst_kernel} - ${fdtcontroladdr}\0" \
 "zebu_emmc_boot=mmc rescan; mmc part; " \
 	"mmc read ${addr_tmp_header} ${addr_src_dtb} 0x1; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
 	"setexpr sz_dtb ${tmpval} + 0x40; " \
 	"setexpr sz_dtb ${sz_dtb} + 0x200; setexpr sz_dtb ${sz_dtb} / 0x200; " \
-    "setexpr addr_dram ${addr_dst_dtb} - 0x40; " \
+    "setexpr addr_dram ${fdtcontroladdr} - 0x40; " \
 	"mmc read ${addr_dram} ${addr_src_dtb} ${sz_dtb}; " \
 	"mmc read ${addr_tmp_header} ${addr_src_kernel} 0x1; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
@@ -332,7 +332,7 @@
 	"setexpr sz_kernel ${sz_kernel} + 72; " \
 	"setexpr sz_kernel ${sz_kernel} + 0x200; setexpr sz_kernel ${sz_kernel} / 0x200; " \
 	"mmc read ${addr_dst_kernel} ${addr_src_kernel} ${sz_kernel}; " \
-	"bootm ${addr_dst_kernel} - ${addr_dst_dtb}\0" \
+	"bootm ${addr_dst_kernel} - ${fdtcontroladdr}\0" \
 "tftp_boot=setenv ethaddr ${macaddr} && printenv ethaddr; " \
 	"printenv serverip; " \
 	"dhcp ${addr_dst_dtb} ${serverip}:dtb" __stringify(USER_NAME) "; " \

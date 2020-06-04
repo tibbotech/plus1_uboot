@@ -72,3 +72,5 @@ CONFIG_SYS_TEXT_BASE=0x20100000
 # CONFIG_TPS_UPD_TFTP is not set
 # CONFIG_TPS_UPD_USB is not set
 # CONFIG_TFABOOT is not set
+# CONFIG_DM_VIDEO is not set
+
