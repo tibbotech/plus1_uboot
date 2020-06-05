@@ -159,4 +159,23 @@ config SP_TIMER
 	default y
 	help
 	  Support Sunplus STC timer
+
+config SYS_ZEBU_ENV
+	bool "riscv zebu environment"
+	default n
+
+config SRCADDR_KERNEL
+	hex "Linux kernel source address"
+	default 0xF8600000
+	help
+	  Linux kernel source address
+	  Linux kernel image is stored in this address.
+
+config SRCADDR_FREERTOS
+	hex "DTB source address"
+	default 0xF8180000
+	help
+	  DTB(device tree blob) source address
+	  DTB image is stored in this address.
+	  This address can be nand/emmc address.
 endmenu

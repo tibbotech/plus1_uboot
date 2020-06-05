@@ -10,8 +10,8 @@
 #ifndef __CONFIG_PENTAGRAM_H
 #define __CONFIG_PENTAGRAM_H
 
-#define  CONFIG_SYS_ENV_ZEBU	1
-#ifdef CONFIG_SYS_ENV_ZEBU
+
+#ifdef CONFIG_SYS_ZEBU_ENV
 #define CONFIG_SYS_ZMEM_SKIP_RELOC	1
 #ifdef CONFIG_SYS_ZMEM_SKIP_RELOC
 #define CONFIG_SP_ZMEM_RELOC_ADDR	0xA3F00000
@@ -211,12 +211,10 @@
 	"echo Stop; " \
 "fi"
 
+#define DSTADDR_FREERTOS	0xA0000000 
 #define DSTADDR_KERNEL		0xA01FFFC0 
 #define DSTADDR_DTB			0xA01F0000
 #define TMPADDR_HEADER		0xA4000000
-
-#define CONFIG_SRCADDR_KERNEL 	0xF8200000
-#define CONFIG_SRCADDR_DTB		0xF8020000  
 
 #if defined(CONFIG_SP_SPINAND) && defined(CONFIG_MMC_SP_EMMC)
 #define SDCARD_DEVICE_ID	0
@@ -228,14 +226,16 @@
 "bootinfo_base="		__stringify(SP_BOOTINFO_BASE) "\0" \
 "addr_src_kernel="		__stringify(CONFIG_SRCADDR_KERNEL) "\0" \
 "addr_src_dtb="			__stringify(CONFIG_SRCADDR_DTB) "\0" \
+"addr_src_freertos=" 	__stringify(CONFIG_SRCADDR_FREERTOS) "\0" \
 "addr_dst_kernel="		__stringify(DSTADDR_KERNEL) "\0" \
 "addr_dst_dtb="			__stringify(DSTADDR_DTB) "\0" \
+"addr_dst_freertos=" 	__stringify(DSTADDR_FREERTOS) "\0" \
 "addr_tmp_header="		__stringify(TMPADDR_HEADER) "\0" \
-"if_zebu="			__stringify(CONFIG_SYS_ENV_ZEBU) "\0" \
+"if_zebu="				__stringify(CONFIG_SYS_ZEBU_ENV) "\0" \
 "if_qkboot="			__stringify(CONFIG_SYS_USE_QKBOOT_HEADER) "\0" \
 "sp_main_storage="		SP_MAIN_STORAGE "\0" \
 "serverip=" 			__stringify(TFTP_SERVER_IP) "\0" \
-"macaddr="			__stringify(BOARD_MAC_ADDR) "\0" \
+"macaddr="				__stringify(BOARD_MAC_ADDR) "\0" \
 "sdcard_devid="			__stringify(SDCARD_DEVICE_ID) "\0" \
 "fdt_high=0xffffffffffffffff\0" \
 "be2le=setexpr byte *${tmpaddr} '&' 0x000000ff; " \
@@ -260,29 +260,20 @@
 	"setexpr sz_kernel ${sz_kernel} + 4; setexpr sz_kernel ${sz_kernel} / 4; " \
 	dbg_scr("echo kernel from ${addr_src_kernel} to ${addr_dst_kernel} sz ${sz_kernel}; ") \
 	"cp.l ${addr_src_kernel} ${addr_dst_kernel} ${sz_kernel}; " \
+	"cp.b ${addr_src_freertos} ${addr_tmp_header} 0x40; " \
+	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
+	dbg_scr("md ${addr_tmp_header} 0x10; printenv tmpval; ") \
+	"setexpr sz_freertos ${tmpval} + 0x40; " \
+	"setexpr sz_freertos ${sz_freertos} + 4; setexpr sz_freertos ${sz_freertos} / 4; " \
+	dbg_scr("echo freertos from ${addr_src_freertos} to ${addr_dst_freertos} sz ${sz_freertos}; ") \
+	"cp.l ${addr_src_freertos} ${addr_dst_freertos} ${sz_freertos}; " \
 	dbg_scr("echo bootm ${addr_dst_kernel} - ${fdtcontroladdr}; ") \
 	"bootm ${addr_dst_kernel} - ${fdtcontroladdr}\0" \
-"qk_romter_boot=cp.b ${addr_src_dtb} ${addr_tmp_header} 0x40; " \
-	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
-	dbg_scr("md ${addr_tmp_header} 0x10; printenv tmpval; ") \
-	"setexpr sz_dtb ${tmpval} + 0x40; " \
-	"setexpr sz_dtb ${sz_dtb} + 4; setexpr sz_dtb ${sz_dtb} / 4; " \
-	dbg_scr("echo dtb from ${addr_src_dtb} to ${fdtcontroladdr} sz ${sz_dtb}; ") \
-	"cp.l ${addr_src_dtb} ${fdtcontroladdr} ${sz_dtb}; " \
-	"cp.b ${addr_src_kernel} ${addr_tmp_header} 0x40; " \
-	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
-	dbg_scr("md ${addr_tmp_header} 0x10; printenv tmpval; ") \
-	"setexpr sz_kernel ${tmpval} + 0x40; " \
-	"setexpr sz_kernel  ${sz_kernel} + 4; setexpr sz_kernel ${sz_kernel} / 4; " \
-	dbg_scr("echo kernel from ${addr_src_kernel} to ${addr_dst_kernel} sz ${sz_kernel}; ") \
-	"cp.l ${addr_src_kernel} ${addr_dst_kernel} ${sz_kernel}; " \
-	dbg_scr("echo sp_go ${addr_dst_kernel} ${fdtcontroladdr}; ") \
-	"sp_go ${addr_dst_kernel} ${fdtcontroladdr}\0" \
-"emmc_boot=mmc read ${addr_tmp_header} ${addr_src_dtb} 0x1; " \
+"emmc_boot=mmc read ${addr_tmp_header} ${addr_src_freertos} 0x1; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x4; run be2le; " \
-	"setexpr sz_dtb ${tmpval} + 0x28; " \
-	"setexpr sz_dtb ${sz_dtb} + 0x200; setexpr sz_dtb ${sz_dtb} / 0x200; " \
-	"mmc read ${fdtcontroladdr} ${addr_src_dtb} ${sz_dtb}; " \
+	"setexpr sz_freertos ${tmpval} + 0x28; " \
+	"setexpr sz_freertos ${sz_freertos} + 0x200; setexpr sz_freertos ${sz_freertos} / 0x200; " \
+	"mmc read ${addr_dst_freertos} ${addr_src_freertos} ${sz_freertos}; " \
 	"mmc read ${addr_tmp_header} ${addr_src_kernel} 0x1; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
 	"setexpr sz_kernel ${tmpval} + 0x40; " \
@@ -290,32 +281,6 @@
 	"setexpr sz_kernel ${sz_kernel} + 0x200; setexpr sz_kernel ${sz_kernel} / 0x200; " \
 	"mmc read ${addr_dst_kernel} ${addr_src_kernel} ${sz_kernel}; " \
 	"setenv bootargs console=ttyS0,115200 earlyprintk root=/dev/mmcblk0p7 rw user_debug=255 rootwait ;" \
-	"bootm ${addr_dst_kernel} - ${fdtcontroladdr}\0" \
-"qk_emmc_boot=mmc read ${addr_tmp_header} ${addr_src_dtb} 0x1; " \
-	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
-	"setexpr sz_dtb ${tmpval} + 0x40; " \
-	"setexpr sz_dtb ${sz_dtb} + 0x200; setexpr sz_dtb ${sz_dtb} / 0x200; " \
-	"mmc read ${fdtcontroladdr} ${addr_src_dtb} ${sz_dtb}; " \
-	"mmc read ${addr_tmp_header} ${addr_src_kernel} 0x1; " \
-	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
-	"setexpr sz_kernel ${tmpval} + 0x40; " \
-	"setexpr sz_kernel ${sz_kernel} + 0x200; setexpr sz_kernel ${sz_kernel} / 0x200; " \
-	"mmc read ${addr_dst_kernel} ${addr_src_kernel} ${sz_kernel}; " \
-	"sp_go ${addr_dst_kernel} ${fdtcontroladdr}\0" \
-"nand_boot=nand read ${addr_tmp_header} dtb 0x40; " \
-	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x4; run be2le; " \
-	dbg_scr("md ${addr_tmp_header} 0x10; printenv tmpval; ") \
-	"setexpr sz_dtb ${tmpval} + 0x40; " \
-	dbg_scr("echo from dtb partition to ${fdtcontroladdr} sz ${sz_dtb}; ") \
-	"nand read ${fdtcontroladdr} dtb ${sz_dtb}; " \
-	"nand read ${addr_tmp_header} kernel 0x40; " \
-	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
-	dbg_scr("md ${addr_tmp_header} 0x10; printenv tmpval; ") \
-	"setexpr sz_kernel ${tmpval} + 0x40; " \
-	"setexpr sz_kernel ${sz_kernel} + 72; " \
-	dbg_scr("echo from kernel partition to ${addr_dst_kernel} sz ${sz_kernel}; ") \
-	"nand read ${addr_dst_kernel} kernel ${sz_kernel}; " \
-	"setenv bootargs console=ttyS0,115200 earlyprintk root=ubi0:rootfs rw ubi.mtd=8,2048 rootflags=sync rootfstype=ubifs mtdparts=sp_spinand:128k(nand_header),128k(xboot1),768k(uboot1),3m(uboot2),512k(env),512k(env_redund),256k(dtb),15m(kernel),-(rootfs) user_debug=255 rootwait ;" \
 	"bootm ${addr_dst_kernel} - ${fdtcontroladdr}\0" \
 "qk_zmem_boot=sp_go ${addr_dst_kernel} ${fdtcontroladdr}\0" \
 "zmem_boot=bootm ${addr_dst_kernel} - ${fdtcontroladdr}\0" \
