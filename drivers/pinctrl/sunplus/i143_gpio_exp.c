@@ -1,62 +1,8 @@
-#include <mach/gpio_drv.h>
-#include <dm.h>
-#include <dt-bindings/pinctrl/sp7021.h>
+#include <asm/arch/gpio_drv.h>
+#include <dt-bindings/pinctrl/i143.h>
 
-#include "pinctrl_sunplus_sp7021.h"
+#include "pinctrl_sunplus_i143.h"
 
-
-int gpio_pin_mux_set(u32 func, u32 pin)
-{
-	u32 idx, bit_pos;
-
-	if ((func > MUXF_GPIO_INT7) || (func < MUXF_L2SW_CLK_OUT)) {
-		pctl_err("[%s] Invalid function: %d\n", __func__, func);
-		return -EINVAL;
-	}
-	if (pin == 0) {
-		// zero_func
-		pin = 7;
-	} else if ((pin < 8) || (pin > 71)) {
-		pctl_err("[%s] Invalid G_MX%d\n", __func__, pin);
-		return -EINVAL;
-	}
-
-	func -= MUXF_L2SW_CLK_OUT;
-	idx = func >> 1;
-	bit_pos = (func & 0x01)? 8: 0;
-	GPIO_PINMUX(idx) = (0x7f << (16+bit_pos)) | ((pin-7) << bit_pos);
-
-	return 0;
-}
-EXPORT_SYMBOL(gpio_pin_mux_set);
-
-int gpio_pin_mux_get_val(u32 func, u32 *pin)
-{
-	u32 idx, bit_pos;
-
-	if ((func > MUXF_GPIO_INT7) || (func < MUXF_L2SW_CLK_OUT)) {
-		pctl_err("[%s] Invalid function: %d\n", __func__, func);
-		return -EINVAL;
-	}
-
-	func -= MUXF_L2SW_CLK_OUT;
-	idx = func >> 1;
-	bit_pos = (func & 0x01)? 8: 0;
-	*pin = (GPIO_PINMUX(idx) >> bit_pos) & 0x7f;
-
-	return 0;
-}
-EXPORT_SYMBOL(gpio_pin_mux_get);
-
-u32 gpio_pin_mux_get(u32 func)
-{
-	u32 pin = 0;
-
-	gpio_pin_mux_get_val(func, &pin);
-
-	return pin;
-}
-EXPORT_SYMBOL(gpio_pin_mux_get);
 
 int gpio_input_invert_set(u32 pin, u32 val)
 {
@@ -75,7 +21,7 @@ int gpio_input_invert_set(u32 pin, u32 val)
 
 	return 0;
 }
-EXPORT_SYMBOL(gpio_input_invert_set);
+//EXPORT_SYMBOL(gpio_input_invert_set);
 
 int gpio_input_invert_get(u32 pin, u32 *gpio_input_invert_value)
 {
@@ -92,7 +38,7 @@ int gpio_input_invert_get(u32 pin, u32 *gpio_input_invert_value)
 
 	return 0;
 }
-EXPORT_SYMBOL(gpio_input_invert_get);
+//EXPORT_SYMBOL(gpio_input_invert_get);
 
 u32 gpio_input_invert_val_get(u32 pin)
 {
@@ -102,7 +48,7 @@ u32 gpio_input_invert_val_get(u32 pin)
 
 	return value;
 }
-EXPORT_SYMBOL(gpio_input_invert_val_get);
+//EXPORT_SYMBOL(gpio_input_invert_val_get);
 
 int gpio_output_invert_set(u32 pin, u32 val)
 {
@@ -121,7 +67,7 @@ int gpio_output_invert_set(u32 pin, u32 val)
 
 	return 0;
 }
-EXPORT_SYMBOL(gpio_output_invert_set);
+//EXPORT_SYMBOL(gpio_output_invert_set);
 
 int gpio_output_invert_get(u32 pin, u32 *gpio_output_invert_value)
 {
@@ -138,7 +84,7 @@ int gpio_output_invert_get(u32 pin, u32 *gpio_output_invert_value)
 
 	return 0;
 }
-EXPORT_SYMBOL(gpio_output_invert_value_get);
+//EXPORT_SYMBOL(gpio_output_invert_value_get);
 
 u32 gpio_output_invert_val_get(u32 pin)
 {
@@ -148,7 +94,7 @@ u32 gpio_output_invert_val_get(u32 pin)
 
 	return value;
 }
-EXPORT_SYMBOL(gpio_output_invert_val_get);
+//EXPORT_SYMBOL(gpio_output_invert_val_get);
 
 int gpio_open_drain_set(u32 pin, u32 val)
 {
@@ -167,7 +113,7 @@ int gpio_open_drain_set(u32 pin, u32 val)
 
 	return 0;
 }
-EXPORT_SYMBOL(gpio_open_drain_set);
+//EXPORT_SYMBOL(gpio_open_drain_set);
 
 int gpio_open_drain_get(u32 pin, u32 *gpio_open_drain_value)
 {
@@ -184,7 +130,7 @@ int gpio_open_drain_get(u32 pin, u32 *gpio_open_drain_value)
 
 	return 0;
 }
-EXPORT_SYMBOL(gpio_open_drain_get);
+//EXPORT_SYMBOL(gpio_open_drain_get);
 
 u32 gpio_open_drain_val_get(u32 pin)
 {
@@ -194,7 +140,7 @@ u32 gpio_open_drain_val_get(u32 pin)
 
 	return value;
 }
-EXPORT_SYMBOL(gpio_open_drain_val_get);
+//EXPORT_SYMBOL(gpio_open_drain_val_get);
 
 int gpio_first_set(u32 pin, u32 val)
 {
@@ -215,7 +161,7 @@ int gpio_first_set(u32 pin, u32 val)
 
 	return 0;
 }
-EXPORT_SYMBOL(gpio_first_set);
+//EXPORT_SYMBOL(gpio_first_set);
 
 int gpio_first_get(u32 pin, u32 *gpio_first_value)
 {
@@ -232,7 +178,7 @@ int gpio_first_get(u32 pin, u32 *gpio_first_value)
 
 	return 0;
 }
-EXPORT_SYMBOL(gpio_first_get);
+//EXPORT_SYMBOL(gpio_first_get);
 
 u32 gpio_first_val_get(u32 pin)
 {
@@ -242,7 +188,7 @@ u32 gpio_first_val_get(u32 pin)
 
 	return value;
 }
-EXPORT_SYMBOL(gpio_first_val_get);
+//EXPORT_SYMBOL(gpio_first_val_get);
 
 int gpio_master_set(u32 pin, u32 val)
 {
@@ -261,7 +207,7 @@ int gpio_master_set(u32 pin, u32 val)
 
 	return 0;
 }
-EXPORT_SYMBOL(gpio_master_set);
+//EXPORT_SYMBOL(gpio_master_set);
 
 int gpio_master_get(u32 pin, u32 *gpio_master_value)
 {
@@ -278,7 +224,7 @@ int gpio_master_get(u32 pin, u32 *gpio_master_value)
 
 	return 0;
 }
-EXPORT_SYMBOL(gpio_master_get);
+//EXPORT_SYMBOL(gpio_master_get);
 
 u32 gpio_master_val_get(u32 pin)
 {
@@ -288,7 +234,7 @@ u32 gpio_master_val_get(u32 pin)
 
 	return value;
 }
-EXPORT_SYMBOL(gpio_master_val_get);
+//EXPORT_SYMBOL(gpio_master_val_get);
 
 int gpio_oe_set(u32 pin, u32 val)
 {
@@ -307,7 +253,7 @@ int gpio_oe_set(u32 pin, u32 val)
 
 	return 0;
 }
-EXPORT_SYMBOL(gpio_oe_set);
+//EXPORT_SYMBOL(gpio_oe_set);
 
 int gpio_oe_get(u32 pin, u32 *gpio_out_enable_value)
 {
@@ -324,7 +270,7 @@ int gpio_oe_get(u32 pin, u32 *gpio_out_enable_value)
 
 	return 0;
 }
-EXPORT_SYMBOL(gpio_oe_get);
+//EXPORT_SYMBOL(gpio_oe_get);
 
 u32 gpio_oe_val_get(u32 pin)
 {
@@ -334,7 +280,7 @@ u32 gpio_oe_val_get(u32 pin)
 
 	return value;
 }
-EXPORT_SYMBOL(gpio_oe_val_get);
+//EXPORT_SYMBOL(gpio_oe_val_get);
 
 int gpio_out_set(u32 pin, u32 val)
 {
@@ -353,7 +299,7 @@ int gpio_out_set(u32 pin, u32 val)
 
 	return 0;
 }
-EXPORT_SYMBOL(gpio_out_set);
+//EXPORT_SYMBOL(gpio_out_set);
 
 int gpio_out_get(u32 pin, u32 *gpio_out_value)
 {
@@ -370,7 +316,7 @@ int gpio_out_get(u32 pin, u32 *gpio_out_value)
 
 	return 0;
 }
-EXPORT_SYMBOL(gpio_out_get);
+//EXPORT_SYMBOL(gpio_out_get);
 
 u32 gpio_out_val_get(u32 pin)
 {
@@ -380,7 +326,7 @@ u32 gpio_out_val_get(u32 pin)
 
 	return value;
 }
-EXPORT_SYMBOL(gpio_out_val_get);
+//EXPORT_SYMBOL(gpio_out_val_get);
 
 int gpio_in(u32 pin, u32 *gpio_in_value)
 {
@@ -397,7 +343,7 @@ int gpio_in(u32 pin, u32 *gpio_in_value)
 
 	return 0;
 }
-EXPORT_SYMBOL(gpio_in);
+//EXPORT_SYMBOL(gpio_in);
 
 u32 gpio_in_val(u32 pin)
 {
@@ -407,7 +353,7 @@ u32 gpio_in_val(u32 pin)
 
 	return value;
 }
-EXPORT_SYMBOL(gpio_in_val);
+//EXPORT_SYMBOL(gpio_in_val);
 
 u32 gpio_para_get(u32 pin)
 {
@@ -434,7 +380,7 @@ u32 gpio_para_get(u32 pin)
 
 	return value_tmp;
 }
-EXPORT_SYMBOL(gpio_para_get);
+//EXPORT_SYMBOL(gpio_para_get);
 
 int gpio_debug_set(u32 pin, u32 val)
 {
@@ -460,4 +406,4 @@ int gpio_debug_set(u32 pin, u32 val)
 	}
 	return 0;
 }
-EXPORT_SYMBOL(gpio_debug_set);
+//EXPORT_SYMBOL(gpio_debug_set);

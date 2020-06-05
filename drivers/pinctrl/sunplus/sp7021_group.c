@@ -1,4 +1,4 @@
-#include "pinctrl_sunplus.h"
+#include "pinctrl_sunplus_sp7021.h"
 
 static const unsigned pins_spif1[] = {
 	D(10,3), D(10,4), D(10,6), D(10,7)
