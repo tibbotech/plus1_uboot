@@ -530,7 +530,7 @@ config MEDIATEK_ETH
 
 config SUNPLUS_L2SW
 	bool "Sunplus Ethernet MAC (L2SW) support"
-	depends on DM_ETH && ARCH_PENTAGRAM
+	depends on DM_ETH && (ARCH_PENTAGRAM && !TARGET_PENTAGRAM_I143_CP)
 	select PHYLIB
 	select PHY_GIGE
 	help
@@ -539,7 +539,7 @@ config SUNPLUS_L2SW
 
 config SUNPLUS_GL2SW
 	bool "Sunplus Giga Ethernet MAC (GL2SW) support"
-	depends on DM_ETH && TARGET_SUNPLUS_I143
+	depends on DM_ETH && (TARGET_SUNPLUS_I143 || TARGET_PENTAGRAM_I143_CP)
 	select PHYLIB
 	select PHY_GIGE
 	help
