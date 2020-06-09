@@ -164,23 +164,19 @@ int dram_init(void)
 #elif defined(CONFIG_SYS_ENV_ZEBU)
 	gd->ram_size = CONFIG_SYS_SDRAM_SIZE;
 #else
-#ifdef CONFIG_OF_PRIOR_STAGE
-	fdtdec_setup_mem_size_base();
-#else
-	gd->ram_size = CONFIG_SYS_SDRAM_SIZE;
-#endif
-
+	if(fdtdec_setup_mem_size_base() != 0)
+	{
+		gd->ram_size = CONFIG_SYS_SDRAM_SIZE;
+	}
 #endif
 
 
 return 0;
 }
-#ifdef CONFIG_OF_PRIOR_STAGE
 int dram_init_banksize(void)
 {
 	return fdtdec_setup_memory_banksize();
 }
-#endif
 
 #ifdef CONFIG_DISPLAY_CPUINFO
 int print_cpuinfo(void)
@@ -218,7 +214,6 @@ int arch_misc_init(void)
 	printf("\n");
 #endif
 #endif
-
 	ptr = (volatile unsigned int *)(PENTAGRAM_RTC_ADDR + (22 << 2));
 	printf("\nReason(s) of reset: REG(116, 22): 0x%04x\n", *ptr);
 	*ptr = 0xFFFF0000;

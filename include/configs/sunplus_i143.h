@@ -32,7 +32,7 @@
 #endif
 #endif
 
-#define CONFIG_SYS_INIT_SP_ADDR		(CONFIG_SYS_SDRAM_BASE+(5 << 20))	/* set it in DRAM area (not SRAM) because DRAM is ready before U-Boot executed */
+#define CONFIG_SYS_INIT_SP_ADDR		(CONFIG_SYS_SDRAM_BASE+(1 << 20))	/* set it in DRAM area (not SRAM) because DRAM is ready before U-Boot executed */
 #define CONFIG_SYS_LOAD_ADDR		(CONFIG_SYS_SDRAM_BASE+(6 << 20))	/* kernel loaded address */
 
 #ifndef CONFIG_BAUDRATE

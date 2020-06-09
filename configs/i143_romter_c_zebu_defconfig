@@ -73,4 +73,5 @@ CONFIG_SYS_ENV_ZEBU=y
 # CONFIG_TPS_UPD_USB is not set
 # CONFIG_TFABOOT is not set
 # CONFIG_DM_VIDEO is not set
+# CONFIG_SYS_ZMEM_SKIP_RELOC is not set
 
