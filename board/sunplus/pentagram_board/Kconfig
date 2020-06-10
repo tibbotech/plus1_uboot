@@ -1,20 +1,25 @@
 if TARGET_PENTAGRAM_COMMON || TARGET_PENTAGRAM_B_BOOT || TARGET_PENTAGRAM_I143_CP
+
 if TARGET_PENTAGRAM_I143_CP
+
 config SYS_CONFIG_NAME
 	default "pentagram_common_i143_cp"
-	select CMD_TPS_UPD
+
 config SUPPORT_I143_CP
 	bool
 	default y if TARGET_PENTAGRAM_I143_CP
 	help
 	 support i143 CP,used for config in code
+
 endif
+
 if TARGET_PENTAGRAM_COMMON || TARGET_PENTAGRAM_B_BOOT
 
 config SYS_CONFIG_NAME
 	default "pentagram_common"
-	select CMD_TPS_UPD
+
 endif
+
 config SYS_SOC
 	default "pentagram"
 
