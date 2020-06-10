@@ -82,3 +82,12 @@ config VIDEO_BMP_LOGO_MANUAL
 	default n
 	help
 		Logo display by manual
+
+config MIPI_VALID_SUNPLUS_I143
+	bool "Enable Sunplus I143 MIPI Validation"
+	depends on TARGET_SUNPLUS_I143 || TARGET_PENTAGRAM_I143_CP
+	default n
+	help
+	  Enable Sunplus Video-In uboot command to validate Sunplus I143 MIPI CSI
+	  functions.
+
