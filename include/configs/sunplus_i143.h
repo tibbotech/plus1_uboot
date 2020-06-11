@@ -88,16 +88,10 @@
 #define dbg_scr(s) s
 #else
 #define dbg_scr(s) ""
-#endif
 
-#ifdef CONFIG_SP_SPINAND
+
 //#define CONFIG_MTD_PARTITIONS
-#define CONFIG_SYS_MAX_NAND_DEVICE   1
-#define CONFIG_SYS_NAND_SELF_INIT
-#define CONFIG_SYS_NAND_BASE    0x9c002b80
 //#define CONFIG_MTD_DEVICE	/* needed for mtdparts cmd */
-#define MTDIDS_DEFAULT		"nand0=sp_spinand.0"
-#define MTDPARTS_DEFAULT	"mtdparts=sp_spinand.0:-(whole_nand)"
 #endif
 
 /* TFTP server IP and board MAC address settings for TFTP ISP.
@@ -212,6 +206,7 @@
 "fi"
 
 #define DSTADDR_FREERTOS	0xA0000000 
+#define TMPADDR_KERNEL		0xA3000000 
 #define DSTADDR_KERNEL		0xA01FFFC0 
 #define DSTADDR_DTB			0xA01F0000
 #define TMPADDR_HEADER		0xA4000000
@@ -228,6 +223,7 @@
 "addr_src_dtb="			__stringify(CONFIG_SRCADDR_DTB) "\0" \
 "addr_src_freertos=" 	__stringify(CONFIG_SRCADDR_FREERTOS) "\0" \
 "addr_dst_kernel="		__stringify(DSTADDR_KERNEL) "\0" \
+"addr_temp_kernel="		__stringify(TMPADDR_KERNEL) "\0" \
 "addr_dst_dtb="			__stringify(DSTADDR_DTB) "\0" \
 "addr_dst_freertos=" 	__stringify(DSTADDR_FREERTOS) "\0" \
 "addr_tmp_header="		__stringify(TMPADDR_HEADER) "\0" \
@@ -252,14 +248,19 @@
 	"setexpr byte *${tmpaddr} '&' 0xff000000; " \
 	"setexpr byte ${byte} / 0x1000000; " \
 	"setexpr tmpval $tmpval + $byte;\0" \
-"romter_boot= cp.b ${addr_src_kernel} ${addr_tmp_header} 0x40; " \
+"boot_Image_gz=setexpr addr_dst_kernel ${addr_dst_kernel} + 0x40; " \
+	"setexpr addr_temp_kernel ${addr_temp_kernel} + 0x40; " \
+	"unzip ${addr_temp_kernel} ${addr_dst_kernel};" \
+	dbg_scr("echo booti ${addr_dst_kernel} - ${fdtcontroladdr}; ") \
+	"booti ${addr_dst_kernel} - ${fdtcontroladdr}\0" \
+"romter_boot=cp.b ${addr_src_kernel} ${addr_tmp_header} 0x40; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
 	dbg_scr("md ${addr_tmp_header} 0x10; printenv tmpval; ") \
 	"setexpr sz_kernel ${tmpval} + 0x40; " \
 	"setexpr sz_kernel ${sz_kernel} + 72; " \
 	"setexpr sz_kernel ${sz_kernel} + 4; setexpr sz_kernel ${sz_kernel} / 4; " \
-	dbg_scr("echo kernel from ${addr_src_kernel} to ${addr_dst_kernel} sz ${sz_kernel}; ") \
-	"cp.l ${addr_src_kernel} ${addr_dst_kernel} ${sz_kernel}; " \
+	dbg_scr("echo kernel from ${addr_src_kernel} to ${addr_temp_kernel} sz ${sz_kernel}; ") \
+	"cp.l ${addr_src_kernel} ${addr_temp_kernel} ${sz_kernel}; " \
 	"cp.b ${addr_src_freertos} ${addr_tmp_header} 0x40; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
 	dbg_scr("md ${addr_tmp_header} 0x10; printenv tmpval; ") \
@@ -267,8 +268,7 @@
 	"setexpr sz_freertos ${sz_freertos} + 4; setexpr sz_freertos ${sz_freertos} / 4; " \
 	dbg_scr("echo freertos from ${addr_src_freertos} to ${addr_dst_freertos} sz ${sz_freertos}; ") \
 	"cp.l ${addr_src_freertos} ${addr_dst_freertos} ${sz_freertos}; " \
-	dbg_scr("echo bootm ${addr_dst_kernel} - ${fdtcontroladdr}; ") \
-	"bootm ${addr_dst_kernel} - ${fdtcontroladdr}\0" \
+	"run boot_Image_gz; \0" \
 "emmc_boot=mmc read ${addr_tmp_header} ${addr_src_freertos} 0x1; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x4; run be2le; " \
 	"setexpr sz_freertos ${tmpval} + 0x28; " \
@@ -279,9 +279,9 @@
 	"setexpr sz_kernel ${tmpval} + 0x40; " \
 	"setexpr sz_kernel ${sz_kernel} + 72; " \
 	"setexpr sz_kernel ${sz_kernel} + 0x200; setexpr sz_kernel ${sz_kernel} / 0x200; " \
-	"mmc read ${addr_dst_kernel} ${addr_src_kernel} ${sz_kernel}; " \
+	"mmc read ${addr_temp_kernel} ${addr_src_kernel} ${sz_kernel}; " \
 	"setenv bootargs console=ttyS0,115200 earlyprintk root=/dev/mmcblk0p7 rw user_debug=255 rootwait ;" \
-	"bootm ${addr_dst_kernel} - ${fdtcontroladdr}\0" \
+	"run boot_Image_gz; \0" \
 "qk_zmem_boot=sp_go ${addr_dst_kernel} ${fdtcontroladdr}\0" \
 "zmem_boot=bootm ${addr_dst_kernel} - ${fdtcontroladdr}\0" \
 "zebu_emmc_boot=mmc rescan; mmc part; " \
@@ -296,13 +296,13 @@
 	"setexpr sz_kernel ${tmpval} + 0x40; " \
 	"setexpr sz_kernel ${sz_kernel} + 72; " \
 	"setexpr sz_kernel ${sz_kernel} + 0x200; setexpr sz_kernel ${sz_kernel} / 0x200; " \
-	"mmc read ${addr_dst_kernel} ${addr_src_kernel} ${sz_kernel}; " \
-	"bootm ${addr_dst_kernel} - ${fdtcontroladdr}\0" \
+	"mmc read ${addr_temp_kernel} ${addr_src_kernel} ${sz_kernel}; " \
+	"run boot_Image_gz; \0" \
 "tftp_boot=setenv ethaddr ${macaddr} && printenv ethaddr; " \
 	"printenv serverip; " \
 	"dhcp ${addr_dst_dtb} ${serverip}:dtb" __stringify(USER_NAME) "; " \
-	"dhcp ${addr_dst_kernel} ${serverip}:uImage" __stringify(USER_NAME) "; " \
-	"bootm ${addr_dst_kernel} - ${addr_dst_dtb}; " \
+	"dhcp ${addr_dst_kernel} ${serverip}:Image" __stringify(USER_NAME) "; " \
+	"booti ${addr_dst_kernel} - ${addr_dst_dtb}; " \
 	"\0" \
 "isp_usb=setenv isp_if usb && setenv isp_dev 0; " \
 	"$isp_if start; " \
