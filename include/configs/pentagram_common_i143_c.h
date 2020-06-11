@@ -378,5 +378,10 @@
 #define SPEED_UP_SPI_NOR_CLK    /* Set CLK based on flash id */
 #endif
 
+#ifdef CONFIG_USB_OHCI_HCD
+/* USB Config */
+#define CONFIG_USB_OHCI_NEW			1
+#define CONFIG_SYS_USB_OHCI_MAX_ROOT_PORTS	2
+#endif
 
 #endif /* __CONFIG_PENTAGRAM_H */

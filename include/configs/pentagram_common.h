@@ -506,9 +506,11 @@ mmc read 0x2fffc0 0x1422 0xa ; mmc read 0x307fc0 0x1822 0x30f0 ; sp_go 0x308000 
 #define STDOUT_CFG "serial"
 #endif
 
+#ifdef CONFIG_USB_OHCI_HCD
 /* USB Config */
 #define CONFIG_USB_OHCI_NEW			1
 #define CONFIG_SYS_USB_OHCI_MAX_ROOT_PORTS	2
+#endif
 
 #ifdef CONFIG_USB_KEYBOARD
 #define STDIN_CFG "usbkbd,serial"

@@ -98,7 +98,6 @@ endif # USB_XHCI_HCD
 
 config USB_EHCI_HCD
 	bool "EHCI HCD (USB 2.0) support"
-	default y if (ARCH_PENTAGRAM && !TARGET_PENTAGRAM_I143_C) || (TARGET_PENTAGRAM_I143_P || TARGET_PENTAGRAM_I143_C)
 	select USB_HOST
 	---help---
 	  The Enhanced Host Controller Interface (EHCI) is standard for USB 2.0
@@ -211,7 +210,6 @@ endif # USB_EHCI_HCD
 
 config USB_OHCI_HCD
 	bool "OHCI HCD (USB 1.1) support"
-	default y if (ARCH_PENTAGRAM && !TARGET_PENTAGRAM_I143_C) || (TARGET_PENTAGRAM_I143_P || TARGET_PENTAGRAM_I143_C)
 	select USB_HOST
 	---help---
 	  The Open Host Controller Interface (OHCI) is a standard for accessing
