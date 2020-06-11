@@ -8,7 +8,7 @@
 
 /* copy from iboot "include/config.h" */
 
-#ifdef CONFIG_SUPPORT_I143_CP
+#ifdef CONFIG_SUPPORT_I143_C
 #define AUTO_SCAN               0x01
 #define EMMC_BOOT               0x05
 #define SPI_NOR_BOOT            0x07  	

@@ -27,11 +27,11 @@
 #define DEFAULT_UPHY_DISC   0xd   // 13 (=619.5mV)
 #define ORIG_UPHY_DISC      0xb   // 11 (=586.5mV)
 
-#if defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_CP)
+#if defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)
 struct uphy_rn_regs {
        unsigned int cfg[22];
 };
-#elif defined(CONFIG_TARGET_SUNPLUS_I143) || defined(CONFIG_TARGET_PENTAGRAM_I143_CP)
+#elif defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C)
 struct uphy_rn_regs {
 	u32 cfg[28];		       // 150.0
 	u32 gctrl[3];		       // 150.28
@@ -111,7 +111,7 @@ struct sunplus_ehci_priv {
 
 static void uphy_init(int port_num)
 {
-#if defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_CP)
+#if defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)
 	unsigned int val, set;
 
 	// 1. Default value modification
@@ -206,7 +206,7 @@ static void uphy_init(int port_num)
 	    }
 	    UPHY1_RN_REG->cfg[7] = (UPHY1_RN_REG->cfg[7] & ~0x1F) | set;
 	}
-#elif defined(CONFIG_TARGET_SUNPLUS_I143) || defined(CONFIG_TARGET_PENTAGRAM_I143_CP)
+#elif defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C)
 	// 1. enable UPHY 0/1 & USBC 0/1 HW CLOCK */
 	if(0 == port_num){
 		MOON0_REG->clken[2] = RF_MASK_V_SET(1 << 13);
@@ -295,7 +295,7 @@ static void uphy_init(int port_num)
 
 static void usb_power_init(int is_host, int port_num)
 {
-#if defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_CP)
+#if defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)
     // a. enable pin mux control (sft_cfg_8, bit2/bit3)
     //    Host: enable
     //    Device: disable
@@ -323,7 +323,7 @@ static void usb_power_init(int is_host, int port_num)
 			MOON4_REG->usbc_ctl = RF_MASK_V_CLR(3 << 13);
 		}
 	}
-#elif defined(CONFIG_TARGET_SUNPLUS_I143) || defined(CONFIG_TARGET_PENTAGRAM_I143_CP)
+#elif defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C)
     // a. enable pin mux control (sft_cfg_8, bit2/bit3)
     //    Host: enable
     //    Device: disable
@@ -372,10 +372,10 @@ static int ehci_sunplus_probe(struct udevice *dev)
 	struct ehci_hccr *hccr;
 	struct ehci_hcor *hcor;
 
-#if defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_CP)
+#if defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)
 	hccr = (struct ehci_hccr *)((uint32_t)&priv->ehci->ehci_len_rev);
 	hcor = (struct ehci_hcor *)((uint32_t)&priv->ehci->ehci_usbcmd);
-#elif defined(CONFIG_TARGET_SUNPLUS_I143) || defined(CONFIG_TARGET_PENTAGRAM_I143_CP)
+#elif defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C)
 	hccr = (struct ehci_hccr *)((uint64_t)&priv->ehci->ehci_len_rev);
 	hcor = (struct ehci_hcor *)((uint64_t)&priv->ehci->ehci_usbcmd);
 #endif
@@ -397,12 +397,12 @@ static int ehci_usb_remove(struct udevice *dev)
 }
 
 static const struct udevice_id ehci_sunplus_ids[] = {
-#if defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_CP)
+#if defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)
 	{ .compatible = "sunplus,sunplus-q628-usb-ehci0" },
 	{ .compatible = "sunplus,sp7021-usb-ehci0" },
 	{ .compatible = "sunplus,sp7021-usb-ehci1" },
 	{ .compatible = "sunplus,sunplus-q628-usb-ehci1" },
-#elif defined(CONFIG_TARGET_SUNPLUS_I143) || defined(CONFIG_TARGET_PENTAGRAM_I143_CP)
+#elif defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C)
 	{ .compatible = "sunplus,sunplus-i143-usb-ehci0" },
 	{ .compatible = "sunplus,sunplus-i143-usb-ehci1" },
 #endif

@@ -1,4 +1,4 @@
-if TARGET_SUNPLUS_I143
+if TARGET_PENTAGRAM_I143_P
 
 config SYS_BOARD
 	default "i143"
@@ -10,7 +10,7 @@ config SYS_CPU
 	default "generic"
 	
 config SYS_CONFIG_NAME
-	default "sunplus_i143"	
+	default "pentagram_common_i143_p"
 	
 config SYS_TEXT_BASE
 	default 0xA1000000 

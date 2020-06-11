@@ -16,7 +16,7 @@
 #elif defined(CONFIG_TARGET_PENTAGRAM_B_BOOT)
 /* ... */
 
-#elif defined(CONFIG_TARGET_PENTAGRAM_I143_CP)
+#elif defined(CONFIG_TARGET_PENTAGRAM_I143_C)
 /* ... */
 #else
 #error "No board configuration is defined"

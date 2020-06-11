@@ -17,8 +17,8 @@ config TARGET_QEMU_VIRT
 config TARGET_SIFIVE_FU540
 	bool "Support SiFive FU540 Board"
 
-config TARGET_SUNPLUS_I143
-	bool "Support Sunplus I143 Board"
+config TARGET_PENTAGRAM_I143_P
+	bool "Support pentagram I143 p-chip Board"
 endchoice
 
 # board-specific options below

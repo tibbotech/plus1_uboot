@@ -85,7 +85,7 @@ config VIDEO_BMP_LOGO_MANUAL
 
 config MIPI_VALID_SUNPLUS_I143
 	bool "Enable Sunplus I143 MIPI Validation"
-	depends on TARGET_SUNPLUS_I143 || TARGET_PENTAGRAM_I143_CP
+	depends on TARGET_PENTAGRAM_I143_P || TARGET_PENTAGRAM_I143_C
 	default n
 	help
 	  Enable Sunplus Video-In uboot command to validate Sunplus I143 MIPI CSI

@@ -10,7 +10,7 @@
 #include <asm/io.h>
 #include <dm.h>
 #include <reset-uclass.h>
-#ifdef CONFIG_TARGET_SUNPLUS_I143
+#ifdef CONFIG_TARGET_PENTAGRAM_I143_P
 #include <dt-bindings/reset/sp-i143.h>
 #else
 #include <dt-bindings/reset/sp-q628.h>

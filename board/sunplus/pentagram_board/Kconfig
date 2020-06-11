@@ -1,15 +1,15 @@
-if TARGET_PENTAGRAM_COMMON || TARGET_PENTAGRAM_B_BOOT || TARGET_PENTAGRAM_I143_CP
+if TARGET_PENTAGRAM_COMMON || TARGET_PENTAGRAM_B_BOOT || TARGET_PENTAGRAM_I143_C
 
-if TARGET_PENTAGRAM_I143_CP
+if TARGET_PENTAGRAM_I143_C
 
 config SYS_CONFIG_NAME
-	default "pentagram_common_i143_cp"
+	default "pentagram_common_i143_c"
 
-config SUPPORT_I143_CP
+config SUPPORT_I143_C
 	bool
-	default y if TARGET_PENTAGRAM_I143_CP
+	default y if TARGET_PENTAGRAM_I143_C
 	help
-	 support i143 CP,used for config in code
+	 support i143 C-chip,used for config in code
 
 endif
 
