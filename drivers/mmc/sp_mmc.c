@@ -1510,7 +1510,11 @@ int emmc_set_pinmux(struct sp_mmc_dev_info *info)
 	/* disable spi nand pinmux  */
 	MOON1_REG->sft_cfg[1] = RF_MASK_V_CLR(1 << 4);
 	/* enable emmc pinmux */
+	#if defined(CONFIG_TARGET_SUNPLUS_I143) || defined(CONFIG_TARGET_PENTAGRAM_I143_CP)
+	MOON1_REG->sft_cfg[1] = RF_MASK_V(1 << 2, 1 << 2);
+	#else
 	MOON1_REG->sft_cfg[1] = RF_MASK_V(1 << 5, 1 << 5);
+	#endif 
 	return 0;
 }
 
