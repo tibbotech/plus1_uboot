@@ -1,6 +1,6 @@
 #include <mach/gpio_drv.h>
 #include <dm.h>
-#include <dt-bindings/pinctrl/sp7021.h>
+#include <dt-bindings/pinctrl/sppctl-sp7021.h>
 
 #include "pinctrl_sunplus_sp7021.h"
 

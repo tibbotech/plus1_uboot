@@ -5,7 +5,7 @@
 #include <asm/io.h>
 
 #include "pinctrl_sunplus_sp7021.h"
-#include <dt-bindings/pinctrl/sp7021.h>
+#include <dt-bindings/pinctrl/sppctl-sp7021.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -160,39 +160,39 @@ static int sunplus_pinctrl_pins(struct udevice *dev)
 		int flag = pins & 0xff;
 		pctl_info("sppctl,pins = 0x%08x\n", pins);
 
-		if (type == SP7021_PCTL_G_PMUX) {
+		if (type == SPPCTL_PCTL_G_PMUX) {
 			// It's a PinMux pin.
 			gpio_pin_mux_set(func, pin);
 			gpio_first_set(pin, 0);
 			gpio_master_set(pin, 1);
 			pctl_info("pinmux get = 0x%02x \n", gpio_pin_mux_get(func));
-		} else if (type == SP7021_PCTL_G_IOPP) {
+		} else if (type == SPPCTL_PCTL_G_IOPP) {
 			// It's a IOP pin.
 			gpio_first_set(pin, 1);
 			gpio_master_set(pin, 0);
-		} else if (type == SP7021_PCTL_G_GPIO) {
+		} else if (type == SPPCTL_PCTL_G_GPIO) {
 			// It's a GPIO pin.
 			gpio_first_set(pin, 1);
 			gpio_master_set(pin, 1);
 
-			if (flag & (SP7021_PCTL_L_OUT|SP7021_PCTL_L_OU1)) {
-				if (flag & SP7021_PCTL_L_OUT) {
+			if (flag & (SPPCTL_PCTL_L_OUT|SPPCTL_PCTL_L_OU1)) {
+				if (flag & SPPCTL_PCTL_L_OUT) {
 					gpio_out_set(pin, 0);
 				}
-				if (flag & SP7021_PCTL_L_OU1) {
+				if (flag & SPPCTL_PCTL_L_OU1) {
 					gpio_out_set(pin, 1);
 				}
 				gpio_oe_set(pin, 1);
-			} else if (flag & SP7021_PCTL_L_ODR) {
+			} else if (flag & SPPCTL_PCTL_L_ODR) {
 				gpio_open_drain_set(pin, 1);
 			}
 
-			if (flag & SP7021_PCTL_L_INV) {
+			if (flag & SPPCTL_PCTL_L_INV) {
 				gpio_input_invert_set(pin, 1);
 			} else {
 				gpio_input_invert_set(pin, 0);
 			}
-			if (flag & SP7021_PCTL_L_ONV) {
+			if (flag & SPPCTL_PCTL_L_ONV) {
 				gpio_output_invert_set(pin, 1);
 			} else {
 				gpio_output_invert_set(pin, 0);
