@@ -23,7 +23,7 @@
 extern int read_otp_data(int addr, char *value);
 
 
-static struct l2sw_reg* ls2w_reg_base = NULL;
+static struct l2sw_reg* l2sw_reg_base = NULL;
 static struct moon5_reg* moon5_reg_base = NULL;
 
 #if 0
@@ -34,7 +34,7 @@ static void print_packet(char *p, int len)
 	u32 LenType;
 	int i;
 
-	i = snprintf(buf, sizeof(buf), "MAC: DA=%pM, SA=%pM, ",	&p[0], &p[6]);
+	i = snprintf(buf, sizeof(buf), "MAC: DA=%pM, SA=%pM, ", &p[0], &p[6]);
 	p += 12;        // point to LenType
 
 	LenType = (((u32)p[0])<<8) + p[1];
@@ -269,7 +269,7 @@ static void rx_descs_init(struct emac_eth_dev *priv)
 
 	// Flush all rx descriptors.
 	flush_dcache_range(DCACHE_ROUNDDN(priv->rx_desc), DCACHE_ROUNDUP((u32)priv->rx_desc+sizeof(priv->rx_desc)));
-	//eth_info("RX Queue: start = %08x, end = %08x\n", priv->rx_desc, &priv->rx_desc[CONFIG_RX_DESCR_NUM]);
+	//eth_info("RX Queue: start = %px, end = %px\n", priv->rx_desc, &priv->rx_desc[CONFIG_RX_DESCR_NUM]);
 
 	// Setup base address for high- and low-priority rx queue.
 	HWREG_W(rx_hbase_addr_0, (uintptr_t)&priv->rx_desc[0]);
@@ -294,7 +294,7 @@ static void tx_descs_init(struct emac_eth_dev *priv)
 
 	// Flush all tx descriptors.
 	flush_dcache_range(DCACHE_ROUNDDN(priv->tx_desc), DCACHE_ROUNDUP((u32)priv->tx_desc+sizeof(priv->tx_desc)));
-	//eth_info("TX Queue: start = %08x, end = %08x\n", priv->tx_desc, &priv->tx_desc[CONFIG_TX_DESCR_NUM]);
+	//eth_info("TX Queue: start = %px, end = %px\n", priv->tx_desc, &priv->tx_desc[CONFIG_TX_DESCR_NUM]);
 
 	// Setup base address for high- and low-priority tx queue.
 	HWREG_W(tx_hbase_addr_0, (uintptr_t)&priv->tx_desc[0]);
@@ -425,7 +425,7 @@ static int l2sw_eth_write_hwaddr(struct udevice *dev)
 	if (is_valid_ethaddr(pdata->enetaddr)) {
 		return _l2sw_write_hwaddr(priv, pdata->enetaddr);
 	} else {
-		eth_err("Invalid mac address = %pM!\n",	pdata->enetaddr);
+		eth_err("Invalid mac address = %pM!\n", pdata->enetaddr);
 	}
 
 	return -1;
@@ -745,17 +745,17 @@ static int l2sw_emac_eth_ofdata_to_platdata(struct udevice *dev)
 	int i;
 	u8 otp_mac[ARP_HLEN];
 
-	ls2w_reg_base = (void*)devfdt_get_addr_name(dev, "l2sw");
-	pdata->iobase = (int)ls2w_reg_base;
-	//eth_info("ls2w_reg_base = %08x\n", (int)ls2w_reg_base);
-	if ((int)ls2w_reg_base == -1) {
+	l2sw_reg_base = (void*)devfdt_get_addr_name(dev, "l2sw");
+	pdata->iobase = (int)l2sw_reg_base;
+	//eth_info("l2sw_reg_base = %p\n", l2sw_reg_base);
+	if (l2sw_reg_base == (void*)-1) {
 		eth_err("Failed to get base address of L2SW!\n");
 		return -EINVAL;
 	}
 
 	moon5_reg_base = (void*)devfdt_get_addr_name(dev, "moon5");
-	//eth_info("moon5_reg_base = %08x\n", (int)moon5_reg_base);
-	if ((int)moon5_reg_base == -1) {
+	//eth_info("moon5_reg_base = %p\n", moon5_reg_base);
+	if (moon5_reg_base == (void*)-1) {
 		eth_err("Failed to get base address of MOON5!\n");
 		return -EINVAL;
 	}
@@ -816,7 +816,6 @@ static int l2sw_emac_eth_ofdata_to_platdata(struct udevice *dev)
 }
 
 static const struct udevice_id l2sw_emac_eth_ids[] = {
-	{.compatible = "sunplus,sunplus-q628-l2sw"},
 	{.compatible = "sunplus,sp7021-l2sw"},
 	{ }
 };

@@ -38,8 +38,8 @@
 #define MAC_AT_DATA_READY               (1<<0)
 
 // Register write & read
-#define HWREG_W(M, N)                   writel(N, (int)&ls2w_reg_base->M)
-#define HWREG_R(M)                      readl((int)&ls2w_reg_base->M)
+#define HWREG_W(M, N)                   writel(N, (int)&l2sw_reg_base->M)
+#define HWREG_R(M)                      readl((int)&l2sw_reg_base->M)
 #define MOON5REG_W(M, N)                writel(N, (int)&moon5_reg_base->M)
 #define MOON5REG_R(M)                   readl((int)&moon5_reg_base->M)
 
