@@ -427,7 +427,7 @@ static int l2sw_eth_write_hwaddr(struct udevice *dev)
 	if (is_valid_ethaddr(pdata->enetaddr)) {
 		return _l2sw_write_hwaddr(priv, pdata->enetaddr);
 	} else {
-		//eth_err("Invalid mac address = %pM!\n", pdata->enetaddr);
+		eth_err("Invalid mac address = %pM!\n", pdata->enetaddr);
 	}
 
 	return -1;
@@ -770,14 +770,14 @@ static int l2sw_emac_eth_ofdata_to_platdata(struct udevice *dev)
 	gl2sw_reg_base = (void*)devfdt_get_addr_name(dev, "gl2sw");
 	pdata->iobase = (unsigned long)gl2sw_reg_base;
 	//eth_info("gl2sw_reg_base = %p\n", gl2sw_reg_base);
-	if ((long long)gl2sw_reg_base == -1) {
+	if (gl2sw_reg_base == (void*)-1) {
 		eth_err("Failed to get base address of GL2SW!\n");
 		return -EINVAL;
 	}
 
 	moon5_reg_base = (void*)devfdt_get_addr_name(dev, "moon5");
 	//eth_info("moon5_reg_base = %p\n", moon5_reg_base);
-	if ((long long)moon5_reg_base == -1) {
+	if (moon5_reg_base == (void*)-1) {
 		eth_err("Failed to get base address of MOON5!\n");
 		return -EINVAL;
 	}
@@ -810,8 +810,11 @@ static int l2sw_emac_eth_ofdata_to_platdata(struct udevice *dev)
 	}
 	priv->interface = pdata->phy_interface;
 
-	priv->otp_mac_addr = fdtdec_get_int(gd->fdt_blob, node, "mac-addr1", -1);
-	//eth_info("priv->otp_mac_addr = %d\n", priv->otp_mac_addr);
+	offset = fdtdec_lookup_phandle(gd->fdt_blob, node, "nvmem-cells");
+	if (offset > 0) {
+		priv->otp_mac_addr = fdtdec_get_int(gd->fdt_blob, offset, "reg", -1);
+		//eth_info("priv->otp_mac_addr = %d\n", priv->otp_mac_addr);
+	}
 	if (priv->otp_mac_addr < 128) {
 		for (i = 0; i < ARP_HLEN; i++) {
 			read_otp_data(priv->otp_mac_addr+i, (char*)&otp_mac[i]);
