@@ -95,7 +95,7 @@ void gpio_reg_dump(void)
 }
 #endif
 
-static int register_pin(int pin, struct udevice *dev)
+static void* register_pin(int pin, struct udevice *dev)
 {
 	// Check if pin number is within range.
 	if ((pin >= 0) && (pin < MAX_PINS)) {
@@ -108,11 +108,11 @@ static int register_pin(int pin, struct udevice *dev)
 		} else {
 			pctl_err("ERROR: Pin %d of node %s has been registered (by node: %s)!\n",
 				pin, dev->name, ((struct udevice*)pin_registered_by_udev[pin])->name);
-			return (int)dev;
+			return dev;
 		}
 	} else {
 		pctl_err("ERROR: Invalid pin number %d from '%s'!\n", pin, dev->name);
-		return -1;
+		return (void*)-1;
 	}
 }
 
@@ -127,7 +127,6 @@ static int unregister_pin(int pin)
 	}
 	return -1;
 }
-
 
 static int sunplus_pinctrl_pins(struct udevice *dev)
 {
@@ -324,40 +323,40 @@ static int sunplus_pinctrl_probe(struct udevice *dev)
 
 	// Get the 1st address of property 'reg' from dtb.
 	moon2_regs = (void*)devfdt_get_addr_index(dev, 0);
-	pctl_info("moon2_regs = %08x\n", (int)moon2_regs);
-	if ((int)moon2_regs == -1) {
+	pctl_info("moon2_regs = %px\n", moon2_regs);
+	if (moon2_regs == (void*)-1) {
 		pctl_err("Failed to get base address of MOON2!\n");
 		return -EINVAL;
 	}
 
 	// Get the 2nd address of property 'reg' from dtb.
 	group6_regs = (void*)devfdt_get_addr_index(dev, 1);
-	pctl_info("group6_regs = %08x\n", (int)group6_regs);
-	if ((int)group6_regs == -1) {
+	pctl_info("group6_regs = %px\n", group6_regs);
+	if (group6_regs == (void*)-1) {
 		pctl_err("Failed to get base address of GROUP6!\n");
 		return -EINVAL;
 	}
 
 	// Get the 3rd address of property 'reg' from dtb.
 	group7_regs = (void*)devfdt_get_addr_index(dev, 2);
-	pctl_info("group7_regs = %08x\n", (int)group7_regs);
-	if ((int)group7_regs == -1) {
+	pctl_info("group7_regs = %px\n", group7_regs);
+	if (group7_regs == (void*)-1) {
 		pctl_err("Failed to get base address of GROUP7!\n");
 		return -EINVAL;
 	}
 
 	// Get the 4th address of property 'reg' from dtb.
 	first_regs = (void*)devfdt_get_addr_index(dev, 3);
-	pctl_info("first_regs = %08x\n", (int)first_regs);
-	if ((int)first_regs == -1) {
+	pctl_info("first_regs = %px\n", first_regs);
+	if (first_regs == (void*)-1) {
 		pctl_err("Failed to get base address of FIRST!\n");
 		return -EINVAL;
 	}
 
 	// Get the 5th address of property 'reg' from dtb.
 	moon1_regs = (void*)devfdt_get_addr_index(dev, 4);
-	pctl_info("moon1_regs = %08x\n", (int)moon1_regs);
-	if ((int)moon1_regs == -1) {
+	pctl_info("moon1_regs = %px\n", moon1_regs);
+	if (moon1_regs == (void*)-1) {
 		pctl_err("Failed to get base address of MOON1!\n");
 		return -EINVAL;
 	}

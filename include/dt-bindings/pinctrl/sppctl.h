@@ -35,5 +35,4 @@
  */
 #define SPPCTL_IOPAD(pin,typ,fun,fls) (((pin)<<24)|((typ)<<16)|((fun)<<8)|(fls))
 
-
 #endif
