@@ -1,8 +1,7 @@
 #include <mach/gpio_drv.h>
 #include <dm.h>
 #include <dt-bindings/pinctrl/sppctl-sp7021.h>
-
-#include "pinctrl_sunplus_sp7021.h"
+#include "pinctrl_sunplus.h"
 
 
 int gpio_pin_mux_set(u32 func, u32 pin)

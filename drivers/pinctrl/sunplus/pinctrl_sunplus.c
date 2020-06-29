@@ -1,15 +1,22 @@
 #include <common.h>
 #include <dm.h>
 #include <dm/pinctrl.h>
-#include <mach/gpio_drv.h>
 #include <asm/io.h>
 
-#include "pinctrl_sunplus_sp7021.h"
+#include "pinctrl_sunplus.h"
+#ifdef CONFIG_PINCTRL_SUNPLUS
 #include <dt-bindings/pinctrl/sppctl-sp7021.h>
+#else
+#include <dt-bindings/pinctrl/sppctl-i143.h>
+#endif
 
 DECLARE_GLOBAL_DATA_PTR;
 
 //#define PINCTRL_DEBUG
+
+#ifdef CONFIG_PINCTRL_SUNPLUS
+#define SUPPORT_PINMUX
+#endif
 
 volatile u32 *moon1_regs = NULL;
 volatile u32 *moon2_regs = NULL;
@@ -19,6 +26,7 @@ volatile u32 *first_regs = NULL;
 void* pin_registered_by_udev[MAX_PINS];
 
 #ifdef PINCTRL_DEBUG
+#ifdef SUPPORT_PINMUX
 void pinmux_reg_dump(void)
 {
 	u32 pinmux_value[120];
@@ -73,6 +81,7 @@ void pinmux_reg_dump(void)
 		pinmux_value[112], pinmux_value[113], pinmux_value[114], pinmux_value[115], pinmux_value[116],
 		pinmux_value[117], pinmux_value[118], pinmux_value[119]);
 }
+#endif
 
 void gpio_reg_dump(void)
 {
@@ -88,8 +97,13 @@ void gpio_reg_dump(void)
 			gpio_value[i-3],gpio_value[i-2],gpio_value[i-1],gpio_value[i]);
 		}
 		if (i == (MAX_PINS-1)) {
+#ifdef CONFIG_PINCTRL_SUNPLUS
 			printf("GPIO_P%-2d 0x%02x 0x%02x 0x%02x\n",(i/8),
 			gpio_value[i-2],gpio_value[i-1],gpio_value[i]);
+#else
+			printf("GPIO_P%-2d 0x%02x 0x%02x 0x%02x 0x%02x\n",(i/8),
+			gpio_value[i-3],gpio_value[i-2],gpio_value[i-1],gpio_value[i]);
+#endif
 		}
 	}
 }
@@ -155,17 +169,22 @@ static int sunplus_pinctrl_pins(struct udevice *dev)
 		int pins = pin_mux[i];
 		int pin  = (pins >> 24) & 0xff;
 		int type = (pins >> 16) & 0xff;
+#ifdef SUPPORT_PINMUX
 		int func = (pins >> 8) & 0xff;
+#endif
 		int flag = pins & 0xff;
 		pctl_info("sppctl,pins = 0x%08x\n", pins);
 
+#ifdef SUPPORT_PINMUX
 		if (type == SPPCTL_PCTL_G_PMUX) {
 			// It's a PinMux pin.
 			gpio_pin_mux_set(func, pin);
 			gpio_first_set(pin, 0);
 			gpio_master_set(pin, 1);
 			pctl_info("pinmux get = 0x%02x \n", gpio_pin_mux_get(func));
-		} else if (type == SPPCTL_PCTL_G_IOPP) {
+		} else
+#endif
+		if (type == SPPCTL_PCTL_G_IOPP) {
 			// It's a IOP pin.
 			gpio_first_set(pin, 1);
 			gpio_master_set(pin, 0);
@@ -202,6 +221,7 @@ static int sunplus_pinctrl_pins(struct udevice *dev)
 	return 0;
 }
 
+#ifdef SUPPORT_PINMUX
 static int sunplus_pinctrl_zero(struct udevice *dev)
 {
 	int offset = dev_of_offset(dev);
@@ -226,6 +246,7 @@ static int sunplus_pinctrl_zero(struct udevice *dev)
 
 	return 0;
 }
+#endif
 
 static int sunplus_pinctrl_function(struct udevice *dev)
 {
@@ -281,6 +302,8 @@ static int sunplus_pinctrl_function(struct udevice *dev)
 				// Enable the pin-group.
 				mask = (1 << func->blen) - 1;
 				GPIO_PINGRP(func->roff) = (mask<<(func->boff+16)) | (grp->gval<<func->boff);
+				pctl_info("GPIO_PINGRP[%d] <= 0x%08x\n", func->roff,
+					(mask<<(func->boff+16)) | (grp->gval<<func->boff));
 			} else {
 				return -1;
 			}
@@ -304,13 +327,17 @@ static int sunplus_pinctrl_set_state(struct udevice *dev, struct udevice *config
 	ret = sunplus_pinctrl_pins(config);
 	if (ret != 0) return ret;
 
+#ifdef SUPPORT_PINMUX
 	sunplus_pinctrl_zero(config);
+#endif
 
 	ret = sunplus_pinctrl_function(config);
 	if (ret != 0) return ret;
 
 #ifdef PINCTRL_DEBUG
+#ifdef SUPPORT_PINMUX
 	pinmux_reg_dump();
+#endif
 	gpio_reg_dump();
 #endif
 
@@ -374,7 +401,11 @@ static struct pinctrl_ops sunplus_pinctrl_ops = {
 };
 
 static const struct udevice_id sunplus_pinctrl_ids[] = {
+#ifdef CONFIG_PINCTRL_SUNPLUS
 	{ .compatible = "sunplus,sp7021-pctl"},
+#else
+	{ .compatible = "sunplus,i143-pctl"},
+#endif
 	{ /* zero */ }
 };
 

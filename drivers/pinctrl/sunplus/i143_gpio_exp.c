@@ -1,7 +1,6 @@
 #include <asm/arch/gpio_drv.h>
 #include <dt-bindings/pinctrl/sppctl-i143.h>
-
-#include "pinctrl_sunplus_i143.h"
+#include "pinctrl_sunplus.h"
 
 
 int gpio_input_invert_set(u32 pin, u32 val)

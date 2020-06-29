@@ -1,5 +1,5 @@
-#ifndef __PINCTRL_SUNPLUS_I143_H__
-#define __PINCTRL_SUNPLUS_I143_H__
+#ifndef __PINCTRL_SUNPLUS_H__
+#define __PINCTRL_SUNPLUS_H__
 
 #include <common.h>
 
@@ -13,6 +13,9 @@
 
 
 #define GPIO_PINGRP(x)  moon1_regs[x]
+#ifdef CONFIG_PINCTRL_SUNPLUS
+#define GPIO_PINMUX(x)  moon2_regs[x]
+#endif
 #define GPIO_MASTER(x)  group6_regs[x]
 #define GPIO_OE(x)      group6_regs[x+8]
 #define GPIO_OUT(x)     group6_regs[x+16]
@@ -23,7 +26,11 @@
 #define GPIO_FIRST(x)   first_regs[x]
 
 
+#ifdef CONFIG_PINCTRL_SUNPLUS
+#define MAX_PINS        99
+#else
 #define MAX_PINS        108
+#endif
 #define D(x,y)          ((x)*8+(y))
 
 
@@ -68,6 +75,9 @@ extern volatile u32 *group6_regs;
 extern volatile u32 *group7_regs;
 extern volatile u32 *first_regs;
 
+extern int gpio_pin_mux_set(u32 func, u32 pin);
+extern int gpio_pin_mux_get_val(u32 func, u32 *pin);
+extern u32 gpio_pin_mux_get(u32 func);
 extern int gpio_input_invert_set(u32 bit, u32 val);
 extern int gpio_input_invert_get(u32 bit, u32 *val);
 extern u32 gpio_input_invert_val_get(u32 bit);
