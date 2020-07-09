@@ -1,9 +1,16 @@
-#include <mach/gpio_drv.h>
+#include <common.h>
 #include <dm.h>
-#include <dt-bindings/pinctrl/sppctl-sp7021.h>
 #include "pinctrl_sunplus.h"
+#ifdef CONFIG_PINCTRL_SUNPLUS
+#include <mach/gpio_drv.h>
+#include <dt-bindings/pinctrl/sppctl-sp7021.h>
+#else
+#include <asm/arch/gpio_drv.h>
+#include <dt-bindings/pinctrl/sppctl-i143.h>
+#endif
 
 
+#ifdef CONFIG_PINCTRL_SUNPLUS
 int gpio_pin_mux_set(u32 func, u32 pin)
 {
 	u32 idx, bit_pos;
@@ -45,7 +52,7 @@ int gpio_pin_mux_get_val(u32 func, u32 *pin)
 
 	return 0;
 }
-EXPORT_SYMBOL(gpio_pin_mux_get);
+EXPORT_SYMBOL(gpio_pin_mux_get_val);
 
 u32 gpio_pin_mux_get(u32 func)
 {
@@ -56,6 +63,7 @@ u32 gpio_pin_mux_get(u32 func)
 	return pin;
 }
 EXPORT_SYMBOL(gpio_pin_mux_get);
+#endif
 
 int gpio_input_invert_set(u32 pin, u32 val)
 {
@@ -137,7 +145,7 @@ int gpio_output_invert_get(u32 pin, u32 *gpio_output_invert_value)
 
 	return 0;
 }
-EXPORT_SYMBOL(gpio_output_invert_value_get);
+EXPORT_SYMBOL(gpio_output_invert_get);
 
 u32 gpio_output_invert_val_get(u32 pin)
 {
@@ -460,3 +468,4 @@ int gpio_debug_set(u32 pin, u32 val)
 	return 0;
 }
 EXPORT_SYMBOL(gpio_debug_set);
+
