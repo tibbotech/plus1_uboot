@@ -208,7 +208,7 @@
 #define DSTADDR_FREERTOS	0xA0000000 
 #define TMPADDR_KERNEL		0xA3000000 
 #define DSTADDR_KERNEL		0xA01FFFC0 
-#define DSTADDR_DTB			0xA01F0000
+#define DSTADDR_DTB		0xA01F0000
 #define TMPADDR_HEADER		0xA4000000
 
 #if defined(CONFIG_SP_SPINAND) && defined(CONFIG_MMC_SP_EMMC)
@@ -221,17 +221,17 @@
 "bootinfo_base="		__stringify(SP_BOOTINFO_BASE) "\0" \
 "addr_src_kernel="		__stringify(CONFIG_SRCADDR_KERNEL) "\0" \
 "addr_src_dtb="			__stringify(CONFIG_SRCADDR_DTB) "\0" \
-"addr_src_freertos=" 	__stringify(CONFIG_SRCADDR_FREERTOS) "\0" \
+"addr_src_freertos="		__stringify(CONFIG_SRCADDR_FREERTOS) "\0" \
 "addr_dst_kernel="		__stringify(DSTADDR_KERNEL) "\0" \
 "addr_temp_kernel="		__stringify(TMPADDR_KERNEL) "\0" \
 "addr_dst_dtb="			__stringify(DSTADDR_DTB) "\0" \
-"addr_dst_freertos=" 	__stringify(DSTADDR_FREERTOS) "\0" \
+"addr_dst_freertos="		__stringify(DSTADDR_FREERTOS) "\0" \
 "addr_tmp_header="		__stringify(TMPADDR_HEADER) "\0" \
-"if_zebu="				__stringify(CONFIG_SYS_ZEBU_ENV) "\0" \
+"if_zebu="			__stringify(CONFIG_SYS_ZEBU_ENV) "\0" \
 "if_qkboot="			__stringify(CONFIG_SYS_USE_QKBOOT_HEADER) "\0" \
 "sp_main_storage="		SP_MAIN_STORAGE "\0" \
 "serverip=" 			__stringify(TFTP_SERVER_IP) "\0" \
-"macaddr="				__stringify(BOARD_MAC_ADDR) "\0" \
+"macaddr="			__stringify(BOARD_MAC_ADDR) "\0" \
 "sdcard_devid="			__stringify(SDCARD_DEVICE_ID) "\0" \
 "fdt_high=0xffffffffffffffff\0" \
 "be2le=setexpr byte *${tmpaddr} '&' 0x000000ff; " \
@@ -313,7 +313,7 @@
 	"mmc list; " \
 	"run isp_common; " \
 	"\0" \
-"isp_common=setenv isp_ram_addr 0x1000000; " \
+"isp_common=setenv isp_ram_addr 0xa1000000; " \
 	"fatls $isp_if $isp_dev / ; " \
 	"fatload $isp_if $isp_dev $isp_ram_addr /ISPBOOOT.BIN 0x800 0x100000 && md.b $isp_ram_addr 0x200; " \
 	"setenv isp_main_storage ${sp_main_storage} && printenv isp_main_storage; " \
@@ -327,14 +327,14 @@
 	"mmc list; " \
 	"run update_common; " \
 	"\0" \
-"update_common=setenv isp_ram_addr 0x1000000; " \
+"update_common=setenv isp_ram_addr 0xa1000000; " \
 	"setenv isp_update_file_name ISP_UPDT.BIN; " \
 	"fatload $isp_if $isp_dev $isp_ram_addr /$isp_update_file_name 0x800 && md.b $isp_ram_addr 0x200; " \
 	"setenv isp_main_storage ${sp_main_storage} && printenv isp_main_storage; " \
 	"setenv isp_image_header_offset 0; " \
 	"setexpr script_addr $isp_ram_addr + 0x20 && setenv script_addr 0x${script_addr} && source $script_addr; " \
 	"\0" \
-"update_tftp=setenv isp_ram_addr 0x1000000; " \
+"update_tftp=setenv isp_ram_addr 0xa1000000; " \
 	"setenv ethaddr ${macaddr} && printenv ethaddr; " \
 	"printenv serverip; " \
 	"dhcp $isp_ram_addr $serverip:TFTP0000.BIN; " \
