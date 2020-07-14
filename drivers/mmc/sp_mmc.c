@@ -1416,12 +1416,6 @@ static int sp_mmc_probe(struct udevice *dev)
 	IFPRINTK("dev_info.id = %d\n", host->dev_info.id);
 	IFPRINTK("host type: %s\n", (host->dev_info.type == SPMMC_DEVICE_TYPE_EMMC) ? "EMMC":"SD");
 	IFPRINTK("version type: %s\n", (host->dev_info.version == SP_MMC_VER_Q628) ? "Q628" : "Q610");
-	/* set pinmux on */
-	if (host->dev_info.set_pinmux) {
-		if (host->dev_info.set_pinmux(&host->dev_info)) {
-			return -ENODEV;
-		}
-	}
 
 	if (host->dev_info.set_clock) {
 		if (host->dev_info.set_clock(&host->dev_info)) {
@@ -1466,8 +1460,6 @@ static int sp_mmc_probe(struct udevice *dev)
 	return 0;
 }
 
-
-
 int sp_print_mmcinfo(struct mmc *mmc)
 {
 	struct sp_mmc_host *host = mmc->priv;
@@ -1483,54 +1475,17 @@ int sp_mmc_set_dmapio(struct mmc *mmc, uint val)
 	return 0;
 }
 
-
-#define REG_BASE           0x9c000000
-#define RF_GRP(_grp, _reg) ((((_grp) * 32 + (_reg)) * 4) + REG_BASE)
-#define RF_MASK_V(_mask, _val)       (((_mask) << 16) | (_val))
-#define RF_MASK_V_SET(_mask)         (((_mask) << 16) | (_mask))
-#define RF_MASK_V_CLR(_mask)         (((_mask) << 16) | 0)
-
-
-struct moon1_regs {
-	unsigned int sft_cfg[32];
-};
-#define MOON1_REG ((volatile struct moon1_regs *)RF_GRP(1, 0))
-
-
-int sd_set_pinmux(struct sp_mmc_dev_info *info)
-{
-	MOON1_REG->sft_cfg[1] = RF_MASK_V(1 << 6, 1 << 6);
-	return 0;
-}
-
-int emmc_set_pinmux(struct sp_mmc_dev_info *info)
-{
-	/* disable spi nor pimux   */
-	MOON1_REG->sft_cfg[1] = RF_MASK_V_CLR(0xf);
-	/* disable spi nand pinmux  */
-	MOON1_REG->sft_cfg[1] = RF_MASK_V_CLR(1 << 4);
-	/* enable emmc pinmux */
-	#if defined(CONFIG_TARGET_SUNPLUS_I143) || defined(CONFIG_TARGET_PENTAGRAM_I143_CP)
-	MOON1_REG->sft_cfg[1] = RF_MASK_V(1 << 2, 1 << 2);
-	#else
-	MOON1_REG->sft_cfg[1] = RF_MASK_V(1 << 5, 1 << 5);
-	#endif 
-	return 0;
-}
-
 static sp_mmc_dev_info q628_dev_info[] = {
 	{
 		.id = 0,
 		.type = SPMMC_DEVICE_TYPE_EMMC,
 		.version = SP_MMC_VER_Q628,
-		.set_pinmux = emmc_set_pinmux,
 	},
 
 	{
 		.id = 1,
 		.type = SPMMC_DEVICE_TYPE_SD,
 		.version = SP_MMC_VER_Q628,
-		.set_pinmux = sd_set_pinmux,
 	},
 };
 
