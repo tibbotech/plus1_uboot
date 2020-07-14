@@ -106,6 +106,8 @@
 #define DEFAULT_BOOTARGS	"console=ttyS0,115200 root=/dev/ram rw loglevel=8 user_debug=255 earlyprintk"
 #endif
 
+#define RASPBIAN_CMD                    // Enable Raspbian command
+
 
 #define AUTO_SCAN               0x01
 #define EMMC_BOOT               0x05
@@ -211,11 +213,44 @@
 #define DSTADDR_DTB		0xA01F0000
 #define TMPADDR_HEADER		0xA4000000
 
+#define XBOOT_SIZE		0x10000	/* for sdcard .ISPBOOOT.BIN size is equal to xboot.img size, do boot.otherwise do ISP*/
+
 #if defined(CONFIG_SP_SPINAND) && defined(CONFIG_MMC_SP_EMMC)
 #define SDCARD_DEVICE_ID	0
 #else
 #define SDCARD_DEVICE_ID	1
 #endif
+
+#ifdef RASPBIAN_CMD
+#define RASPBIAN_INIT		"setenv filesize 0; " \
+				"fatsize $isp_if $isp_dev /cmdline.txt; " \
+				"if test $filesize != 0; then " \
+				"	fatload $isp_if $isp_dev $addr_dst_dtb /cmdline.txt; " \
+				"	raspb init $fileaddr $filesize; " \
+				"	echo new bootargs; " \
+				"	echo $bootargs; " \
+				"fi; "
+#else
+#define RASPBIAN_INIT		""
+#endif
+
+
+#define SDCARD_EXT_CMD \
+	"scriptaddr=0xa1000000; " \
+	"bootscr=boot.scr; " \
+	"bootenv=uEnv.txt; " \
+	"if run loadbootenv; then " \
+		"echo Loaded environment from ${bootenv}; " \
+		"env import -t ${scriptaddr} ${filesize}; " \
+	"fi; " \
+	"if test -n ${uenvcmd}; then " \
+		"echo Running uenvcmd ...; " \
+		"run uenvcmd; " \
+	"fi; " \
+	"if run loadbootscr; then " \
+		"echo Jumping to ${bootscr}; " \
+		"source ${scriptaddr}; "\
+	"fi; "
 
 #define CONFIG_EXTRA_ENV_SETTINGS \
 "bootinfo_base="		__stringify(SP_BOOTINFO_BASE) "\0" \
@@ -236,6 +271,14 @@
 "macaddr="			__stringify(BOARD_MAC_ADDR) "\0" \
 "sdcard_devid="			__stringify(SDCARD_DEVICE_ID) "\0" \
 "fdt_high=0xffffffffffffffff\0" \
+"loadbootscr=fatload ${isp_if} ${isp_dev}:1 ${scriptaddr} /${bootscr} || " \
+	"fatload ${isp_if} ${isp_dev}:1 ${scriptaddr} /boot/${bootscr} || " \
+	"fatload ${isp_if} ${isp_dev}:1 ${scriptaddr} /sunplus/sp7021/${bootscr}; " \
+	"\0" \
+"loadbootenv=fatload ${isp_if} ${isp_dev}:1 ${scriptaddr} /${bootenv} || " \
+	"fatload ${isp_if} ${isp_dev}:1 ${scriptaddr} /boot/${bootenv} || " \
+	"fatload ${isp_if} ${isp_dev}:1 ${scriptaddr} /sunplus/sp7021/${bootenv}; " \
+	"\0" \
 "be2le=setexpr byte *${tmpaddr} '&' 0x000000ff; " \
 	"setexpr tmpval $tmpval + $byte; " \
 	"setexpr tmpval $tmpval * 0x100; " \
@@ -311,9 +354,16 @@
 	"run isp_common; " \
 	"\0" \
 "isp_sdcard=setenv isp_if mmc && setenv isp_dev $sdcard_devid; " \
-	"setenv bootargs console=ttyS0,115200 earlyprintk root=/dev/mmcblk1p2 rw user_debug=255 rootwait;"\
 	"mmc list; " \
-	"run isp_common; " \
+	"fatsize $isp_if $isp_dev /ISPBOOOT.BIN; " \
+	"echo ISPBOOOT filesize = $filesize; "\
+	"if itest.l ${filesize} == " __stringify(XBOOT_SIZE) ";  then " \
+		"echo run sdcard_boot; "\
+		SDCARD_EXT_CMD \
+	"else "\
+		"echo run isp_common; "\
+		"run isp_common; " \
+	"fi" \
 	"\0" \
 "isp_common=setenv isp_ram_addr 0xa1000000; " \
 	"fatls $isp_if $isp_dev / ; " \
