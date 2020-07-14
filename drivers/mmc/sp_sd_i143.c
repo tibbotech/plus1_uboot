@@ -1663,7 +1663,7 @@ static sp_mmc_dev_info q628_dev_info[] = {
 
 static const struct udevice_id sunplus_mmc_ids[] = {
 	{
-		.compatible	= "sunplus,i143-card",
+		.compatible	= "sunplus,i143-card1",
 		.data		= (ulong)&q628_dev_info[1],
 	},
 
