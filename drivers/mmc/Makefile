@@ -68,4 +68,5 @@ obj-$(CONFIG_RENESAS_SDHI)		+= tmio-common.o renesas-sdhi.o
 obj-$(CONFIG_MMC_BCM2835)		+= bcm2835_sdhost.o
 obj-$(CONFIG_MMC_MTK)			+= mtk-sd.o
 obj-$(CONFIG_MMC_SP_EMMC) += sp_mmc.o
+obj-$(CONFIG_MMC_SP_SD) += sp_sd_i143.o
 obj-$(CONFIG_MMC_SP_8388) += sp_mmc_8388.o

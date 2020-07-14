@@ -1,6 +1,6 @@
 #ifndef __SPMMC_H__
 #define __SPMMC_H__
-#include "sp_mmc_regs.h"
+#include "sp_sd_i143_regs.h"
 
 #ifdef CONFIG_MMC_SP_EMMC
 #define EMMC_SLOT_ID            0
@@ -53,6 +53,7 @@ typedef struct sp_mmc_dev_info {
 	uint	version;
 #define SP_MMC_VER_Q610	 1
 #define SP_MMC_VER_Q628	 2
+#define SP_MMC_VER_I143	 3
 
 
 	int (*set_clock)(struct sp_mmc_dev_info *dev);
@@ -81,7 +82,7 @@ typedef struct sp_mmc_timing_info {
 
 typedef struct sp_mmc_host {
 	union {
-		volatile SDREG		*base;
+		volatile SDCARDREG		*base;
 		volatile EMMCREG	*ebase;
 	};
 
