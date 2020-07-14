@@ -222,10 +222,12 @@
 "addr_src_kernel="		__stringify(CONFIG_SRCADDR_KERNEL) "\0" \
 "addr_src_dtb="			__stringify(CONFIG_SRCADDR_DTB) "\0" \
 "addr_src_freertos="		__stringify(CONFIG_SRCADDR_FREERTOS) "\0" \
+"addr_src_nonos="		__stringify(CONFIG_SRCADDR_FREERTOS) "\0" \
 "addr_dst_kernel="		__stringify(DSTADDR_KERNEL) "\0" \
 "addr_temp_kernel="		__stringify(TMPADDR_KERNEL) "\0" \
 "addr_dst_dtb="			__stringify(DSTADDR_DTB) "\0" \
 "addr_dst_freertos="		__stringify(DSTADDR_FREERTOS) "\0" \
+"addr_dst_nonos="		__stringify(DSTADDR_FREERTOS) "\0" \
 "addr_tmp_header="		__stringify(TMPADDR_HEADER) "\0" \
 "if_zebu="			__stringify(CONFIG_SYS_ZEBU_ENV) "\0" \
 "if_qkboot="			__stringify(CONFIG_SYS_USE_QKBOOT_HEADER) "\0" \
@@ -315,7 +317,7 @@
 	"\0" \
 "isp_common=setenv isp_ram_addr 0xa1000000; " \
 	"fatls $isp_if $isp_dev / ; " \
-	"fatload $isp_if $isp_dev $isp_ram_addr /ISPBOOOT.BIN 0x800 0x100000 && md.b $isp_ram_addr 0x200; " \
+	"fatload $isp_if $isp_dev $isp_ram_addr /ISPBOOOT.BIN 0x800 0x100000; " \
 	"setenv isp_main_storage ${sp_main_storage} && printenv isp_main_storage; " \
 	"setexpr script_addr $isp_ram_addr + 0x20 && setenv script_addr 0x${script_addr} && source $script_addr; " \
 	"\0" \
