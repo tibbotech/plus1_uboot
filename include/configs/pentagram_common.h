@@ -352,7 +352,7 @@
 	"cp.l ${addr_src_kernel} ${addr_dst_kernel} ${sz_kernel}; " \
 	dbg_scr("echo sp_go ${addr_dst_kernel} ${fdtcontroladdr}; ") \
 	"sp_go ${addr_dst_kernel} ${fdtcontroladdr}\0" \
-"emmc_boot=	mmc read ${addr_tmp_header} ${addr_src_nonos} 0x1; " \
+"emmc_boot=mmc read ${addr_tmp_header} ${addr_src_nonos} 0x1; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
 	"setexpr sz_nonos ${tmpval} + 0x40; " \
 	"setexpr sz_nonos ${sz_nonos} + 0x200; setexpr sz_nonos ${sz_nonos} / 0x200; " \
@@ -388,7 +388,7 @@
 	"nand read ${addr_dst_kernel} kernel ${sz_kernel}; " \
 	"setenv bootargs console=ttyS0,115200 earlyprintk root=ubi0:rootfs rw ubi.mtd=9,2048 rootflags=sync rootfstype=ubifs mtdparts=sp_spinand:128k(nand_header),128k(xboot1),1280k(uboot1),2560k(uboot2),512k(env),512k(env_redund),1m(nonos),256k(dtb),15m(kernel),-(rootfs) user_debug=255 rootwait ;" \
 	"run boot_kernel \0" \
-"boot_kernel= "\
+"boot_kernel="\
 	"if itest ${if_use_nfs_rootfs} == 1; then " \
 		"setenv bootargs root=/dev/nfs nfsroot=${nfs_serverip}:${nfs_rootfs_dir} ip=${nfs_clintip}:${nfs_serverip}:${nfs_gatewayip}:${nfs_netmask}::eth0:off rdinit=/linuxrc noinitrd rw console=ttyS0,115200; "\
 	"fi; " \
