@@ -315,8 +315,8 @@
 	"cp.l ${addr_src_freertos} ${addr_dst_freertos} ${sz_freertos}; " \
 	"run boot_Image_gz; \0" \
 "emmc_boot=mmc read ${addr_tmp_header} ${addr_src_freertos} 0x1; " \
-	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x4; run be2le; " \
-	"setexpr sz_freertos ${tmpval} + 0x28; " \
+	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
+	"setexpr sz_freertos ${tmpval} + 0x40; " \
 	"setexpr sz_freertos ${sz_freertos} + 0x200; setexpr sz_freertos ${sz_freertos} / 0x200; " \
 	"mmc read ${addr_dst_freertos} ${addr_src_freertos} ${sz_freertos}; " \
 	"mmc read ${addr_tmp_header} ${addr_src_kernel} 0x1; " \
@@ -325,7 +325,7 @@
 	"setexpr sz_kernel ${sz_kernel} + 72; " \
 	"setexpr sz_kernel ${sz_kernel} + 0x200; setexpr sz_kernel ${sz_kernel} / 0x200; " \
 	"mmc read ${addr_temp_kernel} ${addr_src_kernel} ${sz_kernel}; " \
-	"setenv bootargs console=ttyS0,115200 earlyprintk root=/dev/mmcblk0p7 rw user_debug=255 rootwait ;" \
+	"setenv bootargs console=ttyS0,115200 earlyprintk root=/dev/mmcblk0p8 rw user_debug=255 rootwait;" \
 	"run boot_Image_gz; \0" \
 "qk_zmem_boot=sp_go ${addr_dst_kernel} ${fdtcontroladdr}\0" \
 "zmem_boot=bootm ${addr_dst_kernel} - ${fdtcontroladdr}\0" \
