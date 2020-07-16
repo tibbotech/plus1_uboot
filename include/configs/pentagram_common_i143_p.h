@@ -111,7 +111,7 @@
 
 #define AUTO_SCAN               0x01
 #define EMMC_BOOT               0x05
-#define SPI_NOR_BOOT            0x07  	
+#define SPI_NOR_BOOT            0x07
 #define SDCARD_ISP              0x11
 #define UART_ISP                0x13
 #define USB_ISP                 0x15
@@ -207,11 +207,11 @@
 	"echo Stop; " \
 "fi"
 
-#define DSTADDR_FREERTOS	0xA0000000 
-#define TMPADDR_KERNEL		0xA3000000 
-#define DSTADDR_KERNEL		0xA01FFFC0 
+#define DSTADDR_FREERTOS	0xA0000000
+#define TMPADDR_KERNEL		0xA3000000
+#define DSTADDR_KERNEL		0xA01FFFC0
 #define DSTADDR_DTB		0xA01F0000
-#define TMPADDR_HEADER		0xA4000000
+#define TMPADDR_HEADER		0xA3FF0000
 
 #define XBOOT_SIZE		0x10000	/* for sdcard .ISPBOOOT.BIN size is equal to xboot.img size, do boot.otherwise do ISP*/
 
@@ -325,7 +325,7 @@
 	"setexpr sz_kernel ${sz_kernel} + 72; " \
 	"setexpr sz_kernel ${sz_kernel} + 0x200; setexpr sz_kernel ${sz_kernel} / 0x200; " \
 	"mmc read ${addr_temp_kernel} ${addr_src_kernel} ${sz_kernel}; " \
-	"setenv bootargs console=ttyS0,115200 earlyprintk root=/dev/mmcblk0p8 rw user_debug=255 rootwait;" \
+	"setenv bootargs console=ttyS0,115200 earlyprintk root=/dev/mmcblk0p8 rw user_debug=255 rootwait; " \
 	"run boot_Image_gz; \0" \
 "qk_zmem_boot=sp_go ${addr_dst_kernel} ${fdtcontroladdr}\0" \
 "zmem_boot=bootm ${addr_dst_kernel} - ${fdtcontroladdr}\0" \
@@ -334,7 +334,7 @@
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
 	"setexpr sz_dtb ${tmpval} + 0x40; " \
 	"setexpr sz_dtb ${sz_dtb} + 0x200; setexpr sz_dtb ${sz_dtb} / 0x200; " \
-    "setexpr addr_dram ${fdtcontroladdr} - 0x40; " \
+	"setexpr addr_dram ${fdtcontroladdr} - 0x40; " \
 	"mmc read ${addr_dram} ${addr_src_dtb} ${sz_dtb}; " \
 	"mmc read ${addr_tmp_header} ${addr_src_kernel} 0x1; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
