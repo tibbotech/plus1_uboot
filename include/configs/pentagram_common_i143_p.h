@@ -345,8 +345,10 @@
 	"run boot_Image_gz; \0" \
 "tftp_boot=setenv ethaddr ${macaddr} && printenv ethaddr; " \
 	"printenv serverip; " \
-	"dhcp ${addr_dst_dtb} ${serverip}:dtb" __stringify(USER_NAME) "; " \
-	"dhcp ${addr_dst_kernel} ${serverip}:Image" __stringify(USER_NAME) "; " \
+	"dhcp ${addr_dst_dtb} ${serverip}:dtb" __stringify(USER_NAME) " && dhcp ${addr_temp_kernel} ${serverip}:uImage" __stringify(USER_NAME) "; " \
+	"setexpr addr_temp_kernel ${addr_temp_kernel} + 0x40; " \
+	"setexpr addr_dst_kernel ${addr_dst_kernel} + 0x40; " \
+	"unzip ${addr_temp_kernel} ${addr_dst_kernel}; " \
 	"booti ${addr_dst_kernel} - ${addr_dst_dtb}; " \
 	"\0" \
 "isp_usb=setenv isp_if usb && setenv isp_dev 0; " \
