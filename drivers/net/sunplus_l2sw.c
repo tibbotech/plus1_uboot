@@ -269,7 +269,7 @@ static void rx_descs_init(struct emac_eth_dev *priv)
 
 	// Flush all rx descriptors.
 	flush_dcache_range(DCACHE_ROUNDDN(priv->rx_desc), DCACHE_ROUNDUP((u32)priv->rx_desc+sizeof(priv->rx_desc)));
-	//eth_info("RX Queue: start = %px, end = %px\n", priv->rx_desc, &priv->rx_desc[CONFIG_RX_DESCR_NUM]);
+	//eth_info("RX Queue: start = %px, end = %px\n", priv->rx_desc, &priv->rx_desc[CONFIG_RX_DESCR_NUM*CONFIG_RX_QUEUE_NUM]);
 
 	// Setup base address for high- and low-priority rx queue.
 	HWREG_W(rx_hbase_addr_0, (uintptr_t)&priv->rx_desc[0]);
@@ -284,7 +284,7 @@ static void tx_descs_init(struct emac_eth_dev *priv)
 
 	//eth_info("[%s] IN\n", __func__);
 
-	memset((void*)&priv->tx_desc[0], 0, sizeof(*txdesc)*(CONFIG_TX_DESCR_NUM*CONFIG_RX_QUEUE_NUM));
+	memset((void*)&priv->tx_desc[0], 0, sizeof(*txdesc)*(CONFIG_TX_DESCR_NUM*CONFIG_TX_QUEUE_NUM));
 	for (i = 0; i < (CONFIG_TX_DESCR_NUM*CONFIG_RX_QUEUE_NUM); i++) {
 		txdesc = &priv->tx_desc[i];
 		txdesc->addr1 = (uintptr_t)&txbuffs[i * CONFIG_ETH_BUFSIZE];
@@ -294,7 +294,7 @@ static void tx_descs_init(struct emac_eth_dev *priv)
 
 	// Flush all tx descriptors.
 	flush_dcache_range(DCACHE_ROUNDDN(priv->tx_desc), DCACHE_ROUNDUP((u32)priv->tx_desc+sizeof(priv->tx_desc)));
-	//eth_info("TX Queue: start = %px, end = %px\n", priv->tx_desc, &priv->tx_desc[CONFIG_TX_DESCR_NUM]);
+	//eth_info("TX Queue: start = %px, end = %px\n", priv->tx_desc, &priv->tx_desc[CONFIG_TX_DESCR_NUM*CONFIG_TX_QUEUE_NUM]);
 
 	// Setup base address for high- and low-priority tx queue.
 	HWREG_W(tx_hbase_addr_0, (uintptr_t)&priv->tx_desc[0]);
