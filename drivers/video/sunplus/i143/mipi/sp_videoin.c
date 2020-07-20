@@ -548,8 +548,8 @@ static int ispchk_window(u8 isp)
 static void hdmi_clk_init(int mode)
 {
     if (mode == 0) { //HDMITX 720x480 59.94Hz as default setting
-        MOON4_REG->plltv_ctl[0] = 0xFFFF0014; 	//G4.15
-        MOON4_REG->plltv_ctl[1] = 0xFFFF0000; 	//G4.16
+        MOON4_REG->plltv_ctl[0] = 0xFFFF0000; 	//G4.15
+        MOON4_REG->plltv_ctl[1] = 0xFFFF0014; 	//G4.16
         MOON4_REG->plltv_ctl[2] = 0xFFFF2040; 	//G4.17
 		MOON4_REG->plltv_ctl[3] = 0xFFFF0040; 	//G4.18
     }
