@@ -26,6 +26,15 @@ struct moon0_regs {
 };
 #define MOON0_REG ((volatile struct moon0_regs *) MOON0_BASE_ADDR)
 
+/* MOON 4 Register */
+#define MOON4_BASE_ADDR  0x9C000200
+struct moon4_regs {
+	unsigned int reserved1[15];		// 4.0-14
+	unsigned int plltv_ctl[4];		// 4.15-18
+	unsigned int reserved2[13];		// 4.19-31
+};
+#define MOON4_REG ((volatile struct moon4_regs *) MOON4_BASE_ADDR)
+
 /* MOON 5 Register */
 #define MOON5_BASE_ADDR   0x9c000280
 struct moon5_regs {

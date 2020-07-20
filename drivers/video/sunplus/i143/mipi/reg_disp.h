@@ -1,6 +1,16 @@
 #ifndef __SP_DISP_H
 #define __SP_DISP_H
 
+/* SP_HDMITX Register */
+#define DISP_HDMITX_0_BASE_ADDR 0x9C00BE00 //G380
+#define DISP_HDMITX_1_BASE_ADDR 0x9C00BE80 //G381
+#define DISP_HDMITX_2_BASE_ADDR 0x9C00BF00 //G382
+#define DISP_HDMITX_3_BASE_ADDR 0x9C00BF80 //G383
+#define DISP_HDMITX_4_BASE_ADDR 0x9C00C000 //G384
+#define DISP_HDMITX_5_BASE_ADDR 0x9C00C080 //G385
+#define DISP_HDMITX_6_BASE_ADDR 0x9C00C100 //G386
+#define DISP_HDMITX_7_BASE_ADDR 0x9C00C180 //G387
+
 /* SP_DISP Register */
 #define DISP_DDFCH_BASE_ADDR 0x9C005C80 //G185
 #define DISP_VPPDMA_BASE_ADDR 0x9C005D00 //G186
@@ -329,6 +339,38 @@ struct disp_dve_regs {
 	u32 g235_reserved[26]				; // 06-31
 };
 
+typedef volatile struct _DISP_HDMITX_0_REG_ {
+	u32 g380_reserved[32]				; // 00-31
+} DISP_HDMITX_0_REG_t;
+
+typedef volatile struct _DISP_HDMITX_1_REG_ {
+	u32 g381_reserved[32]				; // 00-31
+} DISP_HDMITX_1_REG_t;
+
+typedef volatile struct _DISP_HDMITX_2_REG_ {
+	u32 g382_reserved[32]				; // 00-31
+} DISP_HDMITX_2_REG_t;
+
+typedef volatile struct _DISP_HDMITX_3_REG_ {
+	u32 g383_reserved[32]				; // 00-31
+} DISP_HDMITX_3_REG_t;
+
+typedef volatile struct _DISP_HDMITX_4_REG_ {
+	u32 g384_reserved[32]				; // 00-31
+} DISP_HDMITX_4_REG_t;
+
+typedef volatile struct _DISP_HDMITX_5_REG_ {
+	u32 g385_reserved[32]				; // 00-31
+} DISP_HDMITX_5_REG_t;
+
+typedef volatile struct _DISP_HDMITX_6_REG_ {
+	u32 g386_reserved[32]				; // 00-31
+} DISP_HDMITX_6_REG_t;
+
+typedef volatile struct _DISP_HDMITX_7_REG_ {
+	u32 g387_reserved[32]				; // 00-31
+} DISP_HDMITX_7_REG_t;
+
 #define DISP_DDFCH_REG ((volatile struct _DISP_DDFCH_REG_ *) DISP_DDFCH_BASE_ADDR)
 #define DISP_VPPDMA_REG ((volatile struct _DISP_VPPDMA_REG_ *) DISP_VPPDMA_BASE_ADDR)
 #define DISP_VSCL_REG ((volatile struct _DISP_VSCL_REG_ *) DISP_VSCL_BASE_ADDR)
@@ -341,6 +383,14 @@ struct disp_dve_regs {
 #define DISP_DMIX_REG ((volatile struct _DISP_DMIX_REG_ *) DISP_DMIX_BASE_ADDR)
 #define DISP_DVE_REG ((volatile struct disp_dve_regs *) DISP_DVE_BASE_ADDR)
 
+#define G380_HDMITX_REG	((volatile DISP_HDMITX_0_REG_t *) DISP_HDMITX_0_BASE_ADDR)
+#define G381_HDMITX_REG	((volatile DISP_HDMITX_1_REG_t *) DISP_HDMITX_1_BASE_ADDR)
+#define G382_HDMITX_REG	((volatile DISP_HDMITX_2_REG_t *) DISP_HDMITX_2_BASE_ADDR)
+#define G383_HDMITX_REG	((volatile DISP_HDMITX_3_REG_t *) DISP_HDMITX_3_BASE_ADDR)
+#define G384_HDMITX_REG	((volatile DISP_HDMITX_4_REG_t *) DISP_HDMITX_4_BASE_ADDR)
+#define G385_HDMITX_REG	((volatile DISP_HDMITX_5_REG_t *) DISP_HDMITX_5_BASE_ADDR)
+#define G386_HDMITX_REG	((volatile DISP_HDMITX_6_REG_t *) DISP_HDMITX_6_BASE_ADDR)
+#define G387_HDMITX_REG	((volatile DISP_HDMITX_7_REG_t *) DISP_HDMITX_7_BASE_ADDR)
 
 #endif /* __SP_DISP_H */
 
