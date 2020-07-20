@@ -552,6 +552,7 @@ static void hdmi_clk_init(int mode)
         MOON4_REG->plltv_ctl[1] = 0xFFFF0014; 	//G4.16
         MOON4_REG->plltv_ctl[2] = 0xFFFF2040; 	//G4.17
 		MOON4_REG->plltv_ctl[3] = 0xFFFF0040; 	//G4.18
+		MOON5_REG->cfg[6]		= 0xFFFF0020; 	//G5.6
     }
     else if (mode == 1) { //HDMITX 720x576 50Hz as default setting
         ; //TBD
