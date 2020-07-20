@@ -24,7 +24,7 @@ extern int read_otp_data(int addr, char *value);
 
 
 static struct l2sw_reg* gl2sw_reg_base = NULL;
-static struct moon5_reg* moon5_reg_base = NULL;
+static struct moon4_reg* moon4_reg_base = NULL;
 
 #if 0
 static void print_packet(char *p, int len)
@@ -271,7 +271,7 @@ static void rx_descs_init(struct emac_eth_dev *priv)
 
 	// Flush all rx descriptors.
 	flush_dcache_range(DCACHE_ROUNDDN(priv->rx_desc), DCACHE_ROUNDUP((u64)priv->rx_desc+sizeof(priv->rx_desc)));
-	//eth_info("RX Queue: start = %px, end = %px\n", priv->rx_desc, &priv->rx_desc[CONFIG_RX_DESCR_NUM]);
+	//eth_info("RX Queue: start = %px, end = %px\n", priv->rx_desc, &priv->rx_desc[CONFIG_RX_DESCR_NUM*CONFIG_RX_QUEUE_NUM]);
 
 	// Setup base address for high- and low-priority rx queue.
 	HWREG_W(rx_hbase_addr, (uintptr_t)&priv->rx_desc[0]);
@@ -286,7 +286,7 @@ static void tx_descs_init(struct emac_eth_dev *priv)
 
 	//eth_info("[%s] IN\n", __func__);
 
-	memset((void*)&priv->tx_desc[0], 0, sizeof(*txdesc)*(CONFIG_TX_DESCR_NUM*CONFIG_RX_QUEUE_NUM));
+	memset((void*)&priv->tx_desc[0], 0, sizeof(*txdesc)*(CONFIG_TX_DESCR_NUM*CONFIG_TX_QUEUE_NUM));
 	for (i = 0; i < (CONFIG_TX_DESCR_NUM*CONFIG_RX_QUEUE_NUM); i++) {
 		txdesc = &priv->tx_desc[i];
 		txdesc->addr1 = (uintptr_t)&txbuffs[i * CONFIG_ETH_BUFSIZE];
@@ -296,7 +296,7 @@ static void tx_descs_init(struct emac_eth_dev *priv)
 
 	// Flush all tx descriptors.
 	flush_dcache_range(DCACHE_ROUNDDN(priv->tx_desc), DCACHE_ROUNDUP((u64)priv->tx_desc+sizeof(priv->tx_desc)));
-	//eth_info("TX Queue: start = %px, end = %px\n", priv->tx_desc, &priv->tx_desc[CONFIG_TX_DESCR_NUM]);
+	//eth_info("TX Queue: start = %px, end = %px\n", priv->tx_desc, &priv->tx_desc[CONFIG_TX_DESCR_NUM*CONFIG_TX_QUEUE_NUM]);
 
 	// Setup base address for high- and low-priority tx queue.
 	HWREG_W(tx_hbase_addr, (uintptr_t)&priv->tx_desc[0]);
@@ -626,15 +626,12 @@ static void l2sw_emac_board_setup(struct emac_eth_dev *priv)
 {
 	u32 reg;
 
-	// Set polarity of TX & RX
-	//reg = MOON5REG_R(mo4_l2sw_clksw_ctl);
-	//MOON5REG_W(mo4_l2sw_clksw_ctl, reg | (0xf<<16) | 0xf);
-
 #ifdef ZEBU_XTOR
-	volatile u32 *moon4_reg_base = (void*)0x9c000200;
-	moon4_reg_base[14] = (1 << (16+7)) | (1 << 7);  // Force lower speed for XTOR.
-	//eth_info("moon4_reg_base[14] = %08x\n", moon4_reg_base[14]);
+	MOON4REG_W(plleth_cfg, (1 << (16+7)) | (1 << 7));       // 250 MHz for Zebu server.
+#else
+	MOON4REG_W(plleth_cfg, (1 << (16+7)) | (0 << 7));       // 150 MHz for real chip.
 #endif
+	//eth_info("plleth_cfg = %08x\n", MOON4REG_R(plleth_cfg));
 
 	// Set phy 0 address.
 	if (priv->phy_addr0 <= 31) {
@@ -775,10 +772,10 @@ static int l2sw_emac_eth_ofdata_to_platdata(struct udevice *dev)
 		return -EINVAL;
 	}
 
-	moon5_reg_base = (void*)devfdt_get_addr_name(dev, "moon5");
-	//eth_info("moon5_reg_base = %p\n", moon5_reg_base);
-	if (moon5_reg_base == (void*)-1) {
-		eth_err("Failed to get base address of MOON5!\n");
+	moon4_reg_base = (void*)devfdt_get_addr_name(dev, "moon4");
+	//eth_info("moon4_reg_base = %p\n", moon4_reg_base);
+	if (moon4_reg_base == (void*)-1) {
+		eth_err("Failed to get base address of MOON4!\n");
 		return -EINVAL;
 	}
 

@@ -9,7 +9,7 @@
 #include <linux/compiler.h>
 
 
-#define ZEBU_XTOR
+//#define ZEBU_XTOR
 
 #ifdef ZEBU_XTOR
 // mac_force_mode0[11:10]: force_gmii_en[1:0]   = 0x3 (enable force function)
@@ -55,8 +55,8 @@
 // Register write & read
 #define HWREG_W(M, N)                   writel(N, (void*)&gl2sw_reg_base->M)
 #define HWREG_R(M)                      readl((void*)&gl2sw_reg_base->M)
-#define MOON5REG_W(M, N)                writel(N, (void*)&moon5_reg_base->M)
-#define MOON5REG_R(M)                   readl((void*)&moon5_reg_base->M)
+#define MOON4REG_W(M, N)                writel(N, (void*)&moon4_reg_base->M)
+#define MOON4REG_R(M)                   readl((void*)&moon4_reg_base->M)
 
 // Queue defines
 #define CONFIG_TX_DESCR_NUM             4
@@ -191,15 +191,31 @@ struct l2sw_reg {
 
 //=================================================================================================
 /*
- * TYPE: RegisterFile_MOON5
+ * TYPE: RegisterFile_MOON4
  */
-struct moon5_reg {
-	u32 mo5_thermal_ctl_0;
-	u32 mo5_thermal_ctl_1;
-	u32 mo4_thermal_ctl_2;
-	u32 mo4_thermal_ctl_3;
-	u32 mo4_tmds_l2sw_ctl;
-	u32 mo4_l2sw_clksw_ctl;
+struct moon4_reg {
+	u32 sd_softpad_cfg_0;
+	u32 sd_softpad_cfg_1;
+	u32 sd_softpad_cfg_2;
+	u32 sd_softpad_cfg_3;
+	u32 sdio_softpad_cfg_0;
+	u32 sdio_softpad_cfg_1;
+	u32 sdio_softpad_cfg_2;
+	u32 sdio_softpad_cfg_3;
+	u32 pllref_cfg;
+	u32 pllsys_cfg;
+	u32 pllfla_cfg;
+	u32 pllgpu_cfg;
+	u32 pllcpu_cfg;
+	u32 pllmip_cfg;
+	u32 plleth_cfg;
+	u32 plltv_cfg_0;
+	u32 plltv_cfg_1;
+	u32 plltv_cfg_2;
+	u32 plltv_cfg_3;
+	u32 pllsrv_cfg_1;
+	u32 xtal_cfg;
+	u32 mo4_cfg_21;
 };
 
 #endif /* __SUNPLUS_L2SW_H__ */
