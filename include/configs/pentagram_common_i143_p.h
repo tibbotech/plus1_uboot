@@ -207,11 +207,11 @@
 	"echo Stop; " \
 "fi"
 
-#define DSTADDR_FREERTOS	0xA0000000
-#define TMPADDR_KERNEL		0xA3000000
+#define TMPADDR_KERNEL		0xA2800000
+#define TMPADDR_HEADER		0xA1FFF000
 #define DSTADDR_KERNEL		0xA01FFFC0
 #define DSTADDR_DTB		0xA01F0000
-#define TMPADDR_HEADER		0xA3FF0000
+#define DSTADDR_FREERTOS	0xA0000000
 
 #define XBOOT_SIZE		0x10000	/* for sdcard .ISPBOOOT.BIN size is equal to xboot.img size, do boot.otherwise do ISP*/
 
@@ -302,7 +302,7 @@
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
 	dbg_scr("md ${addr_tmp_header} 0x10; printenv tmpval; ") \
 	"setexpr sz_kernel ${tmpval} + 0x40; " \
-	"setexpr sz_kernel ${sz_kernel} + 72; " \
+	"setexpr sz_kernel ${sz_kernel} + 0x48; " \
 	"setexpr sz_kernel ${sz_kernel} + 4; setexpr sz_kernel ${sz_kernel} / 4; " \
 	dbg_scr("echo kernel from ${addr_src_kernel} to ${addr_temp_kernel} sz ${sz_kernel}; ") \
 	"cp.l ${addr_src_kernel} ${addr_temp_kernel} ${sz_kernel}; " \
@@ -322,7 +322,7 @@
 	"mmc read ${addr_tmp_header} ${addr_src_kernel} 0x1; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
 	"setexpr sz_kernel ${tmpval} + 0x40; " \
-	"setexpr sz_kernel ${sz_kernel} + 72; " \
+	"setexpr sz_kernel ${sz_kernel} + 0x48; " \
 	"setexpr sz_kernel ${sz_kernel} + 0x200; setexpr sz_kernel ${sz_kernel} / 0x200; " \
 	"mmc read ${addr_temp_kernel} ${addr_src_kernel} ${sz_kernel}; " \
 	"setenv bootargs console=ttyS0,115200 earlyprintk root=/dev/mmcblk0p8 rw user_debug=255 rootwait; " \
@@ -339,7 +339,7 @@
 	"mmc read ${addr_tmp_header} ${addr_src_kernel} 0x1; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
 	"setexpr sz_kernel ${tmpval} + 0x40; " \
-	"setexpr sz_kernel ${sz_kernel} + 72; " \
+	"setexpr sz_kernel ${sz_kernel} + 0x48; " \
 	"setexpr sz_kernel ${sz_kernel} + 0x200; setexpr sz_kernel ${sz_kernel} / 0x200; " \
 	"mmc read ${addr_temp_kernel} ${addr_src_kernel} ${sz_kernel}; " \
 	"run boot_Image_gz; \0" \
