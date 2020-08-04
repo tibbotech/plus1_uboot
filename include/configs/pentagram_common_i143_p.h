@@ -315,11 +315,19 @@
 	"cp.l ${addr_src_freertos} ${addr_dst_freertos} ${sz_freertos}; " \
 	"run boot_Image_gz; \0" \
 "emmc_boot=mmc read ${addr_tmp_header} ${addr_src_freertos} 0x1; " \
+	"if test $? != 0; then " \
+	"	echo Error occurred while loading FreeRTOS header!; " \
+	"	exit; " \
+	"fi; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
 	"setexpr sz_freertos ${tmpval} + 0x40; " \
 	"setexpr sz_freertos ${sz_freertos} + 0x200; setexpr sz_freertos ${sz_freertos} / 0x200; " \
 	"mmc read ${addr_dst_freertos} ${addr_src_freertos} ${sz_freertos}; " \
 	"mmc read ${addr_tmp_header} ${addr_src_kernel} 0x1; " \
+	"if test $? != 0; then " \
+	"	echo Error occurred while loading kernel header!; " \
+	"	exit; " \
+	"fi; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
 	"setexpr sz_kernel ${tmpval} + 0x40; " \
 	"setexpr sz_kernel ${sz_kernel} + 0x48; " \
