@@ -1,5 +1,5 @@
-#ifndef __SP_ISPAPB_H
-#define __SP_ISPAPB_H
+#ifndef __ISP_API_H
+#define __ISP_API_H
 
 #include "sp_videoin.h"
 
@@ -38,7 +38,6 @@
 #endif
 
 /* Function Prototype */
-//void isp_setting(u8 pattern, u16 xlen, u16 ylen, u8 output, u8 probe);
 void isp_setting(struct sp_videoin_info vi_info);
 
 
@@ -54,6 +53,7 @@ enum ISP_TEST_PATTERN {
 	STILL_COLORBAR_YUV422_1920X1080,
 	STILL_COLORBAR_RAW10_1920X1080,
 	MOVING_COLORBAR_RAW10_1920X1080,
+	SENSOR_INPUT = 0xFF,
 };
 
 enum ISP_OUTPUT_FORMAT {
@@ -67,7 +67,8 @@ enum ISP_OUTPUT_FORMAT {
 enum ISP_SCALE_SIZE {
 	SCALE_DOWN_OFF,
 	SCALE_DOWN_FHD_HD,
+	SCALE_DOWN_FHD_WVGA,
 	SCALE_DOWN_FHD_VGA,
-	SCALE_DOWN_FHD_QVGA,
+	SCALE_DOWN_FHD_QQVGA,
 };
-#endif /* __SP_ISPAPB_H */
+#endif /* __ISP_API_H */

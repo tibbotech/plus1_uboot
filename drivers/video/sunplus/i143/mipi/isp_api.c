@@ -1,6 +1,7 @@
 #include <common.h>
 
 #include "isp_api.h"
+#include "isp_api_s.h"
 
 #define PATTERN_64X64_TEST      0   // output 64x64 size of color bar raw10 1920x1080
 #define INTERRUPT_VS_FALLING    1   // Test V-sync falling edge count equal event interrupt
@@ -35,6 +36,7 @@ unsigned char SF_POST_GAMMA_R[] = {
 	#include "PostGammaR.txt"
 };
 
+
 /*
 	@ispSleep this function depends on O.S.
 */
@@ -43,8 +45,8 @@ void ispSleep(void)
 	int i;
 
 	for (i = 0;i < 10; i++) {
- MOON0_REG->clken[2];
-    }
+		MOON0_REG->clken[2];
+	}
 }
 
 /*
@@ -528,6 +530,23 @@ void CdspInit_raw10(u8 output, u8 scale)
 			reg_21b8 = 0x2F; // enable H/V scale down
 			break;
 
+		case SCALE_DOWN_FHD_WVGA:
+			ISPAPB_LOGI("Scale down from FHD to WVGA size\n");
+			// H = 720 * 65536 / 1920 = 0x6000
+			// V = 480 * 65536 / 1080 = 0x71C8
+			reg_21b0 = 0x00; // factor for Hsize
+			reg_21b1 = 0x60; //
+			reg_21b2 = 0xC8; // factor for Vsize
+			reg_21b3 = 0x71; //
+			//
+			reg_21b4 = 0x00; // factor for Hsize
+			reg_21b5 = 0x60; //
+			reg_21b6 = 0xC8; // factor for Vsize
+			reg_21b7 = 0x71; //
+			//
+			reg_21b8 = 0x2F; // enable H/V scale down
+			break;
+
 		case SCALE_DOWN_FHD_VGA:
 			ISPAPB_LOGI("Scale down from FHD to VGA size\n");
 			// H = 640 * 65536 / 1920 = 0x5556
@@ -545,8 +564,8 @@ void CdspInit_raw10(u8 output, u8 scale)
 			reg_21b8 = 0x2F; // enable H/V scale down
 			break;
 			
-		case SCALE_DOWN_FHD_QVGA:
-			ISPAPB_LOGI("Scale down from FHD to QVGA size\n");
+		case SCALE_DOWN_FHD_QQVGA:
+			ISPAPB_LOGI("Scale down from FHD to QQVGA size\n");
 			// H = 160 * 65536 / 1920 = 0x1556
 			// V = 120 * 65536 / 1080 = 0x1C72
 			reg_21b0 = 0x56; // factor for Hsize
@@ -2028,8 +2047,8 @@ void isp_64x64(u16 xlen, u16 ylen)
 	ISPAPB0_REG8(0x276c) = 0x00; //
 
 
-	ISPAPB0_REG8(0x2000) =0x03;
-	ISPAPB0_REG8(0x2000) =0x00;
+	ISPAPB0_REG8(0x2000) = 0x03;
+	ISPAPB0_REG8(0x2000) = 0x00;
 
 	ISPAPB0_REG8(0x275e) = 0x03; // TG clock selection
 	ISPAPB0_REG8(0x2785) = 0x08; // clk2x output enable
@@ -2232,8 +2251,8 @@ void isp_64x64(u16 xlen, u16 ylen)
 	ISPAPB1_REG8(0x276c) = 0x00; //
 
 
-	ISPAPB1_REG8(0x2000) =0x03;
-	ISPAPB1_REG8(0x2000) =0x00;
+	ISPAPB1_REG8(0x2000) = 0x03;
+	ISPAPB1_REG8(0x2000) = 0x00;
 
 	ISPAPB1_REG8(0x275e) = 0x03; // TG clock selection
 	ISPAPB1_REG8(0x2785) = 0x08; // clk2x output enable
@@ -2486,7 +2505,13 @@ void isp_setting(struct sp_videoin_info vi_info)
 			ISPAPB0_REG8(0x21d5); // 0x07
 			ISPAPB0_REG8(0x21d6); // 0x38
 			ISPAPB0_REG8(0x21d7); // 0x04
-		break;
+			break;
+
+		case SENSOR_INPUT:
+			ISPAPB_LOGI("SC2310 Camera Module\n");
+
+			isp_setting_s();
+			break;
 	}
 
 	ISPAPB_LOGI("%s end\n", __FUNCTION__);

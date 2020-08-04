@@ -4,9 +4,12 @@
 #include "reg_disp.h"
 #include "sp_videoin.h"
 #include "isp_api.h"
+#include "i2c_api.h"
+#include "sensor_power.h"
+#include "isp_api_s.h"
 
-#define RAW10_OUTPUT_FORMAT_TEST    0
-#define MOVING_RAW10_COLOR_BAR_TEST 1
+#define RAW10_OUTPUT_FORMAT_TEST    1
+#define MOVING_RAW10_COLOR_BAR_TEST 0
 
 #if (RAW10_OUTPUT_FORMAT_TEST == 1)
 unsigned char RAW10_GOLDEN_PATTERN[] = {
@@ -105,7 +108,7 @@ static int dump_reg(u64 addr, u32 length, char *type)
 			ret = ispreg_op((u64)p_8, &value_8, "r");
 
 			if (ret == 0)
-				VIDEOIN_LOGI("Addr 0x%08llX = 0x%02X\n", (u64)p_8, value_8);
+				VIDEOIN_LOGI("Addr 0x%08llX = 0x%02X (0x%02x)\n", (u64)p_8, value_8, value_8);
 			else
 				break;
 		}
@@ -1077,16 +1080,22 @@ static void csiiw_setting(struct sp_videoin_info vi_info)
 					VIDEOIN_LOGI("Scale down FHD to HD (%ux%u)\n", x_length, y_length);
 					break;
 
+				case SCALE_DOWN_FHD_WVGA:
+					x_length = 720;
+					y_length = 480;
+					VIDEOIN_LOGI("Scale down FHD to WVGA (%ux%u)\n", x_length, y_length);
+					break;
+
 				case SCALE_DOWN_FHD_VGA:
 					x_length = 640;
 					y_length = 480;
 					VIDEOIN_LOGI("Scale down FHD to VGA (%ux%u)\n", x_length, y_length);
 					break;
 
-				case SCALE_DOWN_FHD_QVGA:
+				case SCALE_DOWN_FHD_QQVGA:
 					x_length = 160;
 					y_length = 120;
-					VIDEOIN_LOGI("Scale down FHD to QVGA (%ux%u)\n", x_length, y_length);
+					VIDEOIN_LOGI("Scale down FHD to QQVGA (%ux%u)\n", x_length, y_length);
 					break;
 			}
 
@@ -1106,23 +1115,36 @@ static void csiiw_setting(struct sp_videoin_info vi_info)
 					break;
 
 				case RAW8_FORMAT:
-					line_stride = ((u32)(x_length/2)*2) & 0x00003FF0; // Calculate line stride for YUV422
+					line_stride = ((u32)(x_length/2)*2) & 0x00003FF0; // Calculate line stride for RAW8
 					frame_size	= (((u32)y_length<<16) & 0x0FFF0000) | ((u32)x_length & 0x00000FFF);
 					break;
 
 				case RAW10_FORMAT:
-					line_stride = ((u32)(x_length/2)*4) & 0x00003FF0; // Calculate line stride for YUV422
+					line_stride = ((u32)(x_length/2)*4) & 0x00003FF0; // Calculate line stride for RAW10
 					frame_size	= (((u32)y_length<<16) & 0x0FFF0000) | ((u32)x_length & 0x00000FFF);
 					break;
 
 				case RAW10_FORMAT_PACK_MODE:
-					line_stride = ((u32)(x_length/4)*5) & 0x00003FF0; // Calculate line stride for YUV422
+					line_stride = ((u32)(x_length/4)*5) & 0x00003FF0; // Calculate line stride for RAW10 Pack mode
 					frame_size	= (((u32)y_length<<16) & 0x0FFF0000) | ((u32)x_length & 0x00000FFF);
 
 					// For RAW10 format pack mode output
 					csiiw_config2 = csiiw_config2 | 0x00000100; // OUTPUT_MODE = 1 (bit 8)
 					break;
 			}
+			break;
+
+		case SENSOR_INPUT:
+			/* Color Bar YUV422 1920x1080 */
+			VIDEOIN_LOGI("Sensor Input\n");
+
+			if ((x_length != 1920) || (y_length != 1080))
+				VIDEOIN_LOGI("Modify size to %ux%u\n", x_length, y_length);
+
+			// YUV422 packet data size
+			// 2 pixels, 4 bytes, 32 bits
+			line_stride = ((u32)(x_length/2)*4) & 0x00003FF0;
+			frame_size	= (((u32)y_length<<16) & 0x0FFF0000) | ((u32)x_length & 0x00000FFF);
 			break;
 	}
 	VIDEOIN_LOGI("line_stride: 0x%08X, frame_size: 0x%08X\n", line_stride, frame_size);
@@ -1487,7 +1509,7 @@ static int sp_videoin_test(cmd_tbl_t *cmdtp, int flag, int argc, char * const ar
 				VIDEOIN_LOGI("x:%u, %d are same, %d are different\n", xlen, value_32, diff);
 			}
 
-			VIDEOIN_LOGI("cmpare result: total is %d, %d are same, %d are different\n", (value_32 + diff), value_32, diff);
+			VIDEOIN_LOGI("compare result: total is %d, %d are same, %d are different\n", (value_32 + diff), value_32, diff);
 		} else if (strcmp(cmd, "conv") == 0) {
 			u8 *in_addr, *out_addr;
 
@@ -1505,7 +1527,75 @@ static int sp_videoin_test(cmd_tbl_t *cmdtp, int flag, int argc, char * const ar
 
 			convRAW10Pack(in_addr, ylen, xlen, out_addr);
 
-			VIDEOIN_LOGI("convert, complete\n");
+			VIDEOIN_LOGI("convert, complete!\n");
+		} else if (strcmp(cmd, "i2c") == 0) {
+			if (argc > 2) isp_path = simple_strtoul(argv[2], NULL, 16);
+			if (argc > 3) check_item = simple_strtoul(argv[3], NULL, 16);
+			if (argc > 4) addr = simple_strtoul(argv[4], NULL, 16);
+			if (argc > 5) value_32 = simple_strtoul(argv[5], NULL, 16);
+
+			VIDEOIN_LOGI("i2c, isp_path: %u, check_item: %u, addr: 0x%04x, value: 0x%04x\n", isp_path, check_item, addr, value_32);
+
+			switch (check_item)
+			{
+				case 0:
+					// Init I2C and set the device slave address
+					//addr = 0x5a<<1; // MUST shift the device slave address 1bit
+					addr = 0x60;    // SC2310_DEVICE_ADDRs
+					I2CReset();
+					I2CInit((u8)addr, 0x00);
+					break;
+
+				case 1:
+					// Read register via I2C
+					getSensor8_I2C1((u8)addr, (u16 *)&value_32);
+
+					VIDEOIN_LOGI("i2c, addr: 0x%04x, value: 0x%04x\n", addr, (u16)value_32);
+					break;
+
+				case 2:
+					// Write register via I2C
+					setSensor8_I2C1((u8)addr, value_32);
+					break;
+
+				case 3:
+					// Read register via I2C
+					getSensor16_I2C1((u16)addr, (u16 *)&value_32, 1);
+
+					VIDEOIN_LOGI("i2c, addr: 0x%04x, value: 0x%04x\n", addr, (u16)value_32);
+					break;
+
+				case 4:
+					// Write register via I2C
+					setSensor16_I2C1((u16)addr, (u16)value_32, 1);
+					break;
+
+				case 5:
+					sensorDump();
+					break;
+			}
+
+			VIDEOIN_LOGI("i2c, complete!\n");
+		} else if (strcmp(cmd, "pwr") == 0) {
+			if (argc > 2) isp_path = simple_strtoul(argv[2], NULL, 16);
+			if (argc > 3) check_item = simple_strtoul(argv[3], NULL, 16);
+
+			VIDEOIN_LOGI("pwr, isp_path: %u, check_item: %u\n", isp_path, check_item);
+
+			switch (check_item)
+			{
+				case 0:
+					// Power sensor on
+					powerSensorOn_RAM();
+					break;
+
+				case 1:
+					// Power sensor down
+					powerSensorDown_RAM();
+					break;
+			}
+
+			VIDEOIN_LOGI("pwr, complete!\n");
 		} else {
 			// Show usage when wrong instruction occurs
 			ret = CMD_RET_USAGE;
@@ -1535,8 +1625,9 @@ U_BOOT_CMD(spvi, 10, 1, sp_videoin_test,
 	"\t scale - scale image size\n"
 	"\t\t 0: disable H/V scale down\n"
 	"\t\t 1: scale down from FHD to HD size\n"
-	"\t\t 2: scale down from FHD to VGA size\n"
-	"\t\t 3: scale down from FHD to QVGA size\n"
+	"\t\t 2: scale down from FHD to WVGA size\n"
+	"\t\t 3: scale down from FHD to VGA size\n"
+	"\t\t 4: scale down from FHD to QQVGA size\n"
 	"\t probe - switch ISP inside signal\n"
 	"spvi dump [b/w] addr leng - dump CSI IW registers\n"
 	"\t b - one byte operation\n"
@@ -1547,7 +1638,7 @@ U_BOOT_CMD(spvi, 10, 1, sp_videoin_test,
 	"\t isp - 0: isp0; 1: isp1\n"
 	"\t item - select check isp item\n"
 	"\t\t 0: SRAM check\n"
-	"\t\t 1: ISP intertup check\n"
+	"\t\t 1: ISP interrupt check\n"
 	"\t\t 2: window value check\n"
 	"\t count - how many times to wait\n"
 	"spvi disp isp size order - display YUV422 image on VIDEO screen\n"
@@ -1566,5 +1657,7 @@ U_BOOT_CMD(spvi, 10, 1, sp_videoin_test,
 	"\t count - set comparison count\n"
 	"spvi conv isp xlen ylen - convert raw10 format pack mode to raw8 format\n"
 	"\t isp - 0: isp0; 1: isp1\n"
+	"spvi i2c isp item addr value - Validate ISP I2C\n"
+	"spvi pwr isp item - Validate power control\n"
 );
 
