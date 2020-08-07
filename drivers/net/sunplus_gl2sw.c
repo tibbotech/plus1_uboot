@@ -24,7 +24,6 @@ extern int read_otp_data(int addr, char *value);
 
 
 static struct l2sw_reg* gl2sw_reg_base = NULL;
-static struct moon4_reg* moon4_reg_base = NULL;
 
 #if 0
 static void print_packet(char *p, int len)
@@ -626,13 +625,6 @@ static void l2sw_emac_board_setup(struct emac_eth_dev *priv)
 {
 	u32 reg;
 
-#ifdef ZEBU_XTOR
-	MOON4REG_W(plleth_cfg, (1 << (16+7)) | (1 << 7));       // 250 MHz for Zebu server.
-#else
-	MOON4REG_W(plleth_cfg, (1 << (16+7)) | (0 << 7));       // 150 MHz for real chip.
-#endif
-	//eth_info("plleth_cfg = %08x\n", MOON4REG_R(plleth_cfg));
-
 	// Set phy 0 address.
 	if (priv->phy_addr0 <= 31) {
 		reg = HWREG_R(mac_force_mode0);
@@ -769,13 +761,6 @@ static int l2sw_emac_eth_ofdata_to_platdata(struct udevice *dev)
 	//eth_info("gl2sw_reg_base = %p\n", gl2sw_reg_base);
 	if (gl2sw_reg_base == (void*)-1) {
 		eth_err("Failed to get base address of GL2SW!\n");
-		return -EINVAL;
-	}
-
-	moon4_reg_base = (void*)devfdt_get_addr_name(dev, "moon4");
-	//eth_info("moon4_reg_base = %p\n", moon4_reg_base);
-	if (moon4_reg_base == (void*)-1) {
-		eth_err("Failed to get base address of MOON4!\n");
 		return -EINVAL;
 	}
 

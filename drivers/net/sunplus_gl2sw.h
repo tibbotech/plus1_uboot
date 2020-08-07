@@ -55,8 +55,6 @@
 // Register write & read
 #define HWREG_W(M, N)                   writel(N, (void*)&gl2sw_reg_base->M)
 #define HWREG_R(M)                      readl((void*)&gl2sw_reg_base->M)
-#define MOON4REG_W(M, N)                writel(N, (void*)&moon4_reg_base->M)
-#define MOON4REG_R(M)                   readl((void*)&moon4_reg_base->M)
 
 // Queue defines
 #define CONFIG_TX_DESCR_NUM             4
