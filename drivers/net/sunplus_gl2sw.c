@@ -701,9 +701,9 @@ static int l2sw_emac_eth_init(struct emac_eth_dev *priv, u8 *enetaddr)
 	rx_descs_init(priv);
 	tx_descs_init(priv);
 
-	// High-active LED
-	reg = HWREG_R(led_port0);
-	HWREG_W(led_port0, reg | (1<<28));
+	// Softpad config
+	HWREG_W(p0_softpad_config, 0x2001);
+	HWREG_W(p1_softpad_config, 0x2001);
 
 #ifndef ZEBU_XTOR
 	// Start up PHY0 */
