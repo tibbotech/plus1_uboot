@@ -295,7 +295,7 @@
 	"setexpr tmpval $tmpval + $byte;\0" \
 "boot_Image_gz=setexpr addr_dst_kernel ${addr_dst_kernel} + 0x40; " \
 	"setexpr addr_temp_kernel ${addr_temp_kernel} + 0x40; " \
-	"unzip ${addr_temp_kernel} ${addr_dst_kernel};" \
+	"unzip ${addr_temp_kernel} ${addr_dst_kernel}; " \
 	dbg_scr("echo booti ${addr_dst_kernel} - ${fdtcontroladdr}; ") \
 	"booti ${addr_dst_kernel} - ${fdtcontroladdr}\0" \
 "romter_boot=cp.b ${addr_src_kernel} ${addr_tmp_header} 0x40; " \
@@ -353,7 +353,9 @@
 	"run boot_Image_gz; \0" \
 "tftp_boot=setenv ethaddr ${macaddr} && printenv ethaddr; " \
 	"printenv serverip; " \
-	"dhcp ${addr_dst_dtb} ${serverip}:dtb" __stringify(USER_NAME) " && dhcp ${addr_temp_kernel} ${serverip}:uImage" __stringify(USER_NAME) "; " \
+	"dhcp ${addr_dst_dtb} ${serverip}:dtb" __stringify(USER_NAME) " && " \
+	"dhcp ${addr_dst_freertos} ${serverip}:freertos" __stringify(USER_NAME) " && " \
+	"dhcp ${addr_temp_kernel} ${serverip}:uImage" __stringify(USER_NAME) "; " \
 	"setexpr addr_temp_kernel ${addr_temp_kernel} + 0x40; " \
 	"setexpr addr_dst_kernel ${addr_dst_kernel} + 0x40; " \
 	"unzip ${addr_temp_kernel} ${addr_dst_kernel}; " \
