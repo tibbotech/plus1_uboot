@@ -356,6 +356,10 @@
 	"dhcp ${addr_dst_dtb} ${serverip}:dtb" __stringify(USER_NAME) " && " \
 	"dhcp ${addr_dst_freertos} ${serverip}:freertos" __stringify(USER_NAME) " && " \
 	"dhcp ${addr_temp_kernel} ${serverip}:uImage" __stringify(USER_NAME) "; " \
+	"if test $? != 0; then " \
+	"	echo Error occurred while getting images from tftp server!; " \
+	"	exit; " \
+	"fi; " \
 	"setexpr addr_temp_kernel ${addr_temp_kernel} + 0x40; " \
 	"setexpr addr_dst_kernel ${addr_dst_kernel} + 0x40; " \
 	"unzip ${addr_temp_kernel} ${addr_dst_kernel}; " \

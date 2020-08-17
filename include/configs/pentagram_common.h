@@ -406,13 +406,18 @@
 	"sp_go ${addr_dst_kernel} ${fdtcontroladdr}\0" \
 "tftp_boot=setenv ethaddr ${macaddr} && printenv ethaddr; " \
 	"printenv serverip; " \
+	"setenv filesize 0; " \
 	"dhcp ${addr_dst_nonos} ${serverip}:a926" __stringify(USER_NAME) "; " \
 	"if test $filesize != 0; then " \
 		"echo \"## Booting A926 from image at ${addr_dst_nonos}\"; " \
 		"sp_nonos_go ${addr_dst_nonos}; " \
 	"fi; " \
-	"dhcp ${addr_dst_dtb} ${serverip}:dtb" __stringify(USER_NAME) "; " \
+	"dhcp ${addr_dst_dtb} ${serverip}:dtb" __stringify(USER_NAME) " && " \
 	"dhcp ${addr_dst_kernel} ${serverip}:uImage" __stringify(USER_NAME) "; " \
+	"if test $? != 0; then " \
+	"	echo Error occurred while getting images from tftp server!; " \
+	"	exit; " \
+	"fi; " \
 	"bootm ${addr_dst_kernel} - ${addr_dst_dtb}; " \
 	"\0" \
 "isp_usb=setenv isp_if usb && setenv isp_dev 0; " \
