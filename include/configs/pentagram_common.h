@@ -365,7 +365,7 @@
 	"setexpr sz_kernel ${sz_kernel} + 72; " \
 	"setexpr sz_kernel ${sz_kernel} + 0x200; setexpr sz_kernel ${sz_kernel} / 0x200; " \
 	"mmc read ${addr_dst_kernel} ${addr_src_kernel} ${sz_kernel}; " \
-	"setenv bootargs console=ttyS0,115200 earlyprintk root=/dev/mmcblk0p8 rw user_debug=255 rootwait ;" \
+	"setenv bootargs console=ttyS0,115200 earlyprintk root=/dev/mmcblk0p8 rw rootwait ${args_emmc} ${args_kern};" \
 	"run boot_kernel \0" \
 "qk_emmc_boot=mmc read ${addr_tmp_header} ${addr_src_kernel} 0x1; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
