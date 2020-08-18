@@ -280,6 +280,7 @@
 	"fi; "
 
 #define CONFIG_EXTRA_ENV_SETTINGS \
+"b_c=console=ttyS0,115200 earlyprintk\0" \
 "stdin=" STDIN_CFG "\0" \
 "stdout=" STDOUT_CFG "\0" \
 "stderr=" STDOUT_CFG "\0" \
@@ -365,7 +366,7 @@
 	"setexpr sz_kernel ${sz_kernel} + 72; " \
 	"setexpr sz_kernel ${sz_kernel} + 0x200; setexpr sz_kernel ${sz_kernel} / 0x200; " \
 	"mmc read ${addr_dst_kernel} ${addr_src_kernel} ${sz_kernel}; " \
-	"setenv bootargs console=ttyS0,115200 earlyprintk root=/dev/mmcblk0p8 rw rootwait ${args_emmc} ${args_kern};" \
+	"setenv bootargs ${b_c} root=/dev/mmcblk0p8 rw rootwait ${args_emmc} ${args_kern};" \
 	"run boot_kernel \0" \
 "qk_emmc_boot=mmc read ${addr_tmp_header} ${addr_src_kernel} 0x1; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
@@ -386,11 +387,11 @@
 	"setexpr sz_kernel ${sz_kernel} + 72; " \
 	dbg_scr("echo from kernel partition to ${addr_dst_kernel} sz ${sz_kernel}; ") \
 	"nand read ${addr_dst_kernel} kernel ${sz_kernel}; " \
-	"setenv bootargs console=ttyS0,115200 earlyprintk root=ubi0:rootfs rw ubi.mtd=9,2048 rootflags=sync rootfstype=ubifs mtdparts=sp_spinand:128k(nand_header),128k(xboot1),1280k(uboot1),2560k(uboot2),512k(env),512k(env_redund),1m(nonos),256k(dtb),15m(kernel),-(rootfs) user_debug=255 rootwait ;" \
+	"setenv bootargs ${b_c} root=ubi0:rootfs rw ubi.mtd=9,2048 rootflags=sync rootfstype=ubifs mtdparts=sp_spinand:128k(nand_header),128k(xboot1),1280k(uboot1),2560k(uboot2),512k(env),512k(env_redund),1m(nonos),256k(dtb),15m(kernel),-(rootfs) user_debug=255 rootwait ;" \
 	"run boot_kernel \0" \
 "boot_kernel="\
 	"if itest ${if_use_nfs_rootfs} == 1; then " \
-		"setenv bootargs root=/dev/nfs nfsroot=${nfs_serverip}:${nfs_rootfs_dir} ip=${nfs_clintip}:${nfs_serverip}:${nfs_gatewayip}:${nfs_netmask}::eth0:off rdinit=/linuxrc noinitrd rw console=ttyS0,115200; "\
+		"setenv bootargs root=/dev/nfs nfsroot=${nfs_serverip}:${nfs_rootfs_dir} ip=${nfs_clintip}:${nfs_serverip}:${nfs_gatewayip}:${nfs_netmask}::eth0:off rdinit=/linuxrc noinitrd rw ${b_c}; "\
 	"fi; " \
 	"bootm ${addr_dst_kernel} - ${fdtcontroladdr}; " \
 	"\0" \
