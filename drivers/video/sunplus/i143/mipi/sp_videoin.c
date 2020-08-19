@@ -1543,8 +1543,8 @@ static int sp_videoin_test(cmd_tbl_t *cmdtp, int flag, int argc, char * const ar
 					//addr = 0x5a<<1; // MUST shift the device slave address 1bit
 					addr = 0x60;    // SC2310_DEVICE_ADDRs
 					if (isp_path == 0) {
-					Reset_I2C0();
-					Init_I2C0((u8)addr, 0x00);
+						Reset_I2C0();
+						Init_I2C0((u8)addr, 0x00);
 					} else {
 						Reset_I2C1();
 						Init_I2C1((u8)addr, 0x00);
@@ -1571,7 +1571,10 @@ static int sp_videoin_test(cmd_tbl_t *cmdtp, int flag, int argc, char * const ar
 
 				case 3:
 					// Read register via I2C
-					getSensor16_I2C0((u16)addr, (u16 *)&value_32, 1);
+					if (isp_path == 0)
+						getSensor16_I2C0((u16)addr, (u16 *)&value_32, 1);
+					else
+						getSensor16_I2C1((u16)addr, (u16 *)&value_32, 1);
 
 					VIDEOIN_LOGI("i2c, addr: 0x%04x, value: 0x%04x\n", addr, (u16)value_32);
 					break;

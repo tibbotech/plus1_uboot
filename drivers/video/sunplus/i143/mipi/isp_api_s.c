@@ -10,7 +10,7 @@
 // 0 - always input video from camera
 // 1 - check the ability of start/stop video
 // 2 - check AE and AWB functions
-#define VIDEO_TEST (2)
+#define VIDEO_TEST (0)
 
 #if (VIDEO_TEST == 2)
 #define ENABLE_3A   1
@@ -127,6 +127,45 @@ typedef struct
 	SENSOR_DATA_T SENSOR_DATA[MAX_SENSOR_REG_LEN];
 	//SENSOR_DATA_T SENSOR_DATA[(u16)(ARRAY_SIZE(SENSOR_INIT_FILE)/sizeof(SENSOR_DATA_T))];
 } SENSOR_INIT_FILE_T;
+
+/* sensor frame rate initialization */
+/* sensor 0 */
+#define SENSOR_FRAME_RATE   0
+
+unsigned char SF_SENSOR_FRAME_RATE[8][2][4] = {
+	{        /*  op    a[0]  a[1]  d         30fps*/
+		{        0x00, 0x32, 0x0C, 0x04,        },
+		{        0x00, 0x32, 0x0d, 0x4C,        },
+	},
+	{        /*  op    a[0]  a[1]  d         25fps*/
+		{        0x00, 0x32, 0x0C, 0x05,        },
+		{        0x00, 0x32, 0x0d, 0x28,        },
+	},
+	{        /*  op    a[0]  a[1]  d         20fps*/
+		{        0x00, 0x32, 0x0C, 0x06,        },
+		{        0x00, 0x32, 0x0d, 0x72,        },
+	},
+	{        /*  op    a[0]  a[1]  d         15fps*/
+		{        0x00, 0x32, 0x0C, 0x08,        },
+		{        0x00, 0x32, 0x0d, 0x98,        },
+	},
+	{        /*  op    a[0]  a[1]  d         10fps*/
+		{        0x00, 0x32, 0x0C, 0x0C,        },
+		{        0x00, 0x32, 0x0d, 0xE4,        },
+	},
+	{        /*  op    a[0]  a[1]  d         5fps*/
+		{        0x00, 0x32, 0x0C, 0x19,        },
+		{        0x00, 0x32, 0x0d, 0xC8,        },
+	},
+	{        /*  op    a[0]  a[1]  d         3fps*/
+		{        0x00, 0x32, 0x0C, 0x2A,        },
+		{        0x00, 0x32, 0x0d, 0xF8,        },
+	},
+	{        /*  op    a[0]  a[1]  d         1fps*/
+		{        0x00, 0x32, 0x0C, 0x80,        },
+		{        0x00, 0x32, 0x0d, 0xE8,        },
+	}
+};
 
 // Load settings table
 unsigned char SF_FIXED_PATTERN_NOISE_S[]={
@@ -654,6 +693,38 @@ void sensorInit_s(struct sp_videoin_info vi_info)
 			}
 		}
 
+		/* set seneor frame rate */
+		/* In SensorInit.txt, the default is 30fps. So skip setting frame rate if  SENSOR_FRAME_RATE = 0*/
+		if (SENSOR_FRAME_RATE) {
+			read_file.count = 2;
+			for (i = 0; i < read_file.count; i++)
+			{
+				data[0] = SF_SENSOR_FRAME_RATE[SENSOR_FRAME_RATE][i][0];
+				data[1] = SF_SENSOR_FRAME_RATE[SENSOR_FRAME_RATE][i][1];
+				data[2] = SF_SENSOR_FRAME_RATE[SENSOR_FRAME_RATE][i][2];
+				data[3] = SF_SENSOR_FRAME_RATE[SENSOR_FRAME_RATE][i][3];
+				read_file.SENSOR_DATA[i].type = data[0];
+				read_file.SENSOR_DATA[i].adr	= (data[1]<<8)|data[2];
+				read_file.SENSOR_DATA[i].dat	= data[3];
+				ISPAPB_LOGI("%s, i=%d, data[0]=0x%02x, data[1]=0x%02x, data[2]=0x%02x, data[3]=0x%02x\n", __FUNCTION__, i, data[0], data[1], data[2], data[3]);
+			}
+
+			ISPAPB_LOGI("%s, count=%d\n", __FUNCTION__, read_file.count);
+			for (i = 0; i < read_file.count; i++)
+			{
+				ISPAPB_LOGI("%s, type=0x%02x, adr=0x%04x, dat=0x%04x\n", __FUNCTION__, read_file.SENSOR_DATA[i].type, read_file.SENSOR_DATA[i].adr, read_file.SENSOR_DATA[i].dat);
+
+				if (read_file.SENSOR_DATA[i].type == 0xFE)
+				{
+					udelay(read_file.SENSOR_DATA[i].adr*1000);
+				}
+				else if (read_file.SENSOR_DATA[i].type == 0x00)
+				{
+					setSensor16_I2C0((unsigned long)read_file.SENSOR_DATA[i].adr, read_file.SENSOR_DATA[i].dat, 1);
+				}
+			}
+		}
+
 		/* use pixel clock, master clock and mipi decoder clock as they are  */
 		ISPAPB0_REG8(0x2008) = 0x07;
 
@@ -690,6 +761,38 @@ void sensorInit_s(struct sp_videoin_info vi_info)
 			else if (read_file.SENSOR_DATA[i].type == 0x00)
 			{
 				setSensor16_I2C1((unsigned long)read_file.SENSOR_DATA[i].adr, read_file.SENSOR_DATA[i].dat, 1);
+			}
+		}
+
+		/* set seneor frame rate */
+		/* In SensorInit.txt, the default is 30fps. So skip setting frame rate if  SENSOR_FRAME_RATE = 0*/
+		if (SENSOR_FRAME_RATE) {
+			read_file.count = 2;
+			for (i = 0; i < read_file.count; i++)
+			{
+				data[0] = SF_SENSOR_FRAME_RATE[SENSOR_FRAME_RATE][i][0];
+				data[1] = SF_SENSOR_FRAME_RATE[SENSOR_FRAME_RATE][i][1];
+				data[2] = SF_SENSOR_FRAME_RATE[SENSOR_FRAME_RATE][i][2];
+				data[3] = SF_SENSOR_FRAME_RATE[SENSOR_FRAME_RATE][i][3];
+				read_file.SENSOR_DATA[i].type = data[0];
+				read_file.SENSOR_DATA[i].adr	= (data[1]<<8)|data[2];
+				read_file.SENSOR_DATA[i].dat	= data[3];
+				ISPAPB_LOGI("%s, i=%d, data[0]=0x%02x, data[1]=0x%02x, data[2]=0x%02x, data[3]=0x%02x\n", __FUNCTION__, i, data[0], data[1], data[2], data[3]);
+			}
+
+			ISPAPB_LOGI("%s, count=%d\n", __FUNCTION__, read_file.count);
+			for (i = 0; i < read_file.count; i++)
+			{
+				ISPAPB_LOGI("%s, type=0x%02x, adr=0x%04x, dat=0x%04x\n", __FUNCTION__, read_file.SENSOR_DATA[i].type, read_file.SENSOR_DATA[i].adr, read_file.SENSOR_DATA[i].dat);
+
+				if (read_file.SENSOR_DATA[i].type == 0xFE)
+				{
+					udelay(read_file.SENSOR_DATA[i].adr*1000);
+				}
+				else if (read_file.SENSOR_DATA[i].type == 0x00)
+				{
+					setSensor16_I2C1((unsigned long)read_file.SENSOR_DATA[i].adr, read_file.SENSOR_DATA[i].dat, 1);
+				}
 			}
 		}
 
