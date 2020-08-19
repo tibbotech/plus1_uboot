@@ -1195,9 +1195,6 @@ static int sp_videoin_run(char *op, struct sp_videoin_info vi_info)
 	    // CSI IW init
 		csiiw_setting(vi_info);
 
-		// ISP init
-		isp_setting(vi_info);
-
 		/* Load a picture into DRAM */
     	// Enable CSIIW
     	switch (vi_info.isp)
@@ -1218,6 +1215,9 @@ static int sp_videoin_run(char *op, struct sp_videoin_info vi_info)
 				CSI_IW1_REG->csiiw_config0 = 0x00002701; // CMD_URGENT_TH = 2, CMD_QUEUE = 7, CSIIW_EN = 1
 				break;
     	}
+
+		// ISP init
+		isp_setting(vi_info);
 	} else if (strcmp(op, "stop") == 0) {
     	// Disable CSIIW
     	switch (vi_info.isp)
@@ -1542,36 +1542,50 @@ static int sp_videoin_test(cmd_tbl_t *cmdtp, int flag, int argc, char * const ar
 					// Init I2C and set the device slave address
 					//addr = 0x5a<<1; // MUST shift the device slave address 1bit
 					addr = 0x60;    // SC2310_DEVICE_ADDRs
-					I2CReset();
-					I2CInit((u8)addr, 0x00);
+					if (isp_path == 0) {
+					Reset_I2C0();
+					Init_I2C0((u8)addr, 0x00);
+					} else {
+						Reset_I2C1();
+						Init_I2C1((u8)addr, 0x00);
+					}
 					break;
 
 				case 1:
 					// Read register via I2C
-					getSensor8_I2C1((u8)addr, (u16 *)&value_32);
+					if (isp_path == 0)
+						getSensor8_I2C0((u8)addr, (u16 *)&value_32);
+					else
+						getSensor8_I2C1((u8)addr, (u16 *)&value_32);
 
 					VIDEOIN_LOGI("i2c, addr: 0x%04x, value: 0x%04x\n", addr, (u16)value_32);
 					break;
 
 				case 2:
-					// Write register via I2C
-					setSensor8_I2C1((u8)addr, value_32);
+					// Write register via I2C					
+					if (isp_path == 0)
+						setSensor8_I2C0((u8)addr, value_32);
+					else
+						setSensor8_I2C1((u8)addr, value_32);
 					break;
 
 				case 3:
 					// Read register via I2C
-					getSensor16_I2C1((u16)addr, (u16 *)&value_32, 1);
+					getSensor16_I2C0((u16)addr, (u16 *)&value_32, 1);
 
 					VIDEOIN_LOGI("i2c, addr: 0x%04x, value: 0x%04x\n", addr, (u16)value_32);
 					break;
 
 				case 4:
 					// Write register via I2C
-					setSensor16_I2C1((u16)addr, (u16)value_32, 1);
+					if (isp_path == 0)
+						setSensor16_I2C0((u16)addr, (u16)value_32, 1);
+					else
+						setSensor16_I2C1((u16)addr, (u16)value_32, 1);
 					break;
 
 				case 5:
-					sensorDump();
+					sensorDump(isp_path);
 					break;
 			}
 
@@ -1586,12 +1600,12 @@ static int sp_videoin_test(cmd_tbl_t *cmdtp, int flag, int argc, char * const ar
 			{
 				case 0:
 					// Power sensor on
-					powerSensorOn_RAM();
+					powerSensorOn_RAM(isp_path);
 					break;
 
 				case 1:
 					// Power sensor down
-					powerSensorDown_RAM();
+					powerSensorDown_RAM(isp_path);
 					break;
 			}
 
@@ -1616,6 +1630,7 @@ U_BOOT_CMD(spvi, 10, 1, sp_videoin_test,
 	"\t\t 1: Still Color Bar YUV422 1920x1080\n"
 	"\t\t 2: Still Color Bar RAW10 1920x1080\n"
 	"\t\t 3: Moving Color Bar RAW10 1920x1080\n"
+	"\t\t ff: Image from camera\n"
 	"\t output - select output formant for raw10 pattern\n"
 	"\t\t 0: YUV422 format UYVYorder\n"
 	"\t\t 1: YUV422 format YUYV order\n"

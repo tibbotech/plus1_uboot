@@ -16,10 +16,18 @@
 #endif
 
 /* Function Prototype */
-void I2CReset(void);
-void I2CInit(u8 DevSlaveAddr, u8 speed_div);
+void Reset_I2C0(void);
+void Init_I2C0(u8 DevSlaveAddr, u8 speed_div);
+void setSensor8_I2C0(u8 addr8, u16 value16);
+void setSensor16_I2C0(u16 addr16, u16 value16, u8 data_count);
+void getSensor8_I2C0(u8 addr8, u16 *value16);
+void getSensor16_I2C0(u16 addr16, u16 *value16, u8 data_count);
+
+void Reset_I2C1(void);
+void Init_I2C1(u8 DevSlaveAddr, u8 speed_div);
 void setSensor8_I2C1(u8 addr8, u16 value16);
 void setSensor16_I2C1(u16 addr16, u16 value16, u8 data_count);
 void getSensor8_I2C1(u8 addr8, u16 *value16);
 void getSensor16_I2C1(u16 addr16, u16 *value16, u8 data_count);
+
 #endif /* __I2C_API_H */

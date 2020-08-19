@@ -7,7 +7,7 @@
 #define INTERRUPT_VS_FALLING    1   // Test V-sync falling edge count equal event interrupt
 
 
-// Setting table
+// Load settings table
 unsigned char SF_FIXED_PATTERN_NOISE[] = {
 	#include "FixedPatternNoise.txt"
 };
@@ -2510,7 +2510,7 @@ void isp_setting(struct sp_videoin_info vi_info)
 		case SENSOR_INPUT:
 			ISPAPB_LOGI("SC2310 Camera Module\n");
 
-			isp_setting_s();
+			isp_setting_s(vi_info);
 			break;
 	}
 
