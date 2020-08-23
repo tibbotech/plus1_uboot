@@ -409,8 +409,11 @@
 "tftp_boot=setenv ethaddr ${macaddr} && printenv ethaddr; " \
 	"printenv serverip; " \
 	"setenv filesize 0; " \
-	"dhcp ${addr_dst_nonos} ${serverip}:a926" __stringify(USER_NAME) "; " \
+	"dhcp ${addr_dst_kernel} ${serverip}:a926" __stringify(USER_NAME) "; " \
 	"if test $filesize != 0; then " \
+		"setexpr tmpval $filesize + 3; setexpr tmpval $tmpval / 4; " \
+		"echo Copying nonos image to $addr_dst_nonos; " \
+		"cp.l $addr_dst_kernel $addr_dst_nonos $tmpval; " \
 		"echo \"## Booting A926 from image at ${addr_dst_nonos}\"; " \
 		"sp_nonos_go ${addr_dst_nonos}; " \
 	"fi; " \
