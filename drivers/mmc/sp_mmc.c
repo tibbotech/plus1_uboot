@@ -1487,6 +1487,12 @@ static sp_mmc_dev_info q628_dev_info[] = {
 		.type = SPMMC_DEVICE_TYPE_SD,
 		.version = SP_MMC_VER_Q628,
 	},
+
+	{
+		.id = 0,
+		.type = SPMMC_DEVICE_TYPE_EMMC,
+		.version = SP_MMC_VER_I143,
+	},
 };
 
 
@@ -1509,6 +1515,10 @@ static const struct udevice_id sunplus_mmc_ids[] = {
 		.data		= (ulong)&q628_dev_info[0],
 	},
 #endif
+	{
+		.compatible	= "sunplus,i143-emmc",
+		.data		= (ulong)&q628_dev_info[2],
+	},	
 	{
 	}
 };

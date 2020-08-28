@@ -53,6 +53,7 @@ typedef struct sp_mmc_dev_info {
 	uint	version;
 #define SP_MMC_VER_Q610	 1
 #define SP_MMC_VER_Q628	 2
+#define SP_MMC_VER_I143	 3
 
 	int (*set_clock)(struct sp_mmc_dev_info *dev);
 } sp_mmc_dev_info;
