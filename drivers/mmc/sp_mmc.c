@@ -16,14 +16,16 @@
 
 #define MAX_SDDEVICES   2
 
+
+#if defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)
+#define SPMMC_CLK_SRC CLOCK_202M    /* Host controller's clk source */
+#elif defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C)
 #define SPMMC_CLK_SRC CLOCK_270M    /* Host controller's clk source */
-#define SPMMC_ZEBU_CLK_SRC CLOCK_202M    /* Host controller's clk source */
+#endif
 
 #define SPMMC_MAX_CLK CLOCK_25M     /* Max supported SD Card frequency */
 #define SPEMMC_MAX_CLK CLOCK_45M     /* Max supported emmc Card frequency */
-
 #define MAX_DLY_CLK  7
-
 
 /*
  * Freq. for identification mode(SD Spec): 100~400kHz
@@ -286,11 +288,8 @@ static void sp_mmc_set_clock(struct mmc *mmc, uint clock)
 		clock = mmc->cfg->f_min;
 	if (clock > mmc->cfg->f_max)
 		clock = mmc->cfg->f_max;
-
-	if (SP_MMC_VER_Q628 == host->dev_info.version)
-		sys_clk = SPMMC_ZEBU_CLK_SRC;
-	else
-		sys_clk = SPMMC_CLK_SRC;
+	
+	sys_clk = SPMMC_CLK_SRC;
 	clkrt = (sys_clk / clock) - 1;
 
 	/* Calculate the actual clock for the divider used */
@@ -1476,6 +1475,7 @@ int sp_mmc_set_dmapio(struct mmc *mmc, uint val)
 }
 
 static sp_mmc_dev_info q628_dev_info[] = {
+#if defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)
 	{
 		.id = 0,
 		.type = SPMMC_DEVICE_TYPE_EMMC,
@@ -1487,16 +1487,18 @@ static sp_mmc_dev_info q628_dev_info[] = {
 		.type = SPMMC_DEVICE_TYPE_SD,
 		.version = SP_MMC_VER_Q628,
 	},
-
+#elif defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C)
 	{
 		.id = 0,
 		.type = SPMMC_DEVICE_TYPE_EMMC,
 		.version = SP_MMC_VER_I143,
 	},
+#endif	
 };
 
 
 static const struct udevice_id sunplus_mmc_ids[] = {
+#if defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)
 	{
 		.compatible	= "sunplus,sunplus-q628-sd",
 		.data		= (ulong)&q628_dev_info[1],
@@ -1515,10 +1517,12 @@ static const struct udevice_id sunplus_mmc_ids[] = {
 		.data		= (ulong)&q628_dev_info[0],
 	},
 #endif
+#elif defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C)
 	{
 		.compatible	= "sunplus,i143-emmc",
-		.data		= (ulong)&q628_dev_info[2],
+		.data		= (ulong)&q628_dev_info[0],
 	},	
+#endif 	
 	{
 	}
 };
