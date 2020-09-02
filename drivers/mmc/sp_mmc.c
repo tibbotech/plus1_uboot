@@ -20,7 +20,7 @@
 #if defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)
 #define SPMMC_CLK_SRC CLOCK_202M    /* Host controller's clk source */
 #elif defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C)
-#define SPMMC_CLK_SRC CLOCK_209M    /* Host controller's clk source */
+#define SPMMC_CLK_SRC CLOCK_222M    /* Host controller's clk source */
 #endif
 
 #define SPMMC_MAX_CLK CLOCK_25M     /* Max supported SD Card frequency */
