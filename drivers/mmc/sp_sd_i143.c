@@ -16,7 +16,7 @@
 
 #define MAX_SDDEVICES   2
 
-#define SPMMC_CLK_SRC CLOCK_270M    /* Host controller's clk source */
+#define SPMMC_CLK_SRC CLOCK_222M    /* Host controller's clk source */
 #define SPMMC_ZEBU_CLK_SRC CLOCK_202M    /* Host controller's clk source */
 
 #define SPMMC_MAX_CLK CLOCK_25M     /* Max supported SD Card frequency */
@@ -1543,13 +1543,7 @@ static int sp_mmc_probe(struct udevice *dev)
 	host->dev_info = *((sp_mmc_dev_info *)dev_get_driver_data(dev));
 	IFPRINTK("dev_info.id = %d\n", host->dev_info.id);
 	IFPRINTK("host type: %s\n", (host->dev_info.type == SPMMC_DEVICE_TYPE_EMMC) ? "EMMC":"SD");
-	IFPRINTK("version type: %s\n", (host->dev_info.version == SP_MMC_VER_Q628) ? "Q628" : "Q610");
-	/* set pinmux on */
-	if (host->dev_info.set_pinmux) {
-		if (host->dev_info.set_pinmux(&host->dev_info)) {
-			return -ENODEV;
-		}
-	}
+	IFPRINTK("version type: %s\n", (host->dev_info.version == SP_MMC_VER_Q628) ? "Q628" : "I143");
 
 	if (host->dev_info.set_clock) {
 		if (host->dev_info.set_clock(&host->dev_info)) {
@@ -1625,38 +1619,18 @@ struct moon1_regs {
 #define MOON1_REG ((volatile struct moon1_regs *)RF_GRP(1, 0))
 
 
-int sd_i143_set_pinmux(struct sp_mmc_dev_info *info)
-{
-	//MOON1_REG->sft_cfg[1] = RF_MASK_V(1 << 6, 1 << 6);
 
-	MOON1_REG->sft_cfg[4] = RF_MASK_V(1 << 0, 1 << 0);
-	return 0;
-}
-
-int emmc_i143_set_pinmux(struct sp_mmc_dev_info *info)
-{
-	/* disable spi nor pimux   */
-	MOON1_REG->sft_cfg[1] = RF_MASK_V_CLR(0xf);
-	/* disable spi nand pinmux  */
-	MOON1_REG->sft_cfg[1] = RF_MASK_V_CLR(1 << 4);
-	/* enable emmc pinmux */
-	MOON1_REG->sft_cfg[1] = RF_MASK_V(1 << 2, 1 << 2);
-	return 0;
-}
-
-static sp_mmc_dev_info q628_dev_info[] = {
+static sp_mmc_dev_info sp_dev_info[] = {
 	{
 		.id = 0,
 		.type = SPMMC_DEVICE_TYPE_EMMC,
 		.version = SP_MMC_VER_Q628,
-		.set_pinmux = emmc_i143_set_pinmux,
 	},
 
 	{
 		.id = 1,
 		.type = SPMMC_DEVICE_TYPE_SD,
 		.version = SP_MMC_VER_I143,
-		.set_pinmux = sd_i143_set_pinmux,
 	},
 };
 
@@ -1664,7 +1638,7 @@ static sp_mmc_dev_info q628_dev_info[] = {
 static const struct udevice_id sunplus_mmc_ids[] = {
 	{
 		.compatible	= "sunplus,i143-card1",
-		.data		= (ulong)&q628_dev_info[1],
+		.data		= (ulong)&sp_dev_info[1],
 	},
 
 	{
