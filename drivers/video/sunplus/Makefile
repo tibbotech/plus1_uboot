@@ -5,5 +5,5 @@
 
 obj-y += sp7021/disp/
 #obj-y += sp7021/mipi/
-#obj-y += i143/disp/
+obj-y += i143/disp/
 obj-y += i143/mipi/
