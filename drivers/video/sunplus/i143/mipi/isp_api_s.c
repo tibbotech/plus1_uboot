@@ -10,7 +10,7 @@
 // 0 - always input video from camera
 // 1 - check the ability of start/stop video
 // 2 - check AE and AWB functions
-#define VIDEO_TEST (0)
+#define VIDEO_TEST (2)
 
 #if (VIDEO_TEST == 2)
 #define ENABLE_3A   1

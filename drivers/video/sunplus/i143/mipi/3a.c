@@ -77,7 +77,7 @@ u16 sensor_gain_addr = 0;
 u16 sensor_frame_len_addr = 0;
 u16 sensor_line_total_addr = 0;
 u16 sensor_exp_line_addr = 0;
-u16 sensor_pclk = 0;
+u32 sensor_pclk = 0;
 u32 ctExposureTimeAbsoluteCur = CTEXPOSURETIMEABSOLUTECUR;
 u8 AeTest = 0;
 u16 AeExp = 0;
@@ -562,7 +562,7 @@ void sensorExpToLineCountIsr(void)
 	/* get pixel clock */
 	pixelClock = sensor_pclk;
 	//
-	getSensor16_I2C1(sensor_line_total_addr, &lineTotal, 2);		
+	getSensor16_I2C0(sensor_line_total_addr, &lineTotal, 2);
 	lineTotal *= 2;
 	//
 	/* calculate exposure line */
@@ -579,7 +579,7 @@ void sensorExpToLineCountIsr(void)
 		expLine = (u16)(((u32)13 * pixelClock) / ((u32)lineTotal * 100));
 	else
 		expLine = (u16)(((u32)pixelClock * 16) /((u32)lineTotal * exp));
-	
+
 	/* set output */
 	SensorLineCountOut = expLine;
 }
@@ -610,10 +610,11 @@ void sensorSetExposureTimeIsr(void)
 		frameLen = expLine + 4;
 
 	if (expLine < 4) // sensor minimun expline
-	expLine = 4;
+		expLine = 4;
+	expLine = expLine<<4;
 	//
 	setSensor16_I2C0(sensor_frame_len_addr, frameLen, 2);
-	setSensor16_I2C0(sensor_exp_line_addr, expLine, 2);	
+	setSensor16_I2C0(sensor_exp_line_addr, expLine, 2);
 }
 
 void vidctrlCtExposureTimeAbsolute(void)
@@ -661,7 +662,7 @@ void vidctrlInit(u16 _sensor_gain_addr,
 	AeExpTableSfAddr = pAeExpTbl;//SF_AE_EXP_60;
 	AeGainTableSfAddr = pAeGainTbl;//SF_AE_GAIN_60;
 	AeIndexMax = 0xdd;//235-2;
-
+	getSensor16_I2C0(sensor_frame_len_addr, &SensorMinFrameLen, 2);
 	//
 	//EA = 0; /* disable all interrupts */
 	AeIndexGet = AeIndex;
@@ -1425,7 +1426,7 @@ u32 awbCount(u8 id)
 {
 	u8 offset;
 	u32 count;
-	u8 i;
+	//u8 i;   // SunplusIT: added for debug test
 
 	ISP3A_LOGD("%s start\n", __FUNCTION__);
 
@@ -1442,6 +1443,7 @@ u32 awbCount(u8 id)
 		count = mathlibUcharToUlong(0x00, ISPAPB0_REG8(0x3232), ISPAPB0_REG8(0x3231), ISPAPB0_REG8(0x3230));
 	}
 
+	/* SunplusIT: added for debug test
 	if((ISPAPB0_REG8(0x0190) & 0x10) == 0x10)
 	{
 		i = ISPAPB0_REG8(0x2BCD);
@@ -1478,6 +1480,7 @@ u32 awbCount(u8 id)
 		ISPAPB0_REG8((unsigned long)0x3b3F + i * 4) = count;
 		ISPAPB0_REG8(0x28CD) += 1;
 	}
+	*/
 	return(count);
 }
 
@@ -1485,7 +1488,7 @@ u32 awbColSum(u8 col, u8 id)
 {
 	u8 offset;
 	u32 count;
-	u8 i;
+	//u8 i;   // SunplusIT: added for debug test
 
 	ISP3A_LOGD("%s start\n", __FUNCTION__);
 
@@ -1521,6 +1524,7 @@ u32 awbColSum(u8 col, u8 id)
 		}
 	}
 
+	/* SunplusIT: added for debug test
 	if((ISPAPB0_REG8(0x0190) & 0x10) == 0x10)
 	{
 		i = ISPAPB0_REG8(0x2BCD);
@@ -1557,6 +1561,7 @@ u32 awbColSum(u8 col, u8 id)
 		ISPAPB0_REG8((unsigned long)0x3b3F + i * 4) = count;
 		ISPAPB0_REG8(0x28CD) += 1;
 	}
+	*/
 	return(count);
 }
 

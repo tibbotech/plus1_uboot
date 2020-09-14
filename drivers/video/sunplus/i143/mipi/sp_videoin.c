@@ -1533,6 +1533,7 @@ static int sp_videoin_test(cmd_tbl_t *cmdtp, int flag, int argc, char * const ar
 			if (argc > 3) check_item = simple_strtoul(argv[3], NULL, 16);
 			if (argc > 4) addr = simple_strtoul(argv[4], NULL, 16);
 			if (argc > 5) value_32 = simple_strtoul(argv[5], NULL, 16);
+			if (argc > 6) leng = simple_strtoul(argv[6], NULL, 16);
 
 			VIDEOIN_LOGI("i2c, isp_path: %u, check_item: %u, addr: 0x%04x, value: 0x%04x\n", isp_path, check_item, addr, value_32);
 
@@ -1572,9 +1573,9 @@ static int sp_videoin_test(cmd_tbl_t *cmdtp, int flag, int argc, char * const ar
 				case 3:
 					// Read register via I2C
 					if (isp_path == 0)
-						getSensor16_I2C0((u16)addr, (u16 *)&value_32, 1);
+						getSensor16_I2C0((u16)addr, (u16 *)&value_32, leng);
 					else
-						getSensor16_I2C1((u16)addr, (u16 *)&value_32, 1);
+						getSensor16_I2C1((u16)addr, (u16 *)&value_32, leng);
 
 					VIDEOIN_LOGI("i2c, addr: 0x%04x, value: 0x%04x\n", addr, (u16)value_32);
 					break;
@@ -1582,9 +1583,9 @@ static int sp_videoin_test(cmd_tbl_t *cmdtp, int flag, int argc, char * const ar
 				case 4:
 					// Write register via I2C
 					if (isp_path == 0)
-						setSensor16_I2C0((u16)addr, (u16)value_32, 1);
+						setSensor16_I2C0((u16)addr, (u16)value_32, leng);
 					else
-						setSensor16_I2C1((u16)addr, (u16)value_32, 1);
+						setSensor16_I2C1((u16)addr, (u16)value_32, leng);
 					break;
 
 				case 5:
