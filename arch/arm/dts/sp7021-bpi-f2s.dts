@@ -80,12 +80,12 @@
 };
 
 &i2cm1 {
-	clock-frequency = <100000>;
+	clock-frequency = <400000>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&i2cm1_mipicsi_tpm_pins>;
 	#address-cells = <1>;
 	#size-cells = <0>;
-	st33htpi: st33htpi@0{
+	st33htpi: st33htpi@2e {
 		compatible = "st,st33htpm-i2c";
 		reg = <0x2e>;
 		status = "okay";
@@ -133,6 +133,10 @@
 &l2sw {
 	pinctrl-names = "default";
 	pinctrl-0 = <&l2sw_demo_board_v3_pins>;
+	mode = < 1 >;
+		/* 0 = daisy-chain mode
+		 * 1 = dual NIC mode
+		 * 2 = daisy-chain mode (disable SA learning) */
 };
 
 &mmc0 {
@@ -190,6 +194,12 @@
 };
 
 &audio {
+	status = "disabled";
+};
+
+&pwm {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pins_pwm>;
 	status = "disabled";
 };
 
@@ -299,5 +309,13 @@
 			SPPCTL_IOPAD(27,SPPCTL_PCTL_G_PMUX,MUXF_SPI0S_CLK,0)
 		>;
 	};
-};
 
+	pins_pwm: pinmux_pins_pwm {
+		sppctl,pins = <
+			SPPCTL_IOPAD(36,SPPCTL_PCTL_G_PMUX,MUXF_PWM0,0)
+			SPPCTL_IOPAD(37,SPPCTL_PCTL_G_PMUX,MUXF_PWM1,0)
+			SPPCTL_IOPAD(38,SPPCTL_PCTL_G_PMUX,MUXF_PWM2,0)
+			SPPCTL_IOPAD(39,SPPCTL_PCTL_G_PMUX,MUXF_PWM3,0)
+		>;
+	};
+};

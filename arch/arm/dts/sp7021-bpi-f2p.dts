@@ -80,12 +80,12 @@
 };
 
 &i2cm1 {
-	clock-frequency = <100000>;
+	clock-frequency = <400000>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&i2cm1_tpm_pins>;
 	#address-cells = <1>;
 	#size-cells = <0>;
-	st33htpi: st33htpi@0{
+	st33htpi: st33htpi@2e {
 		compatible = "st,st33htpm-i2c";
 		reg = <0x2e>;
 		status = "okay";
@@ -107,14 +107,18 @@
 &uart1 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pins_uart1>;
-	dir-gpios = <&pctl 7 GPIO_ACTIVE_HIGH>;
+	linux,rs485-enabled-at-boot-time;
+	rs485-rts-delay = <0 0>;
+	dir-gpios = <&pctl 7 GPIO_ACTIVE_LOW>;
 	status = "okay";
 };
 
 &uart2 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pins_uart2>;
-	dir-gpios = <&pctl 6 GPIO_ACTIVE_HIGH>;
+	linux,rs485-enabled-at-boot-time;
+	rs485-rts-delay = <0 0>;
+	dir-gpios = <&pctl 6 GPIO_ACTIVE_LOW>;
 	status = "okay";
 };
 
@@ -127,18 +131,29 @@
 &uart4 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pins_uart4>;
-	status = "disabled";
+	status = "okay";
 };
 
 &sdio {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pins_sdio>;
-	status = "disabled";
+		bus-width = <4>;
+		max-frequency = <25000000>;
+		non-removable;
+		disable-wp;
+		cap-sd-highspeed;
+		cap-sdio-irq;
+		no-sd;
+		no-mmc;
 };
 
 &l2sw {
 	pinctrl-names = "default";
 	pinctrl-0 = <&l2sw_f2p_pins>;
+	mode = < 1 >;
+		/* 0 = daisy-chain mode
+		 * 1 = dual NIC mode
+		 * 2 = daisy-chain mode (disable SA learning) */
 };
 
 &mmc0 {
@@ -209,6 +224,12 @@
 	status = "disabled";
 };
 
+&pwm {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pins_pwm>;
+	status = "disabled";
+};
+
 &pctl {
 	pinctrl-names = "default";
 
@@ -264,12 +285,12 @@
 
 	pins_sdio: pins_sdio {
 		sppctl,pins = <
-			SPPCTL_IOPAD(17,SPPCTL_PCTL_G_PMUX,MUXF_SDIO_D1,0)
-			SPPCTL_IOPAD(18,SPPCTL_PCTL_G_PMUX,MUXF_SDIO_D0,0)
-			SPPCTL_IOPAD(16,SPPCTL_PCTL_G_PMUX,MUXF_SDIO_CLK,0)
-			SPPCTL_IOPAD(14,SPPCTL_PCTL_G_PMUX,MUXF_SDIO_CMD,0)
-			SPPCTL_IOPAD(15,SPPCTL_PCTL_G_PMUX,MUXF_SDIO_D3,0)
-			SPPCTL_IOPAD(13,SPPCTL_PCTL_G_PMUX,MUXF_SDIO_D2,0)
+			SPPCTL_IOPAD(30,SPPCTL_PCTL_G_PMUX,MUXF_SDIO_CLK,0)
+			SPPCTL_IOPAD(31,SPPCTL_PCTL_G_PMUX,MUXF_SDIO_CMD,0)
+			SPPCTL_IOPAD(33,SPPCTL_PCTL_G_PMUX,MUXF_SDIO_D0,0)
+			SPPCTL_IOPAD(34,SPPCTL_PCTL_G_PMUX,MUXF_SDIO_D1,0)
+			SPPCTL_IOPAD(36,SPPCTL_PCTL_G_PMUX,MUXF_SDIO_D2,0)
+			SPPCTL_IOPAD(38,SPPCTL_PCTL_G_PMUX,MUXF_SDIO_D3,0)
 		>;
 	};
 
@@ -317,8 +338,8 @@
 		sppctl,pins = <
 			SPPCTL_IOPAD(14,SPPCTL_PCTL_G_PMUX,MUXF_UA4_TX,0)
 			SPPCTL_IOPAD(16,SPPCTL_PCTL_G_PMUX,MUXF_UA4_RX,0)
-			SPPCTL_IOPAD(20,SPPCTL_PCTL_G_PMUX,MUXF_UA3_RTS,0)
-			SPPCTL_IOPAD(22,SPPCTL_PCTL_G_PMUX,MUXF_UA3_CTS,0)
+			SPPCTL_IOPAD(20,SPPCTL_PCTL_G_PMUX,MUXF_UA4_RTS,0)
+			SPPCTL_IOPAD(22,SPPCTL_PCTL_G_PMUX,MUXF_UA4_CTS,0)
 		>;
 	};
 
@@ -330,5 +351,13 @@
 			SPPCTL_IOPAD(27,SPPCTL_PCTL_G_PMUX,MUXF_SPI0S_CLK,0)
 		>;
 	};
-};
 
+	pins_pwm: pinmux_pins_pwm {
+		sppctl,pins = <
+			SPPCTL_IOPAD(36,SPPCTL_PCTL_G_PMUX,MUXF_PWM0,0)
+			SPPCTL_IOPAD(37,SPPCTL_PCTL_G_PMUX,MUXF_PWM1,0)
+			SPPCTL_IOPAD(38,SPPCTL_PCTL_G_PMUX,MUXF_PWM2,0)
+			SPPCTL_IOPAD(39,SPPCTL_PCTL_G_PMUX,MUXF_PWM3,0)
+		>;
+	};
+};

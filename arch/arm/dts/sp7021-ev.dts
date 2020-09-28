@@ -33,17 +33,22 @@
 	spi-max-frequency = <50000000>;
 	spi-cpha;
 	spi-cpol;
-	status = "disabled";
+	#address-cells = <1>;
+	#size-cells = <0>;
+	spi@0 {
+		compatible = "rohm,dh2228fv";
+		spi-max-frequency = <25000000>;
+		reg = <0x0>;
+	};
 };
 
 &spi_controller1 {
 	spi-max-frequency = <50000000>;
 	spi-cpha;
 	spi-cpol;
-	status = "disabled";
 	#address-cells = <1>;
 	#size-cells = <0>;
-	spi1: spi@ {
+	spi@0 {
 		compatible = "rohm,dh2228fv";
 		spi-max-frequency = <25000000>;
 		reg = <0x0>;
@@ -54,10 +59,9 @@
 	spi-max-frequency = <50000000>;
 	spi-cpha;
 	spi-cpol;
-	status = "disabled";
 	#address-cells = <1>;
 	#size-cells = <0>;
-	spi2: spi@ {
+	spi@0 {
 		compatible = "rohm,dh2228fv";
 		spi-max-frequency = <25000000>;
 		reg = <0x0>;
@@ -93,6 +97,11 @@
 };
 
 &uart1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pins_uart1>;
+#if 0 //TTYS_GPIO in sp_uart.c
+	uart-gpio = <&pctl 0 GPIO_ACTIVE_HIGH>;
+#endif
 	status = "disabled";
 };
 
@@ -119,6 +128,10 @@
 &l2sw {
 	pinctrl-names = "default";
 	pinctrl-0 = <&l2sw_ev_two_phy_pins>;
+	mode = < 0 >;
+		/* 0 = daisy-chain mode
+		 * 1 = dual NIC mode
+		 * 2 = daisy-chain mode (disable SA learning) */
 };
 
 &mmc0 {
@@ -213,6 +226,16 @@
 		>;
 	};
 
+        pins_uart1: pins_uart1 {
+		sppctl,pins = <
+			SPPCTL_IOPAD(8,SPPCTL_PCTL_G_PMUX,MUXF_UA1_TX,0)
+			SPPCTL_IOPAD(9,SPPCTL_PCTL_G_PMUX,MUXF_UA1_RX,0)
+	#if 0 //TTYS_GPIO in sp_uart.c
+			SPPCTL_IOPAD(0, SPPCTL_PCTL_G_GPIO, 0, 1)
+	#endif
+		>;
+	};
+	
 	pins_uart4: pins_uart4 {
 		sppctl,pins = <
 			SPPCTL_IOPAD(16,SPPCTL_PCTL_G_PMUX,MUXF_UA4_TX,0)
