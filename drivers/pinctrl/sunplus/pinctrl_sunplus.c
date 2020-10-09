@@ -27,6 +27,19 @@ void* pin_registered_by_udev[MAX_PINS];
 
 #ifdef PINCTRL_DEBUG
 #ifdef SUPPORT_PINMUX
+void pinmux_grps_dump( void) {
+ int i = 0, mask, rval, val;
+ const char *pin_func;
+ func_t *func = &list_funcs[ i];
+ for ( i = 0; i < list_funcsSZ; i++) {
+    func = &( list_funcs[ i]);
+    mask = ( 1 << func->blen) - 1;
+    rval = GPIO_PINGRP( func->roff);  val = ( rval >> func->boff) & mask;
+    if ( val == 0) continue;
+    printf( "%s\t=%d regval:%X\n", list_funcs[ i].name, val, rval);
+ }
+ return;  }
+
 void pinmux_reg_dump(void)
 {
 	u32 pinmux_value[120];
@@ -339,6 +352,7 @@ static int sunplus_pinctrl_set_state(struct udevice *dev, struct udevice *config
 	pinmux_reg_dump();
 #endif
 	gpio_reg_dump();
+	pinmux_grps_dump();
 #endif
 
 	return 0;
