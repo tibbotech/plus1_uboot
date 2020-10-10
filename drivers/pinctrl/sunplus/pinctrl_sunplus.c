@@ -33,6 +33,8 @@ void pinmux_grps_dump( void) {
  func_t *func = &list_funcs[ i];
  for ( i = 0; i < list_funcsSZ; i++) {
     func = &( list_funcs[ i]);
+    if ( func->gnum == 0) continue;
+    if ( func->freg != fOFF_G) continue;
     mask = ( 1 << func->blen) - 1;
     rval = GPIO_PINGRP( func->roff);  val = ( rval >> func->boff) & mask;
     if ( val == 0) continue;
@@ -272,9 +274,11 @@ static int sunplus_pinctrl_function(struct udevice *dev)
 	pin_func = fdt_getprop(gd->fdt_blob, offset, "sppctl,function", &len);
 	pctl_info("sppctl,function = %s (%d)\n", pin_func, len);
 	if (len > 1) {
-		// Find 'pin_func' string in list.
+		// Find 'pin_func' string in list: only groups
 		for (i = 0; i < list_funcsSZ; i++) {
-			if (strcmp (pin_func, list_funcs[i].name) == 0) break;
+			if ( list_funcs[ i].gnum == 0) continue;
+			if ( list_funcs[ i].freg != fOFF_G) continue;
+			if ( strcmp( pin_func, list_funcs[i].name) == 0) break;
 		}
 		if (i == list_funcsSZ) {
 			pctl_err("Error: Invalid 'sppctl,function' in node %s! "

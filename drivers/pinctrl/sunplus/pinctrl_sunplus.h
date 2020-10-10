@@ -33,6 +33,12 @@
 #endif
 #define D(x,y)          ((x)*8+(y))
 
+typedef enum {
+	fOFF_0, // nowhere
+	fOFF_M, // in mux registers
+	fOFF_G, // mux group registers
+	fOFF_I, // in iop registers
+} fOFF_t;
 
 #define EGRP(n,v,p) { \
 	.name = n, \
@@ -41,13 +47,24 @@
 	.pnum = ARRAY_SIZE(p) \
 }
 
-#define FNCE(n,o,bo,bl,g) { \
+#define FNCE(n,r,o,bo,bl,g) { \
 	.name = n, \
+	.freg = r, \
 	.roff = o, \
 	.boff = bo, \
 	.blen = bl, \
 	.grps = (g), \
 	.gnum = ARRAY_SIZE(g) \
+}
+
+#define FNCN(n,r,o,bo,bl) { \
+	.name = n, \
+	.freg = r, \
+	.roff = o, \
+	.boff = bo, \
+	.blen = bl, \
+	.grps = NULL, \
+	.gnum = 0, \
 }
 
 typedef struct {
@@ -59,6 +76,7 @@ typedef struct {
 
 typedef struct {
 	const char * const name;
+	const fOFF_t freg;          // function register type
 	const u8 roff;                  // register offset
 	const u8 boff;                  // bit offset
 	const u8 blen;                  // number of bits
