@@ -263,12 +263,12 @@ static int sunplus_pinctrl_zero(struct udevice *dev)
 		switch ( f->freg) {
 			case fOFF_M:
 				gpio_pin_mux_set( func, 0);
-				pctl_info("pinmux get = 0x%02x\n", gpio_pin_mux_get( func));
+				pctl_info( "pinmux get = 0x%02x\n", gpio_pin_mux_get( func));
 				break;
 			case fOFF_G:
 				mask = ( 1 << f->blen) - 1;
 				GPIO_PINGRP( f->roff) = ( mask << ( f->boff+16)) | ( 0 << f->boff);
-				printf( "group %s set to 0\n", f->name);
+				pctl_info( "group %s set to 0\n", f->name);
 				break;
 			default:
 				printf( "bad zero func/group idx:%d, skipped\n", func);
