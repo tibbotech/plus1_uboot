@@ -257,8 +257,8 @@ static const sp7021grp_t sp7021grps_anat[] = {
 };
 
 func_t list_funcs[] = {
-//	FNCN("GPIO",            fOFF_0, 0x00, 0, 0),
-//	FNCN("IOP",             fOFF_0, 0x00, 0, 0),
+	FNCN("GPIO",            fOFF_0, 0x00, 0, 0),
+	FNCN("IOP",             fOFF_0, 0x00, 0, 0),
 
 	FNCN("L2SW_CLK_OUT",        fOFF_M, 0x00, 0, 7),
 	FNCN("L2SW_MAC_SMI_MDC",    fOFF_M, 0x00, 8, 7),

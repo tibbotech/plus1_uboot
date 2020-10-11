@@ -241,7 +241,7 @@ static int sunplus_pinctrl_zero(struct udevice *dev)
 {
 	int offset = dev_of_offset(dev);
 	u32 pin_mux[MAX_PINS];
-	int len, i;
+	int len, i, mask;
 
 	// Get property: "sppctl,zero_func"
 	len = fdtdec_get_int_array_count(gd->fdt_blob, offset,
@@ -255,8 +255,25 @@ static int sunplus_pinctrl_zero(struct udevice *dev)
 		pctl_info("sppctl,zero_func = 0x%08x\n", func);
 
 		// Set it to no use.
-		gpio_pin_mux_set(func, 0);
-		pctl_info("pinmux get = 0x%02x \n", gpio_pin_mux_get(func));
+		if ( func >= list_funcsSZ) {
+			pctl_info("func=%d is out of range, skipping...\n", func);
+			continue;
+		}
+		func_t *f = &list_funcs[ func];
+		switch ( f->freg) {
+			case fOFF_M:
+				gpio_pin_mux_set( func, 0);
+				pctl_info("pinmux get = 0x%02x\n", gpio_pin_mux_get( func));
+				break;
+			case fOFF_G:
+				mask = ( 1 << f->blen) - 1;
+				GPIO_PINGRP( f->roff) = ( mask << ( f->boff+16)) | ( 0 << f->boff);
+				printf( "group %s set to 0\n", f->name);
+				break;
+			default:
+				printf( "bad zero func/group idx:%d, skipped\n", func);
+				break;
+		}
 	}
 
 	return 0;
