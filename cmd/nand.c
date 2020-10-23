@@ -660,12 +660,12 @@ static int do_nand(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		if (read)
 		{
 			debug("isp_addr_nand_read_next=0x%x", noff);
-			setenv_hex("isp_addr_nand_read_next", noff);
+			env_set_hex("isp_addr_nand_read_next", noff);
 		}
 		else
 		{
 			debug("isp_addr_nand_write_next=0x%x", noff);
-			setenv_hex("isp_addr_nand_write_next", noff);
+			env_set_hex("isp_addr_nand_write_next", noff);
 		}
 
 		return ret == 0 ? 0 : 1;

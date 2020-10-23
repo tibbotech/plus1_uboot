@@ -1,8 +1,7 @@
+// SPDX-License-Identifier: GPL-2.0+
 /*
  * (C) Copyright 2000-2009
  * Wolfgang Denk, DENX Software Engineering, wd@denx.de.
- *
- * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #ifndef USE_HOSTCC
@@ -48,21 +47,21 @@ static const void *boot_get_kernel(cmd_tbl_t *cmdtp, int flag, int argc,
 				   char * const argv[], bootm_headers_t *images,
 				   ulong *os_data, ulong *os_len);
 
+__weak void board_quiesce_devices(void)
+{
+}
+
 #ifdef CONFIG_LMB
 static void boot_start_lmb(bootm_headers_t *images)
 {
 	ulong		mem_start;
 	phys_size_t	mem_size;
 
-	lmb_init(&images->lmb);
-
 	mem_start = env_get_bootm_low();
 	mem_size = env_get_bootm_size();
 
-	lmb_add(&images->lmb, (phys_addr_t)mem_start, mem_size);
-
-	arch_lmb_reserve(&images->lmb);
-	board_lmb_reserve(&images->lmb);
+	lmb_init_and_reserve_range(&images->lmb, (phys_addr_t)mem_start,
+				   mem_size, NULL);
 }
 #else
 #define lmb_reserve(lmb, base, size)
@@ -200,8 +199,23 @@ static int bootm_find_os(cmd_tbl_t *cmdtp, int flag, int argc,
 	}
 
 	if (images.os.type == IH_TYPE_KERNEL_NOLOAD) {
-		images.os.load = images.os.image_start;
-		images.ep += images.os.load;
+		if (CONFIG_IS_ENABLED(CMD_BOOTI) &&
+		    images.os.arch == IH_ARCH_ARM64) {
+			ulong image_addr;
+			ulong image_size;
+
+			ret = booti_setup(images.os.image_start, &image_addr,
+					  &image_size, true);
+			if (ret != 0)
+				return 1;
+
+			images.os.type = IH_TYPE_KERNEL;
+			images.os.load = image_addr;
+			images.ep = image_addr;
+		} else {
+			images.os.load = images.os.image_start;
+			images.ep += images.os.image_start;
+		}
 	}
 
 	images.os.start = map_to_sysmem(os_hdr);
@@ -245,11 +259,12 @@ int bootm_find_images(int flag, int argc, char * const argv[])
 		puts("Could not find a valid device tree\n");
 		return 1;
 	}
-	set_working_fdt_addr((ulong)images.ft_addr);
+	if (CONFIG_IS_ENABLED(CMD_FDT))
+		set_working_fdt_addr(map_to_sysmem(images.ft_addr));
 #endif
 
 #if IMAGE_ENABLE_FIT
-#if defined(CONFIG_FPGA) && defined(CONFIG_FPGA_XILINX)
+#if defined(CONFIG_FPGA)
 	/* find bitstreams */
 	ret = boot_get_fpga(argc, argv, &images, IH_ARCH_DEFAULT,
 			    NULL, NULL);
@@ -426,15 +441,17 @@ int bootm_decomp_image(int comp, ulong load, ulong image_start, int type,
 }
 
 #ifndef USE_HOSTCC
-static int bootm_load_os(bootm_headers_t *images, unsigned long *load_end,
-			 int boot_progress)
+static int bootm_load_os(bootm_headers_t *images, int boot_progress)
 {
 	image_info_t os = images->os;
 	ulong load = os.load;
+	ulong load_end;
 	ulong blob_start = os.start;
 	ulong blob_end = os.end;
 	ulong image_start = os.image_start;
 	ulong image_len = os.image_len;
+	ulong flush_start = ALIGN_DOWN(load, ARCH_DMA_MINALIGN);
+	ulong flush_len;
 	bool no_overlap;
 	void *load_buf, *image_buf;
 	int err;
@@ -443,23 +460,28 @@ static int bootm_load_os(bootm_headers_t *images, unsigned long *load_end,
 	image_buf = map_sysmem(os.image_start, image_len);
 	err = bootm_decomp_image(os.comp, load, os.image_start, os.type,
 				 load_buf, image_buf, image_len,
-				 CONFIG_SYS_BOOTM_LEN, load_end);
+				 CONFIG_SYS_BOOTM_LEN, &load_end);
 	if (err) {
 		bootstage_error(BOOTSTAGE_ID_DECOMP_IMAGE);
 		return err;
 	}
-	flush_cache(load, ALIGN(*load_end - load, ARCH_DMA_MINALIGN));
 
-	debug("   kernel loaded at 0x%08lx, end = 0x%08lx\n", load, *load_end);
+	flush_len = load_end - load;
+	if (flush_start < load)
+		flush_len += load - flush_start;
+
+	flush_cache(flush_start, ALIGN(flush_len, ARCH_DMA_MINALIGN));
+
+	debug("   kernel loaded at 0x%08lx, end = 0x%08lx\n", load, load_end);
 	bootstage_mark(BOOTSTAGE_ID_KERNEL_LOADED);
 
 	no_overlap = (os.comp == IH_COMP_NONE && load == image_start);
 
-	if (!no_overlap && (load < blob_end) && (*load_end > blob_start)) {
+	if (!no_overlap && load < blob_end && load_end > blob_start) {
 		debug("images.os.start = 0x%lX, images.os.end = 0x%lx\n",
 		      blob_start, blob_end);
 		debug("images.os.load = 0x%lx, load_end = 0x%lx\n", load,
-		      *load_end);
+		      load_end);
 
 		/* Check what type of image this is. */
 		if (images->legacy_hdr_valid) {
@@ -474,6 +496,8 @@ static int bootm_load_os(bootm_headers_t *images, unsigned long *load_end,
 		}
 	}
 
+	lmb_reserve(&images->lmb, images->os.load, (load_end -
+						    images->os.load));
 	return 0;
 }
 
@@ -599,17 +623,19 @@ void bootm_reset_bootargs(void)
 	else
 	{
 		cmdline = DEFAULT_BOOTARGS;
-		printf("env_val bootargs = %s  \n",cmdline);
+		debug("env_val bootargs = %s  \n",cmdline);
 	}
 	
 	if(strstr(cmdline,MEMORY_ARG) == NULL)
 	{
-		buf = malloc(strlen(cmdline) +  strlen(MEMORY_ARG) + 10);
+		int str_len=strlen(cmdline) +  strlen(MEMORY_ARG) + 10;
+		buf = malloc(str_len);
 		if (!buf) {
 			printf("%s: out of memory\n", __func__);
 			return;
 		}
-		sprintf(buf, "%s %s%d%s", cmdline, MEMORY_ARG,dramsize,"M");
+		memset(buf,0,str_len);
+		snprintf(buf, str_len,"%s %s%d%s", cmdline, MEMORY_ARG,dramsize,"M");
 		env_set("bootargs", buf);
 		printf("###### after set bootargs: %s  ######  \n", buf);
 		free(buf);
@@ -665,14 +691,9 @@ int do_bootm_states(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[],
 
 	/* Load the OS */
 	if (!ret && (states & BOOTM_STATE_LOADOS)) {
-		ulong load_end;
-
 		iflag = bootm_disable_interrupts();
-		ret = bootm_load_os(images, &load_end, 0);
-		if (ret == 0)
-			lmb_reserve(&images->lmb, images->os.load,
-				    (load_end - images->os.load));
-		else if (ret && ret != BOOTM_ERR_OVERLAP)
+		ret = bootm_load_os(images, 0);
+		if (ret && ret != BOOTM_ERR_OVERLAP)
 			goto err;
 		else if (ret == BOOTM_ERR_OVERLAP)
 			ret = 0;
@@ -944,6 +965,16 @@ static const void *boot_get_kernel(cmd_tbl_t *cmdtp, int flag, int argc,
 
 	return buf;
 }
+
+/**
+ * switch_to_non_secure_mode() - switch to non-secure mode
+ *
+ * This routine is overridden by architectures requiring this feature.
+ */
+void __weak switch_to_non_secure_mode(void)
+{
+}
+
 #else /* USE_HOSTCC */
 
 void memmove_wd(void *to, void *from, size_t len, ulong chunksz)

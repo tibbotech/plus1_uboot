@@ -1,0 +1,33 @@
+1 FT ROM
+1、	Dram test
+Dram test通过测试PIN4(3.3V)和G_MX34来检测dram的测试时间，dram测试成功从boot到PIN39(G_MX34)拉高大概400ms，如果测试Fail的话则G_MX34不会出现拉高；
+
+2、	Spdif out
+Boot后大概600ms，测试G_MX8脚测量spdif out，输出频率12.28Mhz (147.456Mhz 经过12倍降频)。
+
+3、	FT test end  （2020.10.21 修改）
+测试G_MX33脚输出高电平表示整个程序经xboot—>uboot—>kernel—>rootfs流程完整运行，从boot到G_MX33拉高大概时间为7S时间。
+
+4、	Xboot load uboot （2020.10.21 新增）
+目的：测试xboot加载uboot是否正确。
+测试G_MX36脚输出高电平表示xboot load uboot正常并准备跳转到uboot(开机默认为低电平，如果一直为低电平，表示xboot 加载/检验 uboot存在问题)。
+
+5、	uboot load kernel  （2020.10.21 新增）
+目的：测试uboot加载kernel是否正确。
+测试G_MX37脚输出高电平表示uboot load kernel正常并准备跳转到kernel (开机默认为低电平，如果一直为低电平，表示uboot 加载/检验kernel数据 存在问题)。
+
+
+
+软件修改：
+Xboot.uboot直接更新branch到ft_rom，并打开对应的配置文件
+Kernel里面需要修改dts，屏蔽掉与上面测试gpio冲突的相关设置；
+Rootfs需要在rcS里面添加G_MX33的设定。
+
+开机启动运行下列拉高G_MX33
+echo "ft test end,set gpio 33 high"
+devmem 0x9C0032E8 32 0x00000006
+devmem 0x9C000308 32 0x0006FFFF
+devmem 0x9C000328 32 0x00060006
+devmem 0x9C000348 32 0x00060006
+
+

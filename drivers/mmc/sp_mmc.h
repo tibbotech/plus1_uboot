@@ -11,6 +11,8 @@
 #define SPMMC_DEVICE_TYPE_EMMC	0
 #define SPMMC_DEVICE_TYPE_SD	1
 
+#define CMD_MAX_RETRY	64
+
 #define SPMMC_SUCCESS			0x00000000
 #define SPMMC_FAIL				0x00000001
 #define SPMMC_RSP_TIMEOUT		0x00000002
@@ -40,10 +42,26 @@
 #define CLOCK_48M	48000000
 #define CLOCK_50M	50000000
 
-#define CLOCK_180M  180000000
-#define CLOCK_202M  202500000
-#define CLOCK_240M  240000000
-#define CLOCK_270M  270000000
+#if defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)
+#define CLOCK_202M      202500000
+#elif defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C)
+#define CLOCK_168M      168750000
+#define CLOCK_175M      175500000
+#define CLOCK_182M      182250000
+#define CLOCK_189M      189000000
+#define CLOCK_195M      195750000
+#define CLOCK_202M      202500000
+#define CLOCK_209M      209250000
+#define CLOCK_216M      216000000
+#define CLOCK_222M      222750000
+#define CLOCK_229M      229500000
+#define CLOCK_236M      236250000
+#define CLOCK_243M      243000000
+#define CLOCK_249M      249750000
+#define CLOCK_256M      256500000
+#define CLOCK_263M      263250000
+#define CLOCK_270M      270000000
+#endif
 
 typedef struct sp_mmc_dev_info {
 	uint	id;
@@ -51,10 +69,30 @@ typedef struct sp_mmc_dev_info {
 	uint	version;
 #define SP_MMC_VER_Q610	 1
 #define SP_MMC_VER_Q628	 2
+#define SP_MMC_VER_I143	 3
 
 	int (*set_clock)(struct sp_mmc_dev_info *dev);
-	int (*set_pinmux)(struct sp_mmc_dev_info *info);
 } sp_mmc_dev_info;
+
+typedef struct sp_mmc_timing_info {
+	union {
+		struct {
+			uint rd_dat_dly:3;
+			uint rd_rsp_dly:3;
+			uint rd_crc_dly:3;
+		};
+		uint rd_dly:3;
+	};
+	union {
+		struct {
+			uint wr_cmd_dly:3;
+			uint wr_dat_dly:3;
+		};
+		uint wr_dly:3;
+
+	};
+	uint clk_dly:3;
+} sp_mmc_timing_info;
 
 typedef struct sp_mmc_host {
 	union {
@@ -63,35 +101,34 @@ typedef struct sp_mmc_host {
 	};
 
 	void				*ops;
-	struct mmc_config	cfg;
-	uint				rddly;
-	uint				wrdly;
-	sp_mmc_dev_info		dev_info;
+	struct mmc_config		cfg;
+	sp_mmc_dev_info			dev_info;
+	sp_mmc_timing_info		timing_info;
 	uint				dmapio_mode;
 #define SP_MMC_DMA_MODE		0
 #define SP_MMC_PIO_MODE		1
-	struct mmc_cmd *current_cmd;
+	struct mmc_cmd			*current_cmd;
 } sp_mmc_host;
 
 typedef struct sp_mmc_hw_ops {
-	int	 (*hw_init)			(sp_mmc_host *host);
+	int (*hw_init)			(sp_mmc_host *host);
 	int (*set_clock)		(sp_mmc_host *host, uint div);
 	int (*highspeed_en)		(sp_mmc_host *host, bool en);
-	int (*tunel_read_dly)	(sp_mmc_host *host, uint dly);
-	int (*tunel_write_dly) 	(sp_mmc_host *host, uint dly);
-	int (*tunel_clock_dly) 	(sp_mmc_host *host, uint dly);
-	int (*set_bus_width)	(sp_mmc_host *host, uint bus_width);
-	int (*set_sdddr_mode)	(sp_mmc_host *host, int ddrmode);
+	int (*tunel_read_dly)		(sp_mmc_host *host, sp_mmc_timing_info *dly);
+	int (*tunel_write_dly)		(sp_mmc_host *host, sp_mmc_timing_info *dly);
+	int (*tunel_clock_dly)		(sp_mmc_host *host, sp_mmc_timing_info *dly);
+	int (*set_bus_width)		(sp_mmc_host *host, uint bus_width);
+	int (*set_sdddr_mode)		(sp_mmc_host *host, int ddrmode);
 	int (*set_cmd)			(sp_mmc_host *host, struct mmc_cmd *cmd);
 	int (*get_response)		(sp_mmc_host *host, struct mmc_cmd *cmd);
-	int (*set_data_info)	(sp_mmc_host *host, struct mmc_cmd *cmd, struct mmc_data *data);
+	int (*set_data_info)		(sp_mmc_host *host, struct mmc_cmd *cmd, struct mmc_data *data);
 	int (*trigger)			(sp_mmc_host *host);
 	int (*reset_mmc)		(sp_mmc_host *host);
 	int (*reset_dma)		(sp_mmc_host *host);
 	int (*reset_sdio)		(sp_mmc_host *host);
-	int (*wait_data_timeout)(sp_mmc_host *host, uint timeout);
+	int (*wait_data_timeout)	(sp_mmc_host *host, uint timeout);
 	int (*check_finish)		(sp_mmc_host *host); /* chech whether transfer is finish */
-	int	(*tx_dummy)			(sp_mmc_host *host);
+	int (*tx_dummy)			(sp_mmc_host *host);
 	int (*check_error)		(sp_mmc_host *host, bool with_data);
 } sp_mmc_hw_ops;
 
@@ -119,13 +156,13 @@ struct sp_mmc_plat {
 
 #define SD_RST_seq(base) \
 do { \
-	base->sdrst = 1; \
-	base->sdcrcrst = 1; \
-	base->stop_dma_flag = 1; \
 	base->hw_dma_rst = 1; \
 	base->dmaidle = SP_DMA_NORMAL_STATE; \
 	base->dmaidle = SP_RESET_DMA_OPERATION; \
 	base->dmaidle = SP_DMA_NORMAL_STATE; \
+	base->sdrst = 1;		     \
+	base->sdcrcrst = 1;		     \
+	base->stop_dma_flag = 1;	     \
 }while(0)
 
 

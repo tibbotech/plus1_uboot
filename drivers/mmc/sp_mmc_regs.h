@@ -456,7 +456,7 @@ typedef struct  spemmc_general_regs{
 
 	/* g0.2 */
 	dev_reg32 sdram_sector_0_size:16;
-	dev_reg32 reserved4:1;
+	dev_reg32 reserved4:16;
 	/* g0.3 */
 	dev_reg32 dma_base_addr;
 	/* g0.4 */
@@ -547,7 +547,9 @@ typedef struct  spemmc_general_regs{
 			dev_reg32 fast_boot:1;
 			dev_reg32 boot_mode:1;
 			dev_reg32 bootack:3;
-			dev_reg32 reserved14:24;
+			dev_reg32 resume_boot:1;
+			dev_reg32 reserved14:7;
+			dev_reg32 stop_page_num:16;
 		};
 		dev_reg32 boot_ctl;
 	};
@@ -704,10 +706,16 @@ typedef struct  spemmc_general_regs{
 		struct {
 			dev_reg32 sd_clk_dly_sel:3;
 			dev_reg32 reserved27:1;
-			dev_reg32 sd_wr_dly_sel:3;
+			dev_reg32 sd_wr_dat_dly_sel:3;
 			dev_reg32 reserved28:1;
-			dev_reg32 sd_rd_dly_sel:3;
-			dev_reg32 reserved29:21;
+			dev_reg32 sd_wr_cmd_dly_sel:3;
+			dev_reg32 reserved29:1;
+			dev_reg32 sd_rd_rsp_dly_sel:3;
+			dev_reg32 reserved29_1:1;
+			dev_reg32 sd_rd_dat_dly_sel:3;
+			dev_reg32 reserved29_2:1;
+			dev_reg32 sd_rd_crc_dly_sel:3;
+			dev_reg32 reserved29_3:9;
 		};
 		dev_reg32 sd_timing_config;
 	};

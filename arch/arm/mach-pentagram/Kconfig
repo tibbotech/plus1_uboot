@@ -1,21 +1,24 @@
 if ARCH_PENTAGRAM
 
-config SYS_VENDOR
-	string "Vendor name"
-	default "sunplus"
-
 choice
 	prompt "Board select"
 
 config TARGET_PENTAGRAM_COMMON
 	bool "pentagram common board"
-	select CPU_V7
+	select CPU_V7A
+    #select CPU_V7_HAS_NONSEC
+    #select CPU_V7_HAS_VIRT
+	select ARCH_SUPPORT_PSCI
 	select SYS_THUMB_BUILD
 
 config TARGET_PENTAGRAM_B_BOOT
 	bool "pentagram common board (B boot)"
 	select CPU_ARM926EJS
 
+config TARGET_PENTAGRAM_I143_C
+	bool "pentagram common board (I143 C-chip)"
+	select CPU_V7A
+	select SYS_THUMB_BUILD
 endchoice
 
 choice
@@ -27,8 +30,8 @@ config SYS_ENV_ZEBU
 config SYS_ENV_8388
 	bool "8388 environment"
 
-config SYS_ENV_SC7021_EVB
-	bool "sc7021 EVB"
+config SYS_ENV_SP7021_EVB
+	bool "sp7021 EVB"
 
 endchoice
 

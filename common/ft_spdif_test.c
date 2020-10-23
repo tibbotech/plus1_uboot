@@ -1673,6 +1673,9 @@ void aud_pin_mx(void){
 	//regs0->rf_sft_cfg2 = 0xffff0001;
 	regs0->rf_sft_cfg33 = 0xffff0023; //spdif out  pin mux  
 	regs0->G003_RESERVED[10] = 0xffff0400;
+    printf("\n regs0->rf_sft_cfg33=%x  \n",&(regs0->rf_sft_cfg33));
+    printf("\n regs0->rf_sft_cfg2=%x  \n",&(regs0->rf_sft_cfg2));
+    printf("\n regs0->rf_sft_cfg1=%x  \n",&(regs0->rf_sft_cfg1));
 } //aud_pin_mx
 
 void aud_clk_cfg(void)
