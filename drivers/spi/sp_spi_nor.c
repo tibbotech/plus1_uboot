@@ -714,11 +714,11 @@ static int sp_spi_nor_claim_bus(struct udevice *dev)
 	struct udevice *bus = dev->parent;
 	struct sp_spi_nor_platdata *plat =  bus->platdata;
 	//set pinmux
-	UINT32* grp1_sft_cfg = (UINT32 *) 0x9c000080;
+	//UINT32* grp1_sft_cfg = (UINT32 *) 0x9c000080;
 	int value = 0;
 
 	diag_printf("%s\n",__FUNCTION__);
-	grp1_sft_cfg[1] = RF_MASK_V(0xf, (2 << 2) | 2);
+	//grp1_sft_cfg[1] = RF_MASK_V(0xf, (2 << 2) | 2);
 
 	if (plat->chipsel == 0)
 		value = A_CHIP;
