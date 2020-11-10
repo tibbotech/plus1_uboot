@@ -473,8 +473,8 @@
 #if 0
 /* romter test booting command */
 #define CONFIG_BOOTCOMMAND      "echo bootcmd started ; sp_preboot dump ; sp_preboot ; printenv ; \
-echo [cmd] cp.l 0x98600000 0x307FC0 0x280000 ; \
-cp.l 0x98600000 0x307FC0 0x280000 ; \
+echo [cmd] cp.l 0x98200000 0x307FC0 0x280000 ; \
+cp.l 0x98200000 0x307FC0 0x280000 ; \
 echo [cmd] cp.l 0x98020000 0x2FFFC0 0x400 ; \
 cp.l 0x98020000 0x2FFFC0 0x400 ; \
 sp_go 0x308000 0x300000"
