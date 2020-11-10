@@ -279,6 +279,19 @@
 		"source ${scriptaddr}; "\
 	"fi; "
 
+#if (NOR_JFFS2 == 1)
+#define NOR_JFFS2_BOOTARGS \
+	"setexpr kernel_sz ${tmpval} + 0x40; " \
+	"setexpr kernel_sz ${kernel_sz} + 0x48; " \
+	"setexpr kernel_sz ${kernel_sz} + 0xffff; " \
+	"setexpr kernel_sz ${kernel_sz} / 0x10000; " \
+	"setexpr kernel_sz ${kernel_sz} * 0x10000; " \
+	"setenv bootargs ${b_c} root=/dev/mtdblock6 rw rootfstype=jffs2 user_debug=255 rootwait " \
+	"mtdparts=9c000b00.spinor:64k@0(iboot)ro,64k(xboot)ro,128k(dtb),768k(uboot),1m(nonos),0x${kernel_sz}(kernel),-(rootfs); "
+#else
+#define NOR_JFFS2_BOOTARGS
+#endif
+
 #define CONFIG_EXTRA_ENV_SETTINGS \
 "b_c=console=ttyS0,115200 earlyprintk\0" \
 "emmc_root=root=/dev/mmcblk0p8 rw rootwait\0" \
@@ -339,11 +352,12 @@
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
 	dbg_scr("md ${addr_tmp_header} 0x10; printenv tmpval; ") \
 	"setexpr sz_kernel ${tmpval} + 0x40; " \
-	"setexpr sz_kernel ${sz_kernel} + 72; " \
+	"setexpr sz_kernel ${sz_kernel} + 0x48; " \
 	"setexpr sz_kernel ${sz_kernel} + 4; setexpr sz_kernel ${sz_kernel} / 4; " \
 	dbg_scr("echo kernel from ${addr_src_kernel} to ${addr_dst_kernel} sz ${sz_kernel}; ") \
 	"cp.l ${addr_src_kernel} ${addr_dst_kernel} ${sz_kernel}; " \
 	dbg_scr("echo bootm ${addr_dst_kernel} - ${fdtcontroladdr}; ") \
+	NOR_JFFS2_BOOTARGS \
 	"run boot_kernel \0" \
 "qk_romter_boot=cp.b ${addr_src_kernel} ${addr_tmp_header} 0x40; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
