@@ -227,7 +227,7 @@
 	"echo Stop; " \
 "fi"
 
-#define DSTADDR_KERNEL		0x20207fc0 
+#define DSTADDR_KERNEL		0x20207fc0
 #define DSTADDR_DTB			0x201F0000
 #define TMPADDR_HEADER		0x24000000
 
@@ -377,7 +377,7 @@
 
 #define CONFIG_ENV_OVERWRITE    /* Allow to overwrite ethaddr and serial */
 
-#if !defined(CONFIG_SP_SPINAND) && !defined(CONFIG_MMC_SP_EMMC)
+#if !defined(CONFIG_SP_SPINAND)
 #define SPEED_UP_SPI_NOR_CLK    /* Set CLK based on flash id */
 #endif
 
