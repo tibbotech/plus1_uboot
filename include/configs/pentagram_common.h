@@ -61,7 +61,9 @@
 /* #define CONFIG_SUNPLUS_SERIAL */
 
 /* Main storage selection */
-#if defined(CONFIG_SP_SPINAND)
+#if (SPINOR == 1) || (NOR_JFFS2 == 1)
+#define SP_MAIN_STORAGE			"nor"
+#elif defined(CONFIG_SP_SPINAND)
 #define SP_MAIN_STORAGE			"nand"
 #elif defined(CONFIG_MMC_SP_EMMC)
 #define SP_MAIN_STORAGE			"emmc"
