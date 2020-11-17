@@ -23,6 +23,8 @@ config USB_XHCI_DWC3
 
 config USB_XHCI_SPDWC3
 	bool "Sunplus DesignWare USB3 DRD Core Support"
+	select USB_XHCI_DWC3_OF_SIMPLE
+	select USB_DWC3
 	help
 	  Say Y or if your system has a Dual Role SuperSpeed
 	  USB controller based on the DesignWare USB3 IP Core.
