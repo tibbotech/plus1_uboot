@@ -480,13 +480,16 @@ static int spi_flash_xfer_read(UINT8 *cmd, size_t cmd_len, void *data, size_t da
 					data_in[0] = data_temp & 0xff;
 					data_in[1] = ((data_temp & 0xff00) >> 8);
 					data_in[2] = ((data_temp & 0xff0000) >> 16);
+					data_in = data_in+3;
 					data_count = data_count-3;
 				} else if (data_count%4 == 2) {
 					data_in[0] = data_temp & 0xff;
 					data_in[1] = ((data_temp & 0xff00) >> 8);
+					data_in = data_in+2;
 					data_count = data_count-2;
 				} else if (data_count%4 == 1) {
 					data_in[0] = data_temp & 0xff;
+					data_in = data_in+1;
 					data_count = data_count-1;
 				}
 			}
@@ -617,12 +620,15 @@ static int spi_flash_xfer_write(UINT8 *cmd, size_t cmd_len, const void *data, si
 				//data_temp = data_in[0] & 0xff;
 				if ((data_count%4) == 3) {
 					data_temp = (data_in[2] << 16) | (data_in[1] << 8) | data_in[0];
+					data_in = data_in+3;
 					data_count = data_count-3;
 				} else if ((data_count%4) == 2) {
 					data_temp =  (data_in[1] << 8) | data_in[0];
+					data_in = data_in+2;
 					data_count = data_count-2;
 				} else if ((data_count%4) == 1) {
 					data_temp = data_in[0];
+					data_in = data_in+1;
 					data_count = data_count-1;
 				}
 				spi_reg->spi_data64 = data_temp;
@@ -751,12 +757,12 @@ static int sp_spi_nor_claim_bus(struct udevice *dev)
 		value |= SPI_CLK_D_32;
 		break;
 	}
-        
+
         spi_reg->spi_ctrl = value;
 #if (SP_SPINOR_DMA)
 	//spi_reg->spi_ctrl = value;
 	//value = spi_reg->spi_timing;
-	spi_reg->spi_timing = ((0x2 << 22) | (0x16 << 16) | plat->rwTimingSel); //2 = 200(MHz) * 10 / 1000 (minium val = 3), 0x16 = 105 * 200(MHz) / 1000. detail in reg spec. 
+	spi_reg->spi_timing = ((0x2 << 22) | (0x16 << 16) | plat->rwTimingSel); //2 = 200(MHz) * 10 / 1000 (minium val = 3), 0x16 = 105 * 200(MHz) / 1000. detail in reg spec.
 	msg_printf("ctrl 0x%x spi_timing 0x%x\n",spi_reg->spi_ctrl, spi_reg->spi_timing);
 #else
 	//spi_reg->spi_ctrl = value;//SPI_CLK_D_16 = 62M
