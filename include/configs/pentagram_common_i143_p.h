@@ -75,6 +75,7 @@
 #define CONFIG_SYS_CBSIZE		(2 << 10)
 #define CONFIG_SYS_PBSIZE		(CONFIG_SYS_CBSIZE + sizeof(CONFIG_SYS_PROMPT) + 16)
 #define CONFIG_SYS_BARGSIZE		CONFIG_SYS_CBSIZE
+#define CONFIG_SYS_CACHELINE_SIZE	32
 
 #define CONFIG_SYS_HZ			1000
 #define CONFIG_STANDALONE_LOAD_ADDR	0xA1200000
@@ -440,7 +441,7 @@ mmc read 0x2fffc0 0x1422 0xa ; mmc read 0x307fc0 0x1822 0x30f0 ; sp_go 0x308000 
 
 #define CONFIG_ENV_OVERWRITE    /* Allow to overwrite ethaddr and serial */
 
-#if !defined(CONFIG_SP_SPINAND) && !defined(CONFIG_MMC_SP_EMMC)
+#if !defined(CONFIG_SP_SPINAND)
 #define SPEED_UP_SPI_NOR_CLK    /* Set CLK based on flash id */
 #endif
 

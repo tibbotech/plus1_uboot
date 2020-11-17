@@ -255,6 +255,7 @@ struct sp_spi_nor_platdata {
 	unsigned int clock;
 	unsigned int mode;
 	unsigned int chipsel;
+	unsigned int rwTimingSel;
 };
 
 #if (SP_SPINOR_DMA)

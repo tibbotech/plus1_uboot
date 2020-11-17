@@ -657,7 +657,9 @@ static int sp_spi_nor_ofdata_to_platdata(struct udevice *bus)
 	msg_printf("%s\n",__FUNCTION__);
 	plat->regs = (struct sp_spi_nor_regs *)fdtdec_get_addr(blob, node, "reg");
 	plat->clock = fdtdec_get_int(blob, node, "spi-max-frequency", 50000000);
-	plat->chipsel = fdtdec_get_int(blob, node, "chip-selection", 0);
+	plat->chipsel = fdtdec_get_int(blob, node, "spi-chip-selection", 0);
+	plat->rwTimingSel = fdtdec_get_int(blob, node, "write-timing-selection", 0);
+	plat->rwTimingSel |= (fdtdec_get_int(blob, node, "read-timing-selection", 0) << 1);
 
 	return 0;
 }
@@ -714,11 +716,11 @@ static int sp_spi_nor_claim_bus(struct udevice *dev)
 	struct udevice *bus = dev->parent;
 	struct sp_spi_nor_platdata *plat =  bus->platdata;
 	//set pinmux
-	UINT32* grp1_sft_cfg = (UINT32 *) 0x9c000080;
+	//UINT32* grp1_sft_cfg = (UINT32 *) 0x9c000080;
 	int value = 0;
 
 	diag_printf("%s\n",__FUNCTION__);
-	grp1_sft_cfg[1] = RF_MASK_V(0xf, (2 << 2) | 2);
+	//grp1_sft_cfg[1] = RF_MASK_V(0xf, (2 << 2) | 2);
 
 	if (plat->chipsel == 0)
 		value = A_CHIP;
@@ -749,14 +751,15 @@ static int sp_spi_nor_claim_bus(struct udevice *dev)
 		value |= SPI_CLK_D_32;
 		break;
 	}
-
+        
+        spi_reg->spi_ctrl = value;
 #if (SP_SPINOR_DMA)
-	spi_reg->spi_ctrl = value;
+	//spi_reg->spi_ctrl = value;
 	//value = spi_reg->spi_timing;
-	spi_reg->spi_timing = (2<<22) | (0x16<<16) | (1<<1);
+	spi_reg->spi_timing = ((0x2 << 22) | (0x16 << 16) | plat->rwTimingSel); //2 = 200(MHz) * 10 / 1000 (minium val = 3), 0x16 = 105 * 200(MHz) / 1000. detail in reg spec. 
 	msg_printf("ctrl 0x%x spi_timing 0x%x\n",spi_reg->spi_ctrl, spi_reg->spi_timing);
 #else
-	spi_reg->spi_ctrl = value;//SPI_CLK_D_16 = 62M
+	//spi_reg->spi_ctrl = value;//SPI_CLK_D_16 = 62M
 #endif
 	spi_reg->spi_cfg1 = SPI_CMD_OEN_1b | SPI_ADDR_OEN_1b | SPI_DATA_OEN_1b | SPI_CMD_1b | SPI_ADDR_1b |
 			    SPI_DATA_1b | SPI_ENHANCE_NO | SPI_DUMMY_CYC(0) | SPI_DATA_IEN_DQ1;

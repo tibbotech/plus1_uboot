@@ -61,7 +61,9 @@
 /* #define CONFIG_SUNPLUS_SERIAL */
 
 /* Main storage selection */
-#if defined(CONFIG_SP_SPINAND)
+#if (SPINOR == 1) || (NOR_JFFS2 == 1)
+#define SP_MAIN_STORAGE			"nor"
+#elif defined(CONFIG_SP_SPINAND)
 #define SP_MAIN_STORAGE			"nand"
 #elif defined(CONFIG_MMC_SP_EMMC)
 #define SP_MAIN_STORAGE			"emmc"
@@ -279,6 +281,19 @@
 		"source ${scriptaddr}; "\
 	"fi; "
 
+#if (NOR_JFFS2 == 1)
+#define NOR_JFFS2_BOOTARGS \
+	"setexpr kernel_sz ${tmpval} + 0x40; " \
+	"setexpr kernel_sz ${kernel_sz} + 0x48; " \
+	"setexpr kernel_sz ${kernel_sz} + 0xffff; " \
+	"setexpr kernel_sz ${kernel_sz} / 0x10000; " \
+	"setexpr kernel_sz ${kernel_sz} * 0x10000; " \
+	"setenv bootargs ${b_c} root=/dev/mtdblock6 rw rootfstype=jffs2 user_debug=255 rootwait " \
+	"mtdparts=9c000b00.spinor:64k@0(iboot)ro,64k(xboot)ro,128k(dtb),768k(uboot),1m(nonos),0x${kernel_sz}(kernel),-(rootfs); "
+#else
+#define NOR_JFFS2_BOOTARGS
+#endif
+
 #define CONFIG_EXTRA_ENV_SETTINGS \
 "b_c=console=ttyS0,115200 earlyprintk\0" \
 "emmc_root=root=/dev/mmcblk0p8 rw rootwait\0" \
@@ -339,11 +354,12 @@
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
 	dbg_scr("md ${addr_tmp_header} 0x10; printenv tmpval; ") \
 	"setexpr sz_kernel ${tmpval} + 0x40; " \
-	"setexpr sz_kernel ${sz_kernel} + 72; " \
+	"setexpr sz_kernel ${sz_kernel} + 0x48; " \
 	"setexpr sz_kernel ${sz_kernel} + 4; setexpr sz_kernel ${sz_kernel} / 4; " \
 	dbg_scr("echo kernel from ${addr_src_kernel} to ${addr_dst_kernel} sz ${sz_kernel}; ") \
 	"cp.l ${addr_src_kernel} ${addr_dst_kernel} ${sz_kernel}; " \
 	dbg_scr("echo bootm ${addr_dst_kernel} - ${fdtcontroladdr}; ") \
+	NOR_JFFS2_BOOTARGS \
 	"run boot_kernel \0" \
 "qk_romter_boot=cp.b ${addr_src_kernel} ${addr_tmp_header} 0x40; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
@@ -364,7 +380,7 @@
 	"mmc read ${addr_tmp_header} ${addr_src_kernel} 0x1; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
 	"setexpr sz_kernel ${tmpval} + 0x40; " \
-	"setexpr sz_kernel ${sz_kernel} + 72; " \
+	"setexpr sz_kernel ${sz_kernel} + 0x48; " \
 	"setexpr sz_kernel ${sz_kernel} + 0x200; setexpr sz_kernel ${sz_kernel} / 0x200; " \
 	"mmc read ${addr_dst_kernel} ${addr_src_kernel} ${sz_kernel}; " \
 	"setenv bootargs ${b_c} ${emmc_root} ${args_emmc} ${args_kern};" \
@@ -385,7 +401,7 @@
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
 	dbg_scr("md ${addr_tmp_header} 0x10; printenv tmpval; ") \
 	"setexpr sz_kernel ${tmpval} + 0x40; " \
-	"setexpr sz_kernel ${sz_kernel} + 72; " \
+	"setexpr sz_kernel ${sz_kernel} + 0x48; " \
 	dbg_scr("echo from kernel partition to ${addr_dst_kernel} sz ${sz_kernel}; ") \
 	"nand read ${addr_dst_kernel} kernel ${sz_kernel}; " \
 	"setenv bootargs ${b_c} root=ubi0:rootfs rw ubi.mtd=9,2048 rootflags=sync rootfstype=ubifs mtdparts=sp_spinand:128k(nand_header),128k(xboot1),1280k(uboot1),2560k(uboot2),512k(env),512k(env_redund),1m(nonos),256k(dtb),15m(kernel),-(rootfs) user_debug=255 rootwait ;" \
@@ -402,7 +418,7 @@
 	"mmc read ${addr_tmp_header} ${addr_src_kernel} 0x1; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
 	"setexpr sz_kernel ${tmpval} + 0x40; " \
-	"setexpr sz_kernel ${sz_kernel} + 72; " \
+	"setexpr sz_kernel ${sz_kernel} + 0x48; " \
 	"setexpr sz_kernel ${sz_kernel} + 0x200; setexpr sz_kernel ${sz_kernel} / 0x200; " \
 	"mmc read ${addr_dst_kernel} ${addr_src_kernel} ${sz_kernel}; " \
 	"sp_go ${addr_dst_kernel} ${fdtcontroladdr}\0" \
@@ -473,8 +489,8 @@
 #if 0
 /* romter test booting command */
 #define CONFIG_BOOTCOMMAND      "echo bootcmd started ; sp_preboot dump ; sp_preboot ; printenv ; \
-echo [cmd] cp.l 0x98600000 0x307FC0 0x280000 ; \
-cp.l 0x98600000 0x307FC0 0x280000 ; \
+echo [cmd] cp.l 0x98200000 0x307FC0 0x280000 ; \
+cp.l 0x98200000 0x307FC0 0x280000 ; \
 echo [cmd] cp.l 0x98020000 0x2FFFC0 0x400 ; \
 cp.l 0x98020000 0x2FFFC0 0x400 ; \
 sp_go 0x308000 0x300000"
@@ -496,7 +512,7 @@ mmc read 0x2fffc0 0x1422 0xa ; mmc read 0x307fc0 0x1822 0x30f0 ; sp_go 0x308000 
 
 #define CONFIG_ENV_OVERWRITE    /* Allow to overwrite ethaddr and serial */
 
-#if !defined(CONFIG_SP_SPINAND) && !defined(CONFIG_MMC_SP_EMMC)
+#if !defined(CONFIG_SP_SPINAND)
 #define SPEED_UP_SPI_NOR_CLK    /* Set CLK based on flash id */
 #endif
 
