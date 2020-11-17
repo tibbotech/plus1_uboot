@@ -690,9 +690,9 @@ static int sp_spi_nor_probe(struct udevice *bus)
 	cmd_buf = malloc(CMD_BUF_LEN * sizeof(UINT8));
 
 #if (SP_SPINOR_DMA)
-	msg_printf("buffsddr 0x%x\n", cmd_buf);
-	msg_printf("wdesc 0x%x rdesc 0x%x\n", wdesc, rdesc);
-	msg_printf("w_buffer_adr 0x%x size 0x%x r_buffer_adr 0x%x\n", w_buffer_adr, CFG_BUFF_MAX, r_buffer_adr);
+	msg_printf("buffsddr 0x%px\n", cmd_buf);
+	msg_printf("wdesc 0x%px rdesc 0x%px\n", wdesc, rdesc);
+	msg_printf("w_buffer_adr 0x%px size 0x%x r_buffer_adr 0x%px\n", w_buffer_adr, CFG_BUFF_MAX, r_buffer_adr);
 	flush_dcache_range((ulong)w_buffer_adr, (ulong)w_buffer_adr + CFG_BUFF_MAX);
 	flush_dcache_range((ulong)r_buffer_adr, (ulong)r_buffer_adr + CFG_BUFF_MAX);
 
@@ -805,9 +805,9 @@ static int sp_spi_nor_xfer(struct udevice *dev, unsigned int bitlen,
 			cmd_len = len;
 			memset(cmd_buf, 0, CMD_BUF_LEN);
 			memcpy(cmd_buf, dout, len);
-			msg_printf("cmd %x\n", cmd_buf[0]);
+			msg_printf("cmd 0x%x\n", cmd_buf[0]);
 			msg_printf("addr 0x%x\n", cmd_buf[1] << 16 | cmd_buf[2] << 8 | cmd_buf[3]);
-			msg_printf("cmd len %d, flags %d\n", len, flags);
+			msg_printf("cmd len %d, flags %lx\n", len, flags);
 		}
 
 		if (!(flags & SPI_XFER_END))

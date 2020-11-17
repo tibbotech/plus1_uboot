@@ -31,7 +31,7 @@ typedef unsigned char BYTE;
 #endif
 
 
-#define SP_SPINOR_DMA                   1
+#define SP_SPINOR_DMA                   0
 
 #define CFG_BUFF_MAX                    (18 << 10)
 #define CONFIG_SRAM_BASE                0x9e800000
