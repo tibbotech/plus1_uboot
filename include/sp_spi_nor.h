@@ -214,9 +214,9 @@ enum SPI_DMA_MODE {
 };
 
 enum SPI_SRAM_STATUS {
-	SRAM_CONFLICT = 0,
-	SRAM_EMPTY = 1,
-	SRAM_FULL = 2
+	SRAM_CONFLICT = (1 << 13),
+	SRAM_EMPTY    = (2 << 13),
+	SRAM_FULL     = (4 << 13)
 };
 
 enum SPI_INTR_STATUS {
