@@ -51,6 +51,7 @@
 
 &l2sw {
  pinctrl-names = "default";
+ mode = <1>;
  pinctrl-0 = <&ethA_pins &eth0_pins &eth1_pins>;
 };
 
