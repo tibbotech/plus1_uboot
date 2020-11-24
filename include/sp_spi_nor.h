@@ -31,14 +31,10 @@ typedef unsigned char BYTE;
 #endif
 
 
-#define SP_SPINOR_DMA                   0
+#define SP_SPINOR_DMA                   1
 
 #define CFG_BUFF_MAX                    (18 << 10)
-#define CONFIG_SRAM_BASE                0x9e800000
-
-#define CMD_BUF_LEN                     4
-
-#define RF_MASK_V(_mask, _val)          (((_mask) << 16) | (_val))
+#define CMD_BUF_LEN                     5
 
 //spi_ctrl
 #define SPI_CTRL_BUSY                   (1<<31)

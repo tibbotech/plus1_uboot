@@ -120,22 +120,22 @@ static void spi_readcmd_set(UINT8 cmd)
 	diag_printf("%s\n",__FUNCTION__);
 
 	switch (cmd) {
-	case 0x0B:
+	case 0x0B: // Fast read
 		spi_nor_io_CUST_config(CMD_1,ADDR_1,DATA_1,enhance,DUMMY_CYCLE(8));
 		break;
-	case 0x3B:
+	case 0x3B: // Fast read dual output
 		spi_nor_io_CUST_config(CMD_1,ADDR_1,DATA_2,enhance,DUMMY_CYCLE(8));
 		break;
-	case 0x6B:
+	case 0x6B: // Fast read quad output
 		spi_nor_io_CUST_config(CMD_1,ADDR_1,DATA_4,enhance,DUMMY_CYCLE(8));
 		break;
-	case 0xBB:
+	case 0xBB: // Fast read dual I/O
 		spi_nor_io_CUST_config(CMD_1,ADDR_2,DATA_2,enhance,DUMMY_CYCLE(4));
 		break;
-	case 0xEB:
+	case 0xEB: // Fast read quad I/O
 		spi_nor_io_CUST_config(CMD_1,ADDR_4,DATA_4,enhance,DUMMY_CYCLE(6));
 		break;
-	case 0x32:
+	case 0x32: // Quad input page program
 		spi_nor_io_CUST_config(CMD_1,ADDR_1,DATA_4,enhance,DUMMY_CYCLE(0));
 		break;
 	default:
@@ -149,16 +149,15 @@ static int spi_flash_xfer_DMAread(struct sp_spi_nor_priv *priv,UINT8 *cmd, size_
 	UINT32 addr_temp = 0;
 	UINT8  *data_in = data;
 	UINT32 time = 0;
-	UINT32 ctrl = 0;
-	UINT32 autocfg = 0;
-	UINT32 temp_len = 0;
-	int    value = 0;
+	UINT32 ctrl;
+	UINT32 autocfg;
+	UINT32 temp_len;
+	int    value;
 	struct spinorbufdesc *desc_r = &priv->rchain;
-	ulong  data_end;
 
 	diag_printf("%s\n",__FUNCTION__);
-	msg_printf("DMA read :data length 0x%x cmd[0] 0x%x\n",data_len, cmd[0]);
-	while ((spi_reg->spi_auto_cfg & DMA_TRIGGER) ||  (spi_reg->spi_ctrl & SPI_CTRL_BUSY)) {
+	msg_printf("DMA read: data length 0x%x, cmd[0] 0x%x\n", data_len, cmd[0]);
+	while ((spi_reg->spi_auto_cfg & DMA_TRIGGER) || (spi_reg->spi_ctrl & SPI_CTRL_BUSY)) {
 		time++;
 		if (time > 0x30000) {
 			 msg_printf("##busy check time out: spi_auto_cfg 0x%x spi_ctrl 0x%x\n", spi_reg->spi_auto_cfg, spi_reg->spi_ctrl);
@@ -166,15 +165,12 @@ static int spi_flash_xfer_DMAread(struct sp_spi_nor_priv *priv,UINT8 *cmd, size_
 		}
 	}
 
-	data_end = desc_r->phys + CFG_BUFF_MAX;
 	msg_printf("data length %d buff size 0x%x\n",data_len, desc_r->size);
 
 	spi_readcmd_set(cmd[0]);
-
 	ctrl = spi_reg->spi_ctrl & (CLEAR_CUST_CMD & (~(1<<19)));
 	ctrl |= (READ | BYTE_0 | ADDR_0B);
 
-	//spi_reg->spi_page_addr = 0;
 	spi_reg->spi_data = 0;
 	if (cmd_len > 1) {
 		addr_temp = (cmd[1] << 16) | (cmd[2] << 8) | cmd[3];
@@ -187,7 +183,7 @@ static int spi_flash_xfer_DMAread(struct sp_spi_nor_priv *priv,UINT8 *cmd, size_
 	do {
 		spi_reg->spi_page_addr = addr_temp;
 		if (data_len > CFG_BUFF_MAX) {
-			temp_len = CFG_BUFF_MAX;
+			temp_len  = CFG_BUFF_MAX;
 			data_len -= CFG_BUFF_MAX;
 		} else {
 			temp_len = data_len;
@@ -195,7 +191,7 @@ static int spi_flash_xfer_DMAread(struct sp_spi_nor_priv *priv,UINT8 *cmd, size_
 		}
 		msg_printf("remain len  0x%x\n", data_len);
 
-		value =  (spi_reg->spi_cfg0 & CLEAR_DATA64_LEN) |  temp_len | DATA64_EN;
+		value = (spi_reg->spi_cfg0 & CLEAR_DATA64_LEN) |  temp_len | DATA64_EN;
 		if (cmd[0] == 5)//need to check
 			value |= (1<<19);
 		spi_reg->spi_cfg0 = value;
@@ -204,7 +200,7 @@ static int spi_flash_xfer_DMAread(struct sp_spi_nor_priv *priv,UINT8 *cmd, size_
 		msg_printf("dma addr 0x%x\n", spi_reg->spi_mem_data_addr);
 		msg_printf("spi_auto_cfg  0x%x\n", spi_reg->spi_auto_cfg);
 
-		autocfg =  (cmd[0]<<24)|(1<<20)| DMA_TRIGGER;
+		autocfg = (cmd[0]<<24)|(1<<20)| DMA_TRIGGER;
 		value = (spi_reg->spi_auto_cfg &(~(0xff<<24))) | autocfg;
 
 		spi_reg->spi_intr_msk = (0x2<<1);
@@ -227,10 +223,10 @@ static int spi_flash_xfer_DMAread(struct sp_spi_nor_priv *priv,UINT8 *cmd, size_
 		}
 
 		/* Invalidate received data */
-		invalidate_dcache_range(rounddown(desc_r->phys, ARCH_DMA_MINALIGN), roundup(data_end,ARCH_DMA_MINALIGN));
+		invalidate_dcache_range(rounddown(desc_r->phys, ARCH_DMA_MINALIGN), roundup(desc_r->phys+temp_len, ARCH_DMA_MINALIGN));
 		memcpy(data_in, (void *)desc_r->phys, temp_len);
-		addr_temp += CFG_BUFF_MAX;
-		data_in += CFG_BUFF_MAX;
+		addr_temp += temp_len;
+		data_in   += temp_len;
 	} while (data_len != 0);
 
 	spi_reg->spi_cfg0 &= (DATA64_DIS & (~ (1<<19)));
@@ -241,21 +237,19 @@ static int spi_flash_xfer_DMAread(struct sp_spi_nor_priv *priv,UINT8 *cmd, size_
 
 static int spi_flash_xfer_DMAwrite(struct sp_spi_nor_priv *priv, UINT8 *cmd, size_t cmd_len, const void *data, size_t data_len)
 {
-	UINT32 temp_len = data_len;
+	UINT32 temp_len;
 	UINT32 addr_temp = 0;
 	UINT8  *data_in = (UINT8 *)data;
 	UINT32 time = 0;
-	UINT32 ctrl = 0;
-	UINT32 autocfg = 0;
-	int    value = 0;
+	UINT32 ctrl;
+	UINT32 autocfg;
+	int    value;
 	struct spinorbufdesc *desc_w = &priv->wchain;
 
-	ulong data_end = desc_w->phys + roundup(CFG_BUFF_MAX, ARCH_DMA_MINALIGN);
-
 	diag_printf("%s\n",__FUNCTION__);
-	msg_printf("DMA write : wdata length %d, cmd 0x%x\n",data_len, cmd[0]);
+	msg_printf("DMA write: wdata length %d, cmd 0x%x\n", data_len, cmd[0]);
 
-	while ((spi_reg->spi_auto_cfg & DMA_TRIGGER) ||  (spi_reg->spi_ctrl & SPI_CTRL_BUSY)) {
+	while ((spi_reg->spi_auto_cfg & DMA_TRIGGER) || (spi_reg->spi_ctrl & SPI_CTRL_BUSY)) {
 		time++;
 		if (time > 0x30000) {
 			 msg_printf("##busy check time out: spi_auto_cfg 0x%x spi_ctrl 0x%x\n", spi_reg->spi_auto_cfg, spi_reg->spi_ctrl);
@@ -269,7 +263,6 @@ static int spi_flash_xfer_DMAwrite(struct sp_spi_nor_priv *priv, UINT8 *cmd, siz
 	if (cmd[0] == 6)//need to check
 		ctrl &= ~(1<<19);
 
-	spi_reg->spi_page_addr = 0;
 	spi_reg->spi_data = 0;
 	if (cmd_len > 1) {
 		addr_temp = (cmd[1] << 16) | (cmd[2] << 8) | cmd[3];
@@ -281,7 +274,7 @@ static int spi_flash_xfer_DMAwrite(struct sp_spi_nor_priv *priv, UINT8 *cmd, siz
 	do {
 		spi_reg->spi_page_addr = addr_temp;
 		if (data_len > CFG_BUFF_MAX) {
-			temp_len = CFG_BUFF_MAX;
+			temp_len  = CFG_BUFF_MAX;
 			data_len -= CFG_BUFF_MAX;
 		} else {
 			temp_len = data_len;
@@ -291,7 +284,7 @@ static int spi_flash_xfer_DMAwrite(struct sp_spi_nor_priv *priv, UINT8 *cmd, siz
 		if (temp_len > 0) {
 			memcpy((void *)desc_w->phys, data_in, temp_len); // copy data to dma
 			/* Flush data to be sent */
-			flush_dcache_range(desc_w->phys, data_end);
+			flush_dcache_range(rounddown(desc_w->phys, ARCH_DMA_MINALIGN), roundup(desc_w->phys+temp_len, ARCH_DMA_MINALIGN));
 		}
 
 		value =  spi_reg->spi_cfg0;
@@ -322,8 +315,8 @@ static int spi_flash_xfer_DMAwrite(struct sp_spi_nor_priv *priv, UINT8 *cmd, siz
 			}
 		}
 
-		addr_temp += CFG_BUFF_MAX;
-		data_in += CFG_BUFF_MAX;
+		addr_temp += temp_len;
+		data_in   += temp_len;
 	} while (data_len != 0);
 
 	spi_reg->spi_cfg0 &= DATA64_DIS;
@@ -331,6 +324,7 @@ static int spi_flash_xfer_DMAwrite(struct sp_spi_nor_priv *priv, UINT8 *cmd, siz
 	spi_readcmd_set(0);
 	return 0;
 }
+
 #else
 static void spi_fast_read_enable(void)
 {
@@ -621,7 +615,7 @@ static int spi_flash_xfer_write(UINT8 *cmd, size_t cmd_len, const void *data, si
 					data_in = data_in+3;
 					data_count = data_count-3;
 				} else if (data_count == 2) {
-					data_temp =  (data_in[1] << 8) | data_in[0];
+					data_temp = (data_in[1] << 8) | data_in[0];
 					data_in = data_in+2;
 					data_count = data_count-2;
 				} else if (data_count == 1) {
@@ -719,12 +713,9 @@ static int sp_spi_nor_claim_bus(struct udevice *dev)
 {
 	struct udevice *bus = dev->parent;
 	struct sp_spi_nor_platdata *plat =  bus->platdata;
-	//set pinmux
-	//UINT32* grp1_sft_cfg = (UINT32 *) 0x9c000080;
 	int value = 0;
 
 	diag_printf("%s\n",__FUNCTION__);
-	//grp1_sft_cfg[1] = RF_MASK_V(0xf, (2 << 2) | 2);
 
 	if (plat->chipsel == 0)
 		value = A_CHIP;
@@ -783,7 +774,6 @@ static int sp_spi_nor_xfer(struct udevice *dev, unsigned int bitlen,
 {
 #if (SP_SPINOR_DMA)
 	struct udevice *bus = dev->parent;
-	//struct sp_spi_nor_platdata *pdata = dev_get_platdata(bus);
 	struct sp_spi_nor_priv *priv = dev_get_priv(bus);
 #endif
 	unsigned int len;
@@ -818,20 +808,21 @@ static int sp_spi_nor_xfer(struct udevice *dev, unsigned int bitlen,
 		// read
 		msg_printf("read\n");
 #if (SP_SPINOR_DMA)
-		if (cmd_buf[0] == 0x0B)
-			cmd_buf[0] = 0xEB;
-
 		spi_flash_xfer_DMAread(priv, cmd_buf, cmd_len, din, len);
 #else
 		spi_flash_xfer_read(cmd_buf, cmd_len, din, len);
 #endif
 	} else if ((!din) | (flags & SPI_XFER_END)) {
 		// write
+		if (cmd_buf[0] == 0xD8) { // 64kB sector erase
+			memcpy(cmd_buf+1, dout, 3);
+			cmd_len += 3;
+			flc = 1;
+		}
+
 #if (SP_SPINOR_DMA)
 		if (cmd_buf[0] == 0x06)
 			goto out;
-		if (cmd_buf[0] == 0x02)
-			cmd_buf[0] = 0x32;
 
 		msg_printf("write\n");
 		if (flc == 1)
@@ -840,12 +831,6 @@ static int sp_spi_nor_xfer(struct udevice *dev, unsigned int bitlen,
 			spi_flash_xfer_DMAwrite(priv, cmd_buf, cmd_len, dout, len);
 #else
 		msg_printf("write\n");
-
-		if (cmd_buf[0] == 0xd8) { // 64kB sector erase
-			memcpy(cmd_buf+1, dout, 3);
-			cmd_len += 3;
-			flc = 1;
-		}
 
 		if (flc == 1)
 			spi_flash_xfer_write(cmd_buf, cmd_len, NULL, 0);
