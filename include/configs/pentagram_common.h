@@ -236,12 +236,12 @@
 
 //#define SUPPROT_NFS_ROOTFS
 #ifdef SUPPROT_NFS_ROOTFS
-#define USE_NFS_ROOTFS  1
-#define NFS_ROOTFS_DIR			"/home/rootfsdir"
-#define NFS_ROOTFS_SERVER_IP 	172.28.114.216
-#define NFS_ROOTFS_CLINT_IP 	172.28.114.7
-#define NFS_ROOTFS_GATEWAY_IP 	172.28.114.1
-#define NFS_ROOTFS_NETMASK 		255.255.255.0
+#define USE_NFS_ROOTFS		1
+#define NFS_ROOTFS_DIR		"/home/rootfsdir"
+#define NFS_ROOTFS_SERVER_IP	172.28.114.216
+#define NFS_ROOTFS_CLINT_IP	172.28.114.7
+#define NFS_ROOTFS_GATEWAY_IP	172.28.114.1
+#define NFS_ROOTFS_NETMASK	255.255.255.0
 #endif
 
 #if defined(CONFIG_SP_SPINAND) && defined(CONFIG_MMC_SP_EMMC)
@@ -282,16 +282,21 @@
 	"fi; "
 
 #if (NOR_JFFS2 == 1)
-#define NOR_JFFS2_BOOTARGS \
-	"setexpr kernel_sz ${tmpval} + 0x40; " \
-	"setexpr kernel_sz ${kernel_sz} + 0x48; " \
-	"setexpr kernel_sz ${kernel_sz} + 0xffff; " \
-	"setexpr kernel_sz ${kernel_sz} / 0x10000; " \
-	"setexpr kernel_sz ${kernel_sz} * 0x10000; " \
+#define NOR_LOAD_KERNEL \
+	dbg_scr("echo kernel from ${addr_src_kernel} to ${addr_dst_kernel} sz ${sz_kernel}; ") \
+	"setexpr kernel_off ${addr_src_kernel} - 0x98000000; " \
+	"sf probe 0 50000000; " \
+	"sf read ${addr_dst_kernel} ${kernel_off} ${sz_kernel}; " \
+	"setexpr sz_kernel ${sz_kernel} + 0xffff; " \
+	"setexpr sz_kernel ${sz_kernel} / 0x10000; " \
+	"setexpr sz_kernel ${sz_kernel} * 0x10000; " \
 	"setenv bootargs ${b_c} root=/dev/mtdblock6 rw rootfstype=jffs2 user_debug=255 rootwait " \
-	"mtdparts=9c000b00.spinor:64k@0(iboot)ro,64k(xboot)ro,128k(dtb),768k(uboot),1m(nonos),0x${kernel_sz}(kernel),-(rootfs); "
+	"mtdparts=9c000b00.spinor:64k@0(iboot)ro,64k(xboot)ro,128k(dtb),768k(uboot),1m(nonos),0x${sz_kernel}(kernel),-(rootfs); "
 #else
-#define NOR_JFFS2_BOOTARGS
+#define NOR_LOAD_KERNEL \
+	"setexpr sz_kernel ${sz_kernel} + 3; setexpr sz_kernel ${sz_kernel} / 4; " \
+	dbg_scr("echo kernel from ${addr_src_kernel} to ${addr_dst_kernel} sz ${sz_kernel}; ") \
+	"cp.l ${addr_src_kernel} ${addr_dst_kernel} ${sz_kernel}; "
 #endif
 
 #define CONFIG_EXTRA_ENV_SETTINGS \
@@ -346,20 +351,17 @@
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
 	dbg_scr("md ${addr_tmp_header} 0x10; printenv tmpval; ") \
 	"setexpr sz_nonos ${tmpval} + 0x40; " \
-	"setexpr sz_nonos ${sz_nonos} + 4; setexpr sz_nonos ${sz_nonos} / 4; " \
+	"setexpr sz_nonos ${sz_nonos} + 3; setexpr sz_nonos ${sz_nonos} / 4; " \
 	dbg_scr("echo nonosize ${sz_nonos}  addr_dst_nonos ${addr_dst_nonos};") \
 	"cp.l ${addr_src_nonos} ${addr_dst_nonos} ${sz_nonos}; " \
-	"sp_nonos_go ${addr_dst_nonos};"\
+	"sp_nonos_go ${addr_dst_nonos}; "\
 	"cp.b ${addr_src_kernel} ${addr_tmp_header} 0x40; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
 	dbg_scr("md ${addr_tmp_header} 0x10; printenv tmpval; ") \
 	"setexpr sz_kernel ${tmpval} + 0x40; " \
 	"setexpr sz_kernel ${sz_kernel} + 0x48; " \
-	"setexpr sz_kernel ${sz_kernel} + 4; setexpr sz_kernel ${sz_kernel} / 4; " \
-	dbg_scr("echo kernel from ${addr_src_kernel} to ${addr_dst_kernel} sz ${sz_kernel}; ") \
-	"cp.l ${addr_src_kernel} ${addr_dst_kernel} ${sz_kernel}; " \
+	NOR_LOAD_KERNEL \
 	dbg_scr("echo bootm ${addr_dst_kernel} - ${fdtcontroladdr}; ") \
-	NOR_JFFS2_BOOTARGS \
 	"run boot_kernel \0" \
 "qk_romter_boot=cp.b ${addr_src_kernel} ${addr_tmp_header} 0x40; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
@@ -376,14 +378,14 @@
 	"setexpr sz_nonos ${sz_nonos} + 0x200; setexpr sz_nonos ${sz_nonos} / 0x200; " \
 	dbg_scr("echo nonosize ${sz_nonos}  addr_dst_nonos ${addr_dst_nonos};")\
 	"mmc read ${addr_dst_nonos} ${addr_src_nonos} ${sz_nonos}; " \
-	"sp_nonos_go ${addr_dst_nonos};"\
+	"sp_nonos_go ${addr_dst_nonos}; "\
 	"mmc read ${addr_tmp_header} ${addr_src_kernel} 0x1; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
 	"setexpr sz_kernel ${tmpval} + 0x40; " \
 	"setexpr sz_kernel ${sz_kernel} + 0x48; " \
 	"setexpr sz_kernel ${sz_kernel} + 0x200; setexpr sz_kernel ${sz_kernel} / 0x200; " \
 	"mmc read ${addr_dst_kernel} ${addr_src_kernel} ${sz_kernel}; " \
-	"setenv bootargs ${b_c} ${emmc_root} ${args_emmc} ${args_kern};" \
+	"setenv bootargs ${b_c} ${emmc_root} ${args_emmc} ${args_kern}; " \
 	"run boot_kernel \0" \
 "qk_emmc_boot=mmc read ${addr_tmp_header} ${addr_src_kernel} 0x1; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
@@ -396,7 +398,7 @@
 	"setexpr sz_nonos ${tmpval} + 0x40; " \
 	"nand read ${addr_dst_nonos} nonos ${sz_nonos}; " \
 	dbg_scr("echo nonosize ${sz_nonos}  addr_dst_nonos ${addr_dst_nonos};")\
-	"sp_nonos_go ${addr_dst_nonos};"\
+	"sp_nonos_go ${addr_dst_nonos}; "\
 	"nand read ${addr_tmp_header} kernel 0x40; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
 	dbg_scr("md ${addr_tmp_header} 0x10; printenv tmpval; ") \
