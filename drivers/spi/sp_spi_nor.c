@@ -808,6 +808,9 @@ static int sp_spi_nor_xfer(struct udevice *dev, unsigned int bitlen,
 		// read
 		msg_printf("read\n");
 #if (SP_SPINOR_DMA)
+		if (cmd_buf[0] == 0x0B)
+			cmd_buf[0] = 0x3B;
+
 		spi_flash_xfer_DMAread(priv, cmd_buf, cmd_len, din, len);
 #else
 		spi_flash_xfer_read(cmd_buf, cmd_len, din, len);
