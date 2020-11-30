@@ -244,10 +244,10 @@
 #define NFS_ROOTFS_NETMASK	255.255.255.0
 #endif
 
-#if defined(CONFIG_SP_SPINAND) && defined(CONFIG_MMC_SP_EMMC)
-#define SDCARD_DEVICE_ID	0
+#if !defined(CONFIG_MMC_SP_EMMC)
+#define SDCARD_DEVICE_ID	0       // 0: SDC (No eMMC, only SD card)
 #else
-#define SDCARD_DEVICE_ID	1
+#define SDCARD_DEVICE_ID	1       // 0: eMMC, 1: SDC
 #endif
 
 #ifdef RASPBIAN_CMD
