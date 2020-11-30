@@ -1499,24 +1499,29 @@ static sp_mmc_dev_info q628_dev_info[] = {
 
 static const struct udevice_id sunplus_mmc_ids[] = {
 #if defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)
-	{
-		.compatible	= "sunplus,sunplus-q628-sd",
-		.data		= (ulong)&q628_dev_info[1],
-	},
-	{
-		.compatible	= "sunplus,sp7021-card1",
-		.data		= (ulong)&q628_dev_info[1],
-	},
-#ifndef CONFIG_SP_SPINAND
-	{
-		.compatible	= "sunplus,sunplus-q628-emmc",
-		.data		= (ulong)&q628_dev_info[0],
-	},
-	{
-		.compatible	= "sunplus,sp7021-emmc",
-		.data		= (ulong)&q628_dev_info[0],
-	},
-#endif
+
+	#if defined(CONFIG_MMC_SP_7021_SD) 
+		{
+			.compatible	= "sunplus,sunplus-q628-sd",
+			.data		= (ulong)&q628_dev_info[1],
+		},
+		{
+			.compatible	= "sunplus,sp7021-card1",
+			.data		= (ulong)&q628_dev_info[1],
+		},
+	#endif
+
+	#if defined(CONFIG_MMC_SP_EMMC) && !defined(CONFIG_SP_SPINAND)
+		{
+			.compatible	= "sunplus,sunplus-q628-emmc",
+			.data		= (ulong)&q628_dev_info[0],
+		},
+		{
+			.compatible	= "sunplus,sp7021-emmc",
+			.data		= (ulong)&q628_dev_info[0],
+		},
+	#endif
+	
 #elif defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C)
 	{
 		.compatible	= "sunplus,i143-emmc",
