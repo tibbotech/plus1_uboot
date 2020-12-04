@@ -43,29 +43,24 @@
 
 /* Main storage selection */
 #if defined(CONFIG_SP_SPINAND)
-#define SP_MAIN_STORAGE		"nand"
+#define SP_MAIN_STORAGE			"nand"
 #elif defined(CONFIG_MMC_SP_EMMC)
-#define SP_MAIN_STORAGE		"emmc"
+#define SP_MAIN_STORAGE			"emmc"
 #elif defined(BOOT_KERNEL_FROM_TFTP)
-#define SP_MAIN_STORAGE		"tftp"
+#define SP_MAIN_STORAGE			"tftp"
 #else
-#define SP_MAIN_STORAGE		"none"
+#define SP_MAIN_STORAGE			"none"
 #endif
 
 /* u-boot env parameter */
-#define CONFIG_SYS_MMC_ENV_DEV	0
-#if defined(CONFIG_SYS_ENV_8388)
-#define CONFIG_ENV_OFFSET	0x087E4400	/* LBA 0x00043f22 */
-#define CONFIG_ENV_SIZE		0x2000
-#else /* CONFIG_SYS_ENV_SP7021_EVB (and CONFIG_SYS_ENV_ZEBU) */
-	#if defined(CONFIG_ENV_IS_IN_NAND)
+#define CONFIG_SYS_MMC_ENV_DEV		0
+#if defined(CONFIG_ENV_IS_IN_NAND)
 #define CONFIG_ENV_OFFSET		(0x400000)
 #define CONFIG_ENV_OFFSET_REDUND	(0x480000)
 #define CONFIG_ENV_SIZE			(0x80000)
-	#else
-#define CONFIG_ENV_OFFSET	(0x1022 << 9)
-#define CONFIG_ENV_SIZE		(0x0400 << 9)
-	#endif
+#else
+#define CONFIG_ENV_OFFSET		(0x1022 << 9)
+#define CONFIG_ENV_SIZE			(0x0400 << 9)
 #endif
 
 //#define CONFIG_CMDLINE_EDITING
@@ -82,7 +77,9 @@
 
 
 #define CONFIG_DEBUG_UART_SUNPLUS
-#define CONFIG_DEBUG_UART_BASE	0x9c000900
+#define CONFIG_DEBUG_UART_BASE		0x9c000900
+
+#include <asm/arch/sp_bootmode_bitmap_i143.h>
 
 #undef DBG_SCR
 #ifdef DBG_SCR
@@ -98,30 +95,17 @@
 /* TFTP server IP and board MAC address settings for TFTP ISP.
  * You should modify BOARD_MAC_ADDR to the address which you are assigned to */
 #if !defined(BOOT_KERNEL_FROM_TFTP)
-#define TFTP_SERVER_IP		172.18.12.62
-#define BOARD_MAC_ADDR		00:22:60:00:88:20
-#define USER_NAME		_username
+#define TFTP_SERVER_IP			172.18.12.62
+#define BOARD_MAC_ADDR			00:22:60:00:88:20
+#define USER_NAME			_username
 #endif
 
 #ifdef CONFIG_BOOTARGS_WITH_MEM
-#define DEFAULT_BOOTARGS	"console=ttyS0,115200 root=/dev/ram rw loglevel=8 user_debug=255 earlyprintk"
+#define DEFAULT_BOOTARGS		"console=ttyS0,115200 root=/dev/ram rw loglevel=8 user_debug=255 earlyprintk"
 #endif
 
 #define RASPBIAN_CMD                    // Enable Raspbian command
 
-
-#define AUTO_SCAN               0x01
-#define EMMC_BOOT               0x05
-#define SPI_NOR_BOOT            0x07
-#define SDCARD_ISP              0x11
-#define UART_ISP                0x13
-#define USB_ISP                 0x15
-#define SPINAND_BOOT            0xfe  // not use ,for code compile
-#define NAND_LARGE_BOOT         0xfd  // not use ,for code compile
-
-
-/* where to get boot info */
-#define SP_BOOTINFO_BASE    0xFE806E08
 
 /*
  * In the beginning, bootcmd will check bootmode in SRAM and the flag
