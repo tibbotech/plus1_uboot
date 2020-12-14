@@ -172,8 +172,8 @@ static int sp7021_display_probe(struct udevice *dev)
 		return -EINVAL;
 	}
 
-	if(((u32)fb_alloc & 0x1f) != 0)
-		fb_alloc = (void *)(((uintptr_t)fb_alloc + 32 ) & ~0x1f);
+	if(((u32)fb_alloc & 0x3f) != 0)
+		fb_alloc = (void *)(((uintptr_t)fb_alloc + 64 ) & ~0x3f);
 
     ttl_pinmux_init(is_hdmi);
     if(!is_hdmi) {

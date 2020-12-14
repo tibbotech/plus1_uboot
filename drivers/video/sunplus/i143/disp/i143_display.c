@@ -151,8 +151,8 @@ static int i143_display_probe(struct udevice *dev)
 
 	fb_alloc = (void *)((u64)fb_alloc & (~0x80000000));
 
-	if(((u64)fb_alloc & 0x1f) != 0)
-		fb_alloc = (void *)(((uintptr_t)fb_alloc + 32 ) & ~0x1f);
+	if(((u64)fb_alloc & 0x3f) != 0)
+		fb_alloc = (void *)(((uintptr_t)fb_alloc + 64 ) & ~0x3f);
 
 	DRV_DMIX_Init();
 	DRV_TGEN_Init(is_hdmi, width, height);

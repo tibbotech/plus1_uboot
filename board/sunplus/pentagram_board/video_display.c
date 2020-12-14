@@ -72,7 +72,7 @@ int sp7021_video_show_board_info(void)
 		dram_size += gd->bd->bi_dram[i].size;
 
 	
-	len += sprintf(&buf[len], "SP7021-176-EMU V2.0 BOARD \n");
+	len += sprintf(&buf[len], "SP7021 Board Logo Display \n");
 
 	len += sprintf(&buf[len], "%ld MB SDRAM \n",
 		       dram_size >> 20);
