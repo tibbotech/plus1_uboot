@@ -300,7 +300,7 @@
 #endif
 
 #define CONFIG_EXTRA_ENV_SETTINGS \
-"b_c=console=ttyS0,115200 earlyprintk\0" \
+"b_c=console=tty1 console=ttyS0,115200 earlyprintk\0" \
 "emmc_root=root=/dev/mmcblk0p8 rw rootwait\0" \
 "stdin=" STDIN_CFG "\0" \
 "stdout=" STDOUT_CFG "\0" \
@@ -410,7 +410,7 @@
 	"run boot_kernel \0" \
 "boot_kernel="\
 	"if itest ${if_use_nfs_rootfs} == 1; then " \
-		"setenv bootargs root=/dev/nfs nfsroot=${nfs_serverip}:${nfs_rootfs_dir} ip=${nfs_clintip}:${nfs_serverip}:${nfs_gatewayip}:${nfs_netmask}::eth0:off rdinit=/linuxrc noinitrd rw ${b_c}; "\
+		"setenv bootargs ${b_c} root=/dev/nfs nfsroot=${nfs_serverip}:${nfs_rootfs_dir} ip=${nfs_clintip}:${nfs_serverip}:${nfs_gatewayip}:${nfs_netmask}::eth0:off rdinit=/linuxrc noinitrd rw; "\
 	"fi; " \
 	"bootm ${addr_dst_kernel} - ${fdtcontroladdr}; " \
 	"\0" \
@@ -543,6 +543,7 @@ mmc read 0x2fffc0 0x1422 0xa ; mmc read 0x307fc0 0x1822 0x30f0 ; sp_go 0x308000 
 #ifdef CONFIG_USB_KEYBOARD
 #define STDIN_CFG "usbkbd,serial"
 #define CONFIG_PREBOOT "usb start"
+#define CONFIG_BOOTDELAY 1
 #else
 #define STDIN_CFG "serial"
 #endif
