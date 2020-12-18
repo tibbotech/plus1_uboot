@@ -7,8 +7,7 @@
 
 menuconfig VIDEO_I143
 	bool "Enable I143 video support"
-	select DM_VIDEO
-	select DM_GPIO
+	depends on DM_VIDEO
 	# default y
 	help
 	  I143 supports HDMI video output options.
