@@ -543,6 +543,7 @@ mmc read 0x2fffc0 0x1422 0xa ; mmc read 0x307fc0 0x1822 0x30f0 ; sp_go 0x308000 
 #ifdef CONFIG_USB_KEYBOARD
 #define STDIN_CFG "usbkbd,serial"
 #define CONFIG_PREBOOT "usb start"
+#undef CONFIG_BOOTDELAY
 #define CONFIG_BOOTDELAY 1
 #else
 #define STDIN_CFG "serial"
