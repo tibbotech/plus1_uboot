@@ -60,6 +60,12 @@ void main_loop(void)
 
 	autoboot_command(s);
 
+#if defined(CONFIG_ARCH_PENTAGRAM) || defined(CONFIG_TARGET_PENTAGRAM_I143_P)
+	while (tstc()) {
+		(void)getc();  /* consume input */
+	}
+#endif
+
 	cli_loop();
 	panic("No CLI available");
 }
