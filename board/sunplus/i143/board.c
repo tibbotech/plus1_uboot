@@ -88,8 +88,6 @@ void SetBootDev(unsigned int bootdev, unsigned int pin_x)
 			/* module release reset pin */
 			Q628_MOON0_REG->reset[8]=Q628_RF_MASK_V_CLR(1<<10);//spi nand 
 			Q628_MOON0_REG->reset[4]=Q628_RF_MASK_V_CLR(1<<4);//bch
-			/* pinmux set */
-			Q628_MOON1_REG->sft_cfg[1] |= (0x00100010);
 			/* nand pll level set */
 			Q628_MOON4_REG->sft_cfg[27] |= (0x00040004);
 			break;
