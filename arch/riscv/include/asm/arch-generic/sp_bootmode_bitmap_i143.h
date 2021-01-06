@@ -15,6 +15,6 @@
 #define USB_ISP                 0x15
 
 /* where to get boot info */
-#define SP_BOOTINFO_BASE        0xfe809208
+#define SP_BOOTINFO_BASE        0xfe809a08
 
 #endif /* __SP_BOOTMODE_BITMAP_I143_H */
