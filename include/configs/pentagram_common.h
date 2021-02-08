@@ -15,6 +15,8 @@
 #define CONFIG_SMP_PEN_ADDR	(0x9ea7fff4)
 #define A_SYS_COUNTER		(0x9ed0a000)
 /* ... */
+#elif defined(CONFIG_TARGET_PENTAGRAM_Q645)
+/* ... */
 #elif defined(CONFIG_TARGET_PENTAGRAM_B_BOOT)
 /* ... */
 #else

@@ -10,6 +10,7 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+#if 0
 /*
  * Generic timer implementation of get_tbclk()
  */
@@ -111,3 +112,5 @@ ulong timer_get_boot_us(void)
 
 	return val / get_tbclk();
 }
+
+#endif

@@ -19,6 +19,10 @@ config TARGET_PENTAGRAM_I143_C
 	bool "pentagram common board (I143 C-chip)"
 	select CPU_V7A
 	select SYS_THUMB_BUILD
+	
+config TARGET_PENTAGRAM_Q645
+	bool "pentagram common board (Q645 C-chip)"
+	select ARM64
 endchoice
 
 choice

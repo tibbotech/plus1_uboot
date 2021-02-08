@@ -2,7 +2,9 @@
 
 lowlevel_init:
 	/* do nothing */
+#ifndef CONFIG_ARM64
 	mov     pc, lr
+#endif
 
 
 #ifdef	CONFIG_OF_PRIOR_STAGE

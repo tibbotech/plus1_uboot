@@ -34,13 +34,19 @@ DECLARE_GLOBAL_DATA_PTR;
  *    off:          FFF
  */
 
+struct mm_region *mem_map = NULL;
+
 u64 get_tcr(int el, u64 *pips, u64 *pva_bits)
 {
 	u64 max_addr = 0;
 	u64 ips, va_bits;
 	u64 tcr;
 	int i;
-
+	if(mem_map == NULL)
+	{
+		printf(" [cache_v8.c ]set mem_map value . Defined here just to compile successfully \n");
+		while(1);
+	}
 	/* Find the largest address we need to support */
 	for (i = 0; mem_map[i].size || mem_map[i].attrs; i++)
 		max_addr = max(max_addr, mem_map[i].virt + mem_map[i].size);
@@ -363,7 +369,11 @@ __weak u64 get_page_table_size(void)
 void setup_pgtables(void)
 {
 	int i;
-
+	if(mem_map == NULL)
+	{
+		printf(" [cache_v8.c ]set mem_map value . Defined here just to compile successfully \n");
+		while(1);
+	}
 	if (!gd->arch.tlb_fillptr || !gd->arch.tlb_addr)
 		panic("Page table pointer not setup.");
 
