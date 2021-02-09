@@ -13,11 +13,14 @@ config SUPPORT_I143_C
 
 endif
 
-if TARGET_PENTAGRAM_COMMON || TARGET_PENTAGRAM_B_BOOT || TARGET_PENTAGRAM_Q645
+if TARGET_PENTAGRAM_Q645
+config SYS_CONFIG_NAME
+	default "pentagram_common_q645_c"
+endif
 
+if TARGET_PENTAGRAM_COMMON || TARGET_PENTAGRAM_B_BOOT
 config SYS_CONFIG_NAME
 	default "pentagram_common"
-
 endif
 
 config SYS_SOC
