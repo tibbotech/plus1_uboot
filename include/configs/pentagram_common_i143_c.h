@@ -29,8 +29,6 @@
 #define CONFIG_SYS_SDRAM_BASE		0x20000000
 #if defined(CONFIG_SYS_ENV_ZEBU)
 #define CONFIG_SYS_SDRAM_SIZE           (64 << 20)
-#elif defined(CONFIG_SYS_ENV_8388)
-#define CONFIG_SYS_SDRAM_SIZE		(256 << 20)
 #else /* normal SP7021 evb environment can have larger DRAM size */
 #define CONFIG_SYS_SDRAM_SIZE		(128 << 20)
 #endif
@@ -77,18 +75,13 @@
 
 /* u-boot env parameter */
 #define CONFIG_SYS_MMC_ENV_DEV		0
-#if defined(CONFIG_SYS_ENV_8388)
-#define CONFIG_ENV_OFFSET		0x087E4400	/* LBA 0x00043f22 */
-#define CONFIG_ENV_SIZE			0x2000
-#else /* CONFIG_SYS_ENV_SP7021_EVB (and CONFIG_SYS_ENV_ZEBU) */
-	#if defined(CONFIG_ENV_IS_IN_NAND)
+#if defined(CONFIG_ENV_IS_IN_NAND)
 #define CONFIG_ENV_OFFSET		(0x400000)
 #define CONFIG_ENV_OFFSET_REDUND	(0x480000)
 #define CONFIG_ENV_SIZE			(0x80000)
-	#else
+#else
 #define CONFIG_ENV_OFFSET		(0x1022 << 9)
 #define CONFIG_ENV_SIZE			(0x0400 << 9)
-	#endif
 #endif
 
 #define B_START_POS			(0x9e809ff8)
@@ -103,11 +96,8 @@
 //#define CONFIG_ARCH_MISC_INIT  // ???????? hang
 #define CONFIG_SYS_HZ			1000
 
-#if defined(CONFIG_SYS_ENV_8388)
-#include <asm/arch/sp_bootmode_bitmap_8388.h>
-#else /* CONFIG_SYS_ENV_SP7021_EVB (and CONFIG_SYS_ENV_ZEBU) */
 #include <asm/arch/sp_bootmode_bitmap_sc7xxx.h>
-#endif
+
 #undef DBG_SCR
 #ifdef DBG_SCR
 #define dbg_scr(s) s
