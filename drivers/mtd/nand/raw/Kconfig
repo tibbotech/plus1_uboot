@@ -206,7 +206,7 @@ config NAND_ARASAN
 	  controller. This uses the hardware ECC for read and
 	  write operations.
 
-config SP_SPINAND	  
+config SP_SPINAND
 	bool "Sunplus SPI NAND Controller Interface support"
 	select SP_NAND_BBLK
 	depends on DM || MTD
@@ -214,7 +214,17 @@ config SP_SPINAND
 	help
 	  This selects the Sunplus SPI NAND Controller Interface.
 	  If you have a controller with this interface, say Y here.
-	  If unsure, say N.	  
+	  If unsure, say N.
+
+config SP_SPINAND_Q645
+	bool "Sunplus SPI NAND Controller Interface support on Q645"
+	select SP_NAND_BBLK
+	depends on DM || MTD
+	imply CMD_NAND
+	help
+	  This selects the Sunplus SPI NAND Controller Interface on Q645.
+	  If you have a controller with this interface, say Y here.
+	  If unsure, say N.
 
 config GLB_GMNCFG_SPINAND_ENABLE_SFTPAD
 	bool "Enable setting softpad timing"
@@ -243,8 +253,8 @@ config SP_NAND_BBLK
 
 config  USE_SP_BCH
 	bool "Sunplus SPI NAND BCH Interface support"
-	depends on SP_SPINAND
-	default y	
+	depends on SP_SPINAND ||SP_SPINAND_Q645
+	default y
 	help
 	  This selects the Sunplus SPI NAND Controller Interface.
 

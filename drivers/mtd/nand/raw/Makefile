@@ -37,6 +37,7 @@ endif # not spl
 
 ifdef NORMAL_DRIVERS
 obj-$(CONFIG_SP_SPINAND) += sp_spinand_ids.o sp_spinand.o sp_bch.o 
+obj-$(CONFIG_SP_SPINAND_Q645) += sp_spinand_ids.o sp_spinand_q645.o sp_bch_q645.o
 obj-$(CONFIG_SP_NAND_BBLK) += sp_bblk.o
 obj-$(CONFIG_NAND_ECC_BCH) += nand_bch.o
 
