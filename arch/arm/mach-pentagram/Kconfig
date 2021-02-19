@@ -31,11 +31,11 @@ choice
 config SYS_ENV_ZEBU
 	bool "zebu environment"
 
-config SYS_ENV_8388
-	bool "8388 environment"
-
 config SYS_ENV_SP7021_EVB
 	bool "sp7021 EVB"
+
+config SYS_ENV_Q645_EVB
+	bool "Q645 EVB"
 
 endchoice
 

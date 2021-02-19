@@ -1,7 +1,7 @@
-#ifndef __SP_BOOTINFO_SC7XXX_H
-#define __SP_BOOTINFO_SC7XXX_H
+#ifndef __SP_BOOTINFO_Q645_H
+#define __SP_BOOTINFO_Q645_H
 
-#include <asm/arch/sp_bootmode_bitmap_sc7xxx.h>
+#include <asm/arch/sp_bootmode_bitmap_q645.h>
 
 /* copy from iboot "include/common.h" */
 struct sp_bootinfo {
@@ -34,4 +34,4 @@ enum Device_table {
                                SP_GET_BOOTINFO()->gbootRom_boot_mode == SDCARD_ISP || \
                                SP_GET_BOOTINFO()->gbootRom_boot_mode == UART_ISP )
 
-#endif /* __SP_BOOTINFO_SC7XXX_H */
+#endif /* __SP_BOOTINFO_Q645_H */

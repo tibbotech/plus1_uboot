@@ -32,12 +32,12 @@
 #define CONFIG_SYS_SDRAM_BASE		0
 #if defined(CONFIG_SYS_ENV_ZEBU)
 #define CONFIG_SYS_SDRAM_SIZE           (64 << 20)
-#elif defined(CONFIG_SYS_ENV_8388)
-#define CONFIG_SYS_SDRAM_SIZE          (256 << 20)
+#elif defined(CONFIG_SYS_ENV_Q645)
+#define CONFIG_SYS_SDRAM_SIZE           (512 << 20)
 #else /* normal SP7021 evb environment can have larger DRAM size */
-#define CONFIG_SYS_SDRAM_SIZE          (512 << 20)
+#define CONFIG_SYS_SDRAM_SIZE           (512 << 20)
 #endif
-#define CONFIG_SYS_MALLOC_LEN          (6 << 20)
+#define CONFIG_SYS_MALLOC_LEN           (6 << 20)
 
 #ifndef CONFIG_SYS_TEXT_BASE		/* where U-Boot is loaded by xBoot */
 /* It is defined in arch/arm/mach-pentagram/Kconfig */
@@ -104,11 +104,7 @@
 #define CONFIG_ARCH_MISC_INIT
 #define CONFIG_SYS_HZ			1000
 
-#if defined(CONFIG_SYS_ENV_8388)
-#include <asm/arch/sp_bootmode_bitmap_8388.h>
-#else /* CONFIG_SYS_ENV_SP7021_EVB (and CONFIG_SYS_ENV_ZEBU) */
-#include <asm/arch/sp_bootmode_bitmap_sc7xxx.h>
-#endif
+#include <asm/arch/sp_bootmode_bitmap_q645.h>
 
 #undef DBG_SCR
 #ifdef DBG_SCR
