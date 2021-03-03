@@ -6,6 +6,8 @@
 #include "pinctrl_sunplus.h"
 #ifdef CONFIG_PINCTRL_SUNPLUS
 #include <dt-bindings/pinctrl/sppctl-sp7021.h>
+#elif defined (CONFIG_PINCTRL_SUNPLUS_Q645)
+#include <dt-bindings/pinctrl/sppctl-q645.h>
 #else
 #include <dt-bindings/pinctrl/sppctl-i143.h>
 #endif
@@ -110,8 +112,7 @@ void gpio_reg_dump(void)
 			printf("GPIO_P%-2d 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x\n",(i/8),
 			gpio_value[i-7],gpio_value[i-6],gpio_value[i-5],gpio_value[i-4],
 			gpio_value[i-3],gpio_value[i-2],gpio_value[i-1],gpio_value[i]);
-		}
-		if (i == (MAX_PINS-1)) {
+		} else if (i == (MAX_PINS-1)) {
 #ifdef CONFIG_PINCTRL_SUNPLUS
 			printf("GPIO_P%-2d 0x%02x 0x%02x 0x%02x\n",(i/8),
 			gpio_value[i-2],gpio_value[i-1],gpio_value[i]);
@@ -438,6 +439,8 @@ static struct pinctrl_ops sunplus_pinctrl_ops = {
 static const struct udevice_id sunplus_pinctrl_ids[] = {
 #ifdef CONFIG_PINCTRL_SUNPLUS
 	{ .compatible = "sunplus,sp7021-pctl"},
+#elif defined (CONFIG_PINCTRL_SUNPLUS_Q645)
+	{ .compatible = "sunplus,q645-pctl"},
 #else
 	{ .compatible = "sunplus,i143-pctl"},
 #endif

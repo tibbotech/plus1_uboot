@@ -28,6 +28,8 @@
 
 #ifdef CONFIG_PINCTRL_SUNPLUS
 #define MAX_PINS        99
+#elif defined (CONFIG_PINCTRL_SUNPLUS_Q645)
+#define MAX_PINS        80
 #else
 #define MAX_PINS        108
 #endif
