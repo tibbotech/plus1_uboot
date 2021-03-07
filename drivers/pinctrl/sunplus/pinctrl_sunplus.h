@@ -74,7 +74,7 @@ typedef struct {
 	const u8 gval;                  // value for register
 	const unsigned * const pins;    // list of pins
 	const unsigned pnum;            // number of pins
-} sp7021grp_t;
+} sppctlgrp_t;
 
 typedef struct {
 	const char * const name;
@@ -83,7 +83,7 @@ typedef struct {
 	const u8 boff;                  // bit offset
 	const u8 blen;                  // number of bits
 	const u8 gnum;                  // number of groups
-	const sp7021grp_t * const grps; // list of groups
+	const sppctlgrp_t * const grps; // list of groups
 } func_t;
 
 extern func_t list_funcs[];

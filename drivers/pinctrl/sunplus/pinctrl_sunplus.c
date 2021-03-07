@@ -322,7 +322,7 @@ static int sunplus_pinctrl_function(struct udevice *dev)
 			}
 
 			// 'pin_group' is found!
-			const sp7021grp_t *grp = &func->grps[i];
+			const sppctlgrp_t *grp = &func->grps[i];
 
 			// Register all pins of the group.
 			for (i = 0; i < grp->pnum; i++) {
