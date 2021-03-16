@@ -41,6 +41,11 @@ struct DISP_moon1_regs{
 };
 #define DISP_MOON1_REG ((volatile struct DISP_moon1_regs *)DISP_RF_GRP(1,0))
 
+struct DISP_moon2_regs{
+	unsigned int sft_cfg[32];
+};
+#define DISP_MOON2_REG ((volatile struct DISP_moon2_regs *)DISP_RF_GRP(2,0))
+
 struct DISP_moon4_regs {
 	unsigned int pllsp_ctl[7];	// 4.0
 	unsigned int plla_ctl[5];	// 4.7
@@ -59,6 +64,29 @@ struct DISP_moon4_regs {
 };
 #define DISP_MOON4_REG ((volatile struct DISP_moon4_regs *)DISP_RF_GRP(4, 0))
 
+struct DISP_moon91_regs {
+	unsigned int reserved1[13];	// 91.0 - 12
+	unsigned int data;			// 91.13
+	unsigned int status;		// 91.14
+	unsigned int config;		// 91.15
+	unsigned int reserved2[16];	// 91.16 - 31
+};
+#define DISP_SPI0_REG ((volatile struct DISP_moon91_regs *)DISP_RF_GRP(91, 0))
+
+struct DISP_moon6_regs{
+	unsigned int sft_cfg[32];
+};
+#define DISP_GPIO6_REG ((volatile struct DISP_moon6_regs *)DISP_RF_GRP(6,0))
+
+struct DISP_moon7_regs{
+	unsigned int sft_cfg[32];
+};
+#define DISP_GPIO7_REG ((volatile struct DISP_moon7_regs *)DISP_RF_GRP(7,0))
+
+struct DISP_moon101_regs{
+	unsigned int sft_cfg[32];
+};
+#define DISP_GPIO101_REG ((volatile struct DISP_moon101_regs *)DISP_RF_GRP(101,0))
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                                 struct define                                                            //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////

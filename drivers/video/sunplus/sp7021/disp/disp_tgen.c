@@ -19,7 +19,16 @@ void DRV_TGEN_Init(int is_hdmi, int width, int height)
 	G213_TGEN_REG->tgen_user_int2_config = 400;
 
 	if(!is_hdmi) {
-		if ( (width == 1024) && (height == 600) ) {
+		if ( (width == 1280) && (height == 720) ) {
+			G213_TGEN_REG->tgen_dtg_config = 1; //TGEN USER MODE
+			G213_TGEN_REG->tgen_dtg_total_pixel = 1352; //Total pixel
+			G213_TGEN_REG->tgen_dtg_ds_line_start_cd_point = 1280; //line start
+			G213_TGEN_REG->tgen_dtg_total_line = 736; //Total line
+			G213_TGEN_REG->tgen_dtg_field_end_line = 732; //field end line
+			G213_TGEN_REG->tgen_dtg_start_line = 11; //start line
+			//G213_TGEN_REG->tgen_reset = 1;
+		}
+		else if ( (width == 1024) && (height == 600) ) {
 			G213_TGEN_REG->tgen_dtg_config = 1; //TGEN USER MODE
 			G213_TGEN_REG->tgen_dtg_total_pixel = 1344; //Total pixel
 			G213_TGEN_REG->tgen_dtg_ds_line_start_cd_point = 1024; //line start
