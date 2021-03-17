@@ -21,7 +21,7 @@
 #include "disp_osd.h"
 #include "disp_hdmitx.h"
 
-#define debug printf
+//#define debug printf
 
 extern u32 osd0_header[];
 
@@ -353,7 +353,7 @@ static int sp7021_display_probe(struct udevice *dev)
 	width = CONFIG_VIDEO_SP7021_MAX_XRES;
 	height = CONFIG_VIDEO_SP7021_MAX_YRES;
 
-	printf("Disp: probe ... \n");
+	debug("Disp: probe ... \n");
 
 	#if 0 //TBD, for DTS
 	priv->regs = (void *)dev_read_addr_index(dev,0);
@@ -436,7 +436,7 @@ static int sp7021_display_probe(struct udevice *dev)
 
 	video_set_flush_dcache(dev, true);
 
-	printf("Disp: probe done \n");
+	debug("Disp: probe done \n");
 
 	return 0;
 }
