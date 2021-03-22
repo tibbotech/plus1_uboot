@@ -7,19 +7,17 @@
  */
 
 /* copy from iboot "include/config.h" */
-#define AUTO_SCAN               0x01
-#define AUTO_SCAN_ACHIP         0x15
-#define SPI_NOR_BOOT            0x11
-#define SPINAND_BOOT            0x09
+#define AUTO_SCAN               0x11
+#define SPI_NOR_BOOT            0x17
+#define SPINAND_BOOT            0x1D
 #define EMMC_BOOT               0x1F
-#define SDCARD_ISP              0x07
-#define UART_ISP                0x0F
-#define USB_ISP                 0x17
+#define SDCARD_ISP              0x19
+#define UART_ISP                0x15
+#define USB_ISP                 0x1B
 #define NAND_LARGE_BOOT         0xff /* Q645: no PARA_NAND */
-
 
 /* where to get boot info */
 #define SP_SRAM_BASE        0xfa200000
-#define SP_BOOTINFO_BASE    0xfa218008
+#define SP_BOOTINFO_BASE    0x470008
 
 #endif /* __SP_BOOTMODE_BITMAP_Q645_H */

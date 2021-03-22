@@ -159,7 +159,7 @@ U_BOOT_CMD(
 #else
 #define dev_dbg(fmt, args ...)
 #endif
-#define SPI_NOR_CTRL_BASE       0x9C000B00
+#define SPI_NOR_CTRL_BASE       0xF8000B00
 #define SUNPLUS_ROMTER_ID       0x0053554E
 #define DEFAULT_READ_ID_CMD     0x9F
 

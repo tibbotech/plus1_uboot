@@ -23,6 +23,7 @@ config TARGET_PENTAGRAM_I143_C
 config TARGET_PENTAGRAM_Q645
 	bool "pentagram common board (Q645 C-chip)"
 	select ARM64
+	select ENABLE_ARM_SOC_BOOT0_HOOK
 endchoice
 
 choice
@@ -61,6 +62,8 @@ config SP_TIMER
 	default y
 	help
 	  Support Sunplus STC timer
+
+source "board/sunplus/q645/Kconfig"
 
 source "board/sunplus/pentagram_board/Kconfig"
 

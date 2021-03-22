@@ -1,22 +1,19 @@
 if TARGET_PENTAGRAM_Q645
 
 config SYS_CONFIG_NAME
-	default "pentagram_common_q645"
-
-config SYS_CONFIG_NAME
-	default "pentagram_q945"
+	default "pentagram_common_q645_c"
 
 config SYS_SOC
 	default "pentagram"
 
 config SYS_BOARD
-	default "pentagram_board"
+	default "q645"
 
 config SYS_VENDOR
 	default "sunplus"
 
 config SYS_TEXT_BASE
-	default 0x200040
+	default 0x300040
 
 config SYS_USE_QKBOOT_HEADER
 	bool "use Sunpls quick boot header"

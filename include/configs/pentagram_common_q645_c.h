@@ -10,20 +10,7 @@
 #ifndef __CONFIG_PENTAGRAM_H
 #define __CONFIG_PENTAGRAM_H
 
-/* define board-specific options/flags here, e.g. memory size, ... */
-#if   defined(CONFIG_TARGET_PENTAGRAM_COMMON)
-#define CONFIG_SMP_PEN_ADDR	(0x9ea7fff4)
-#define A_SYS_COUNTER		(0x9ed0a000)
-/* ... */
-#elif defined(CONFIG_TARGET_PENTAGRAM_Q645)
-/* ... */
-#elif defined(CONFIG_TARGET_PENTAGRAM_B_BOOT)
-/* ... */
-#else
-#error "No board configuration is defined"
-#endif
-
-#define CONFIG_CLOCKS
+//#define CONFIG_CLOCKS
 
 /* Disable some options which is enabled by default: */
 #undef CONFIG_CMD_IMLS
@@ -31,7 +18,7 @@
 //#define CONFIG_NR_DRAM_BANKS		1
 #define CONFIG_SYS_SDRAM_BASE		0
 #if defined(CONFIG_SYS_ENV_ZEBU)
-#define CONFIG_SYS_SDRAM_SIZE           (64 << 20)
+#define CONFIG_SYS_SDRAM_SIZE          (256 << 20)// (64 << 20)
 #elif defined(CONFIG_SYS_ENV_Q645)
 #define CONFIG_SYS_SDRAM_SIZE           (512 << 20)
 #else /* normal SP7021 evb environment can have larger DRAM size */
@@ -57,9 +44,9 @@
 #define CONFIG_SYS_LOAD_ADDR		(4 << 20)	/* kernel loaded address */
 
 #ifndef CONFIG_BAUDRATE
-#define CONFIG_BAUDRATE			115200		/* the value doesn't matter, it's not change in U-Boot */
+#define CONFIG_BAUDRATE			921600 //115200		/* the value doesn't matter, it's not change in U-Boot */
 #endif
-#define CONFIG_SYS_BAUDRATE_TABLE	{ 57600, 115200 }
+#define CONFIG_SYS_BAUDRATE_TABLE	{ 115200, 921600 }
 /* #define CONFIG_SUNPLUS_SERIAL */
 
 /* Main storage selection */
@@ -87,6 +74,9 @@
 #endif
 
 #define B_START_POS			(0x9e809ff8)
+
+
+#define COUNTER_FREQUENCY (27*1000*1000)
 
 //#define CONFIG_CMDLINE_EDITING
 //#define CONFIG_AUTO_COMPLETE
@@ -219,7 +209,7 @@
 	"echo Stop; " \
 "fi"
 
-#define DSTADDR_KERNEL		0x307FC0 /* if stext is on 0x308000 */
+#define DSTADDR_KERNEL		0x47FFC0 /* if stext is on 0x480000 */
 #define DSTADDR_DTB		0x2FFFC0
 #define TMPADDR_HEADER		0x800000
 #define DSTADDR_ROOTFS		0x13FFFC0

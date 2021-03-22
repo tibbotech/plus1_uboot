@@ -1,5 +1,8 @@
 #include <common.h>
 #include <fdtdec.h>
+#ifdef CONFIG_TARGET_PENTAGRAM_Q645
+#include <asm/armv8/mmu.h>
+#endif
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -39,7 +42,12 @@ typedef struct {
 	volatile unsigned int timer1_reload;
 } stc_avReg_t;
 
+#ifdef CONFIG_TARGET_PENTAGRAM_Q645
+#define PENTAGRAM_BASE_ADDR	(0xf8000000)
+#else
 #define PENTAGRAM_BASE_ADDR	(0x9C000000)
+#endif
+
 #define PENTAGRAM_MOON0		(PENTAGRAM_BASE_ADDR + (0 << 7))
 #define PENTAGRAM_MOON4		(PENTAGRAM_BASE_ADDR + (4 << 7))
 #define PENTAGRAM_WDTMR_ADDR	(PENTAGRAM_BASE_ADDR + (12 << 7))	/* Either Group 12 or 96 */
@@ -96,12 +104,14 @@ void reset_cpu(ulong ignored)
 
 	puts("System is going to reboot ...\n");
 
+#ifndef CONFIG_TARGET_PENTAGRAM_Q645
 	/*
 	 * Enable all methods (in Grp(4, 29)) to cause chip reset:
 	 * Bit [4:1]
 	 */
 	ptr = (volatile unsigned int *)(PENTAGRAM_MOON4 + (29 << 2));
 	*ptr = (0x001E << 16) | 0x001E;
+#endif
 
 #if 0
 	/* Watchdogs used by RISC */
@@ -159,6 +169,7 @@ int dram_get_size(void)
 #endif
 int dram_init(void)
 {
+
 #ifdef CONFIG_BOOTARGS_WITH_MEM
 	gd->ram_size = dram_get_size();
 #elif defined(CONFIG_SYS_ENV_ZEBU)
@@ -169,7 +180,6 @@ int dram_init(void)
 		gd->ram_size = CONFIG_SYS_SDRAM_SIZE;
 	}
 #endif
-
 
 return 0;
 }
@@ -190,6 +200,10 @@ int print_cpuinfo(void)
 int arch_misc_init(void)
 {
 	volatile unsigned int *ptr;
+
+#ifdef CONFIG_TARGET_PENTAGRAM_Q645
+	return 0;
+#endif
 
 #ifdef CONFIG_VIDEO_SP7021
 #ifdef CONFIG_DM_VIDEO_SP7021_LOGO
@@ -249,4 +263,30 @@ void smp_set_core_boot_addr(unsigned long addr, int corenr)
 	__asm__ __volatile__ ("dsb ishst; sev");
 }
 #endif
+#endif
+
+#ifdef CONFIG_TARGET_PENTAGRAM_Q645
+static struct mm_region sp_mem_map[] = {
+	{
+		/* RGST */
+		.virt = 0xE0000000UL,
+		.phys = 0xE0000000UL,
+		.size = 0x20000000UL,
+		.attrs = PTE_BLOCK_MEMTYPE(MT_DEVICE_NGNRNE) |
+			 PTE_BLOCK_NON_SHARE
+	},
+	{
+		/* DRAM */
+		.virt = 0x00000000UL,
+		.phys = 0x00000000UL,
+		.size = 0x80000000UL,
+		.attrs = PTE_BLOCK_MEMTYPE(MT_NORMAL) |
+			 PTE_BLOCK_INNER_SHARE
+	},
+	{
+		0,
+	}
+};
+struct mm_region *mem_map = sp_mem_map;
+
 #endif

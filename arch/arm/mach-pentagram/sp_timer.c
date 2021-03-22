@@ -40,7 +40,12 @@ struct stc_regs {
         unsigned int atc_2;          // 12.29
 };
 
-#define SPHE_DEVICE_BASE       0x9C000000
+#ifdef CONFIG_TARGET_PENTAGRAM_Q645
+#define SPHE_DEVICE_BASE	(0xf8000000)
+#else
+#define SPHE_DEVICE_BASE	(0x9C000000)
+#endif
+
 #define RF_GRP(_grp, _reg)     ((((_grp)*32 + (_reg))*4) + SPHE_DEVICE_BASE)
 
 #define STC_REG     ((volatile struct stc_regs *)RF_GRP(12, 0))
@@ -56,7 +61,13 @@ static volatile struct stc_regs *g_regs = STC_AV2_REG;
  * TRIGGER_CLOCK is timer's runtime frequency. We expect it to be 1MHz.
  * TRIGGER_CLOCK = SOURCE_CLOCK / ([13:0] of 12.3 + 1).
  */
+#ifdef CONFIG_TARGET_PENTAGRAM_Q645
+#define USE_EXT_CLK
+#define SP_STC_TRIGGER_CLOCK	90000
+#else
 #define SP_STC_TRIGGER_CLOCK	1000000
+#endif
+
 #ifdef USE_EXT_CLK
 #define SP_STC_SOURCE_CLOCK	13500000	/* Use div_ext_clk, it is 13.5 MHz. */
 #else

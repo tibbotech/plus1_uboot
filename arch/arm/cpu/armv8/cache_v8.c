@@ -34,8 +34,6 @@ DECLARE_GLOBAL_DATA_PTR;
  *    off:          FFF
  */
 
-struct mm_region *mem_map = NULL;
-
 u64 get_tcr(int el, u64 *pips, u64 *pva_bits)
 {
 	u64 max_addr = 0;
@@ -471,6 +469,9 @@ void flush_dcache_range(unsigned long start, unsigned long stop)
 
 void dcache_enable(void)
 {
+	#ifdef CONFIG_TARGET_PENTAGRAM_Q645
+	return;
+	#endif
 	/* The data cache is not active unless the mmu is enabled */
 	if (!(get_sctlr() & CR_M)) {
 		invalidate_dcache_all();

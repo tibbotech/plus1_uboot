@@ -4,10 +4,11 @@
 
 obj-y	+= cpu.o
 
+ifndef CONFIG_ARM64
 ifndef CONFIG_SKIP_LOWLEVEL_INIT
 obj-y	+= lowlevel_init.o
 endif
-
+endif
 obj-$(CONFIG_SP_TIMER)	+= sp_timer.o
 # IP test
 # obj-y	+= rtc_tst.o
