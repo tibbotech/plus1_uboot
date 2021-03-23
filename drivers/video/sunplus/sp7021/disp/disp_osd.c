@@ -49,6 +49,7 @@ int API_OSD_UI_Init(int w, int h, u32 fb_addr, int input_fmt)
 	if(input_fmt == DRV_OSD_REGION_FORMAT_8BPP)
 		osd0_header[0] = SWAP32(0x82001000);
 	else
+		//osd0_header[0] = SWAP32(0x00001132 | (input_fmt << 24)); alpha value force change
 		osd0_header[0] = SWAP32(0x00001000 | (input_fmt << 24));
 
 	osd0_header[1] = SWAP32((UI_height << 16) | UI_width);

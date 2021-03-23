@@ -121,11 +121,29 @@ void SPI_MOSI_LOW(void)
 	//DISP_GPIO6_REG->sft_cfg[2] = 0x04000400;	//G6.2 G_MX42 Master	
 }
 
+void STBYB_HIGH(void)
+{
+	DISP_GPIO6_REG->sft_cfg[8] = 0x02000200;	//G6.8 G_MX9 OE
+	DISP_GPIO6_REG->sft_cfg[16] = 0x02000200;	//G6.16 G_MX9 DO = HIGH
+	//DISP_GPIO6_REG->sft_cfg[16] = 0x02000000;	//G6.16 G_MX9 DO = LOW
+	DISP_GPIO101_REG->sft_cfg[25] = 0x00000200;	//G101.25 G_MX9 First
+	//DISP_GPIO6_REG->sft_cfg[0] = 0x02000200;	//G6.0 G_MX9 Master	
+}
+
+void STBYB_LOW(void)
+{
+	DISP_GPIO6_REG->sft_cfg[8] = 0x02000200;	//G6.8 G_MX9 OE
+	//DISP_GPIO6_REG->sft_cfg[16] = 0x02000200;	//G6.16 G_MX9 DO = HIGH
+	DISP_GPIO6_REG->sft_cfg[16] = 0x02000000;	//G6.16 G_MX9 DO = LOW
+	DISP_GPIO101_REG->sft_cfg[25] = 0x00000200;	//G101.25 G_MX9 First
+	//DISP_GPIO6_REG->sft_cfg[0] = 0x02000200;	//G6.0 G_MX9 Master	
+}
+
 void Spi_Write_16bit(int data)
 {
 	int i,j;
 	SPI_MOSI_LOW();
-	udelay(60);
+	udelay(10);
 	SPI_CS_LOW();
 	for (i = 0; i < 16; i++)
 	{
@@ -145,7 +163,7 @@ void Spi_Write_16bit(int data)
 	SPI_CS_HIGH();
 	SPI_CLK_LOW();
 	SPI_MOSI_LOW();
-	udelay(60);
+	udelay(10);
 }
 
 int spi_init[7] = {0x0000, 0x0110, 0x02B1, 0x0339, 0x0404, 0x0618, 0x0F60};
@@ -174,6 +192,9 @@ void ttl_spi_init(int method)
 	int i;
 	if (method == 0) {
 		//SPI_CS_LOW();
+		//for (i = 0; i < 7; i++)
+		//	Spi_Write_16bit(spi_init[i]);
+
 		for (i = 0; i < 142; i++)
 			Spi_Write_16bit(spi_init_jig[i]);
 
@@ -381,8 +402,12 @@ static int sp7021_display_probe(struct udevice *dev)
     if(!is_hdmi) {
         ttl_clk_init(1, width, height);
 
-		if ( (width == 1280) && (height == 720) )
+		if ( (width == 1280) && (height == 720) ) {
 			ttl_spi_init(0);
+			udelay(1);
+			//STBYB_HIGH();
+		}
+			
     }
 
 	DRV_DMIX_Init();

@@ -270,9 +270,12 @@ static void video_set_cmap(struct udevice *dev,
 			//Palette is ARGB8888 with 256 grey scale
 			if (i < VIDEO_CMAP_OFFSET) {
 				;//*cmap = 0x000000ff;
+				//*cmap = 0x00000032; alpha value modify
 			} else if (i > 235) {
 				*cmap = 0xffffffff;
+				//*cmap = 0xffffff32; alpha value modify
 			} else {
+				//*cmap = (((u32)(0x32) << 0) | alpha value modify
 				*cmap = (((u32)(0xff) << 0) |
 						((u32)((u8)(1164*(i-16)/1000)) << 8) |
 						((u32)((u8)(1164*(i-16)/1000)) << 16) |
@@ -282,8 +285,10 @@ static void video_set_cmap(struct udevice *dev,
 		else {
 			//Palette is ARGB8888 with 256 color 
 			if (i >= (VIDEO_CMAP_OFFSET + color_used))
+				//*cmap = 0x00000032; alpha value modify
 				*cmap = 0x000000ff;
 			else
+				//*cmap = (((u32)(0x32) << 0) | alpha value modify
 				*cmap = (((u32)(0xff) << 0) |
 						((u32)(cte->red) << 8) |
 						((u32)(cte->green) << 16) |
