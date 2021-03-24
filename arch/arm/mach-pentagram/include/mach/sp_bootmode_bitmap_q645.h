@@ -14,6 +14,8 @@
 #define SDCARD_ISP              0x19
 #define UART_ISP                0x15
 #define USB_ISP                 0x1B
+#define USB_BOOT                0xfd
+#define SDCARD_BOOT             0xfe
 #define NAND_LARGE_BOOT         0xff /* Q645: no PARA_NAND */
 
 /* where to get boot info */

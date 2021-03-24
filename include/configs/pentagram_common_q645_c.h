@@ -19,7 +19,7 @@
 #define CONFIG_SYS_SDRAM_BASE		0
 #if defined(CONFIG_SYS_ENV_ZEBU)
 #define CONFIG_SYS_SDRAM_SIZE          (256 << 20)// (64 << 20)
-#elif defined(CONFIG_SYS_ENV_Q645)
+#elif defined(CONFIG_SYS_ENV_Q645_EVB)
 #define CONFIG_SYS_SDRAM_SIZE           (512 << 20)
 #else /* normal SP7021 evb environment can have larger DRAM size */
 #define CONFIG_SYS_SDRAM_SIZE           (512 << 20)
@@ -68,9 +68,16 @@
 #define CONFIG_ENV_OFFSET		(0x400000)
 #define CONFIG_ENV_OFFSET_REDUND	(0x480000)
 #define CONFIG_ENV_SIZE			(0x80000)
-#else
+#elif defined(CONFIG_ENV_IS_IN_MMC)
 #define CONFIG_ENV_OFFSET		(0x1022 << 9)
 #define CONFIG_ENV_SIZE			(0x0400 << 9)
+#elif defined(CONFIG_ENV_IS_IN_FAT)
+#define CONFIG_ENV_FAT_INTERFACE        "mmc"
+#define CONFIG_ENV_FAT_DEVICE_AND_PART  1
+#define CONFIG_ENV_FAT_FILE             "uboot.env"
+#define CONFIG_ENV_SIZE                 (0x80000)
+#else
+#define CONFIG_ENV_SIZE                 (0x80000)
 #endif
 
 #define B_START_POS			(0x9e809ff8)
@@ -202,15 +209,21 @@
 "elif itest.l *${bootinfo_base} == " __stringify(USB_ISP) "; then " \
 	"echo [scr] ISP from USB storage; " \
 	"run isp_usb; " \
+"elif itest.l *${bootinfo_base} == " __stringify(USB_BOOT) "; then " \
+	"echo [scr] Boot from USB storage; " \
+	"run usb_boot; " \
 "elif itest.l *${bootinfo_base} == " __stringify(SDCARD_ISP) "; then " \
 	"echo [scr] ISP from SD Card; " \
 	"run isp_sdcard; " \
+"elif itest.l *${bootinfo_base} == " __stringify(SDCARD_BOOT) "; then " \
+	"echo [scr] Boot from SD Card; " \
+	"run sdcard_boot; " \
 "else " \
 	"echo Stop; " \
 "fi"
 
 #define DSTADDR_KERNEL		0x47FFC0 /* if stext is on 0x480000 */
-#define DSTADDR_DTB		0x2FFFC0
+#define DSTADDR_DTB		0x3FFFC0
 #define TMPADDR_HEADER		0x800000
 #define DSTADDR_ROOTFS		0x13FFFC0
 #define DSTADDR_NONOS		0x10000
@@ -430,17 +443,19 @@
 	"$isp_if start; " \
 	"run isp_common; " \
 	"\0" \
+"usb_boot=setenv isp_if usb && setenv isp_dev 0; " \
+	"$isp_if start; " \
+	"run isp_common; " \
+	"\0" \
 "isp_sdcard=setenv isp_if mmc && setenv isp_dev $sdcard_devid; " \
 	"mmc list; " \
-	"fatsize $isp_if $isp_dev /ISPBOOOT.BIN; " \
-	"echo ISPBOOOT filesize = $filesize; "\
-	"if itest.l ${filesize} == " __stringify(XBOOT_SIZE) ";  then " \
-		"echo run sdcard_boot; "\
-		SDCARD_EXT_CMD \
-	"else "\
-		"echo run isp_common; "\
-		"run isp_common; " \
-	"fi" \
+	"echo run isp_common; "\
+	"run isp_common; " \
+	"\0" \
+"sdcard_boot=setenv isp_if mmc && setenv isp_dev $sdcard_devid; " \
+	"mmc list; " \
+	"echo run sdcard_boot; "\
+	SDCARD_EXT_CMD \
 	"\0" \
 "isp_common=setenv isp_ram_addr 0x1000000; " \
 	RASPBIAN_INIT \
