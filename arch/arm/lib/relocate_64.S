@@ -44,12 +44,19 @@ ENTRY(relocate_code)
 
 	adr	x1, __image_copy_start	/* x1 <- Run &__image_copy_start */
 	adr	x2, __image_copy_end	/* x2 <- Run &__image_copy_end */
+
+#ifdef CONFIG_SYS_ZMEM_SKIP_RELOC
+	subs x2, x2, x1
+	add x3, x0, x2
+	str	x3, [sp, #24]
+#else
 copy_loop:
 	ldp	x10, x11, [x1], #16	/* copy from source address [x1] */
 	stp	x10, x11, [x0], #16	/* copy to   target address [x0] */
 	cmp	x1, x2			/* until source end address [x2] */
 	b.lo	copy_loop
 	str	x0, [sp, #24]
+#endif
 
 	/*
 	 * Fix .rela.dyn relocations
