@@ -469,9 +469,6 @@ void flush_dcache_range(unsigned long start, unsigned long stop)
 
 void dcache_enable(void)
 {
-	#ifdef CONFIG_TARGET_PENTAGRAM_Q645
-	return;
-	#endif
 	/* The data cache is not active unless the mmu is enabled */
 	if (!(get_sctlr() & CR_M)) {
 		invalidate_dcache_all();
