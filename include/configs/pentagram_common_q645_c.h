@@ -411,7 +411,8 @@
 	"bootm ${addr_dst_kernel} - ${fdtcontroladdr}; " \
 	"\0" \
 "qk_zmem_boot=sp_go ${addr_dst_kernel} ${fdtcontroladdr}\0" \
-"zmem_boot=bootm ${addr_dst_kernel} - ${fdtcontroladdr}\0" \
+"zmem_boot=setenv verify 0; " \
+	"bootm ${addr_dst_kernel} - ${fdtcontroladdr}\0" \
 "zebu_emmc_boot=mmc rescan; mmc part; " \
 	"mmc read ${addr_tmp_header} ${addr_src_kernel} 0x1; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
