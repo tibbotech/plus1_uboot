@@ -156,9 +156,60 @@ void DRV_DVE_Init(int is_hdmi, int width, int height)
 			G235_DVE_REG->color_bar_h_total = USER_MODE_COLORBAR_HOR_TOTAL(407);
 			G235_DVE_REG->color_bar_h_active = USER_MODE_COLORBAR_HOR_ACTIVE(319);
 		}
-
 	}
 	else {
+		if( (width == 1024) && (height == 600) ) {
+			debug("dve init 1024_600 hdmi\n");
+			G234_DVE_REG->dve_vsync_start_top = USER_MODE_VSYNC_TOP_START(0);
+			G234_DVE_REG->dve_vsync_start_bot = USER_MODE_VSYNC_BOT_START(0);
+			G234_DVE_REG->dve_vsync_h_point = USER_MODE_VSYNC_HOR_POINT(1183);
+			G234_DVE_REG->dve_vsync_pd_cnt = USER_MODE_VSYNC_WITCH_LINE(2);
+			G234_DVE_REG->dve_hsync_start = USER_MODE_HSYNC_START(1183);
+			G234_DVE_REG->dve_hsync_pd_cnt = USER_MODE_HSYNC_WITCH_PIXEL(160);
+			
+			G234_DVE_REG->dve_v_vld_top_start = USER_MODE_VER_VALID_TOP_START(22);
+			G234_DVE_REG->dve_v_vld_top_end = USER_MODE_VER_VALID_TOP_END(622);
+			G234_DVE_REG->dve_v_vld_bot_start = USER_MODE_VER_VALID_BOT_START(22);
+			G234_DVE_REG->dve_v_vld_bot_end = USER_MODE_VER_VALID_BOT_END(622);
+			
+			G234_DVE_REG->dve_de_h_start = USER_MODE_HOR_DATA_ENABLE_START(1343);
+			G234_DVE_REG->dve_de_h_end = USER_MODE_HOR_DATA_ENABLE_END(1023);
+			G234_DVE_REG->dve_mp_tg_line_0_length = USER_MODE_TOTAL_PIXEL(1343);
+			G234_DVE_REG->dve_mp_tg_frame_0_line = USER_MODE_TOTAL_LINE(634);
+			G234_DVE_REG->dve_mp_tg_act_0_pix = USER_MODE_ACTIVE_PIXEL(1023);
+			
+			G235_DVE_REG->color_bar_v_total = USER_MODE_COLORBAR_VER_TOTAL(634);
+			G235_DVE_REG->color_bar_v_active = USER_MODE_COLORBAR_VER_ACTIVE(1023);
+			G235_DVE_REG->color_bar_v_active_start = USER_MODE_COLORBAR_VER_ACTIVE_START(23);
+			G235_DVE_REG->color_bar_h_total = USER_MODE_COLORBAR_HOR_TOTAL(1343);
+			G235_DVE_REG->color_bar_h_active = USER_MODE_COLORBAR_HOR_ACTIVE(1023);
+		}
+		else if( (width == 800) && (height == 480) ) {
+			debug("dve init 800_480 hdmi\n");
+			G234_DVE_REG->dve_vsync_start_top = USER_MODE_VSYNC_TOP_START(0);
+			G234_DVE_REG->dve_vsync_start_bot = USER_MODE_VSYNC_BOT_START(0);
+			G234_DVE_REG->dve_vsync_h_point = USER_MODE_VSYNC_HOR_POINT(989);
+			G234_DVE_REG->dve_vsync_pd_cnt = USER_MODE_VSYNC_WITCH_LINE(2);
+			G234_DVE_REG->dve_hsync_start = USER_MODE_HSYNC_START(989);
+			G234_DVE_REG->dve_hsync_pd_cnt = USER_MODE_HSYNC_WITCH_PIXEL(66);
+			
+			G234_DVE_REG->dve_v_vld_top_start = USER_MODE_VER_VALID_TOP_START(25);
+			G234_DVE_REG->dve_v_vld_top_end = USER_MODE_VER_VALID_TOP_END(505);
+			G234_DVE_REG->dve_v_vld_bot_start = USER_MODE_VER_VALID_BOT_START(25);
+			G234_DVE_REG->dve_v_vld_bot_end = USER_MODE_VER_VALID_BOT_END(505);
+			
+			G234_DVE_REG->dve_de_h_start = USER_MODE_HOR_DATA_ENABLE_START(1055);
+			G234_DVE_REG->dve_de_h_end = USER_MODE_HOR_DATA_ENABLE_END(799);
+			G234_DVE_REG->dve_mp_tg_line_0_length = USER_MODE_TOTAL_PIXEL(1055);
+			G234_DVE_REG->dve_mp_tg_frame_0_line = USER_MODE_TOTAL_LINE(524);
+			G234_DVE_REG->dve_mp_tg_act_0_pix = USER_MODE_ACTIVE_PIXEL(799);
+			
+			G235_DVE_REG->color_bar_v_total = USER_MODE_COLORBAR_VER_TOTAL(524);
+			G235_DVE_REG->color_bar_v_active = USER_MODE_COLORBAR_VER_ACTIVE(479);
+			G235_DVE_REG->color_bar_v_active_start = USER_MODE_COLORBAR_VER_ACTIVE_START(26);
+			G235_DVE_REG->color_bar_h_total = USER_MODE_COLORBAR_HOR_TOTAL(1055);
+			G235_DVE_REG->color_bar_h_active = USER_MODE_COLORBAR_HOR_ACTIVE(799);
+		}
 		G235_DVE_REG->color_bar_mode = 0;
 		G234_DVE_REG->dve_hdmi_mode_1 = 0x3;
 		G234_DVE_REG->dve_hdmi_mode_0 = 0x41;// latch mode on

@@ -57,7 +57,28 @@ void DRV_TGEN_Init(int is_hdmi, int width, int height)
 		}
 	}
 	else {
-		G213_TGEN_REG->tgen_dtg_config = 0; //TGEN HDMI MODE
+		if ( (width == 1024) && (height == 600) ) {
+			G213_TGEN_REG->tgen_dtg_config = 1; //TGEN USER MODE
+			G213_TGEN_REG->tgen_dtg_total_pixel = 1344; //Total pixel
+			G213_TGEN_REG->tgen_dtg_ds_line_start_cd_point = 1024; //line start
+			G213_TGEN_REG->tgen_dtg_total_line = 635; //Total line
+			G213_TGEN_REG->tgen_dtg_field_end_line = 625; //field end line
+			G213_TGEN_REG->tgen_dtg_start_line = 24; //start line
+			//G213_TGEN_REG->tgen_reset = 1;
+		}
+		else if ( (width == 800) && (height == 480) ) {
+			G213_TGEN_REG->tgen_dtg_config = 1; //TGEN USER MODE
+			G213_TGEN_REG->tgen_dtg_total_pixel = 1056; //Total pixel
+			G213_TGEN_REG->tgen_dtg_ds_line_start_cd_point = 800; //line start
+			G213_TGEN_REG->tgen_dtg_total_line = 525; //Total line
+			G213_TGEN_REG->tgen_dtg_field_end_line = 508; //field end line
+			G213_TGEN_REG->tgen_dtg_start_line = 27; //start line
+			//G213_TGEN_REG->tgen_reset = 1;
+		}
+		else {
+			G213_TGEN_REG->tgen_dtg_config = 0; //TGEN HDMI MODE
+		}
+		
 	}
 }
 

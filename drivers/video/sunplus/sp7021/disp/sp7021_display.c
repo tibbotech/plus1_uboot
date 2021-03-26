@@ -43,27 +43,35 @@ void ttl_pinmux_init(int is_hdmi)
 void ttl_clk_init(int method, int width, int height)
 {
     if (method == 0) {
+		/* 320x240 panel */
         DISP_MOON4_REG->plltv_ctl[0] = 0x80418041; //en pll , clk = 27M //G4.14
         //DISP_MOON4_REG->plltv_ctl[1] = 0x00000000; //G4.15
         DISP_MOON4_REG->plltv_ctl[2] = 0xFFFF0000; //don't care //G4.16
         DISP_MOON4_REG->otp_st = 0x00200020; //clk div4 //G4.31
     }
     else {
-		if ( (width == 1280) && (height == 720) ) {
-			//with  formula ( FVCO = (27/(M+1)) * (N+1) )
-			DISP_MOON4_REG->plltv_ctl[0] = 0x80020000; //don't bypass //G4.14
-			DISP_MOON4_REG->plltv_ctl[1] = 0x00800080; //G4.15
-			DISP_MOON4_REG->plltv_ctl[2] = 0xFFFF0827; //en pll , clk = 60M //(FVCO= (27/(M+1)) * (N+1) ) M=8,N=39 //G4.16
-			DISP_MOON4_REG->otp_st = 0x00300000; //clk no div //G4.31			
-		}
-		else {
+		if ( (width == 800) && (height == 480) ) {
 			//with  formula ( FVCO = (27/(M+1)) * (N+1) )
 			DISP_MOON4_REG->plltv_ctl[0] = 0x80020000; //don't bypass //G4.14
 			//DISP_MOON4_REG->plltv_ctl[1] = 0x00000000; //G4.15
 			DISP_MOON4_REG->plltv_ctl[2] = 0xFFFF1f27; //en pll , clk = 33.75M //(FVCO= (27/(M+1)) * (N+1) ) M=31,N=39 //G4.16
 			DISP_MOON4_REG->otp_st = 0x00300000; //clk no div //G4.31
 		}
-
+		else if ( (width == 1024) && (height == 600) ) {
+			//with  formula ( FVCO = (27/(M+1)) * (N+1) )
+			DISP_MOON4_REG->plltv_ctl[0] = 0x80020000; //don't bypass //G4.14
+			//DISP_MOON4_REG->plltv_ctl[1] = 0x00000000; //G4.15
+			//DISP_MOON4_REG->plltv_ctl[2] = 0xFFFF0810; //en pll , clk = 51M //(FVCO= (27/(M+1)) * (N+1) ) M=8,N=16 //G4.16
+			DISP_MOON4_REG->plltv_ctl[2] = 0xFFFF0A14; //en pll , clk = 51.55M //(FVCO= (27/(M+1)) * (N+1) ) M=10,N=20 //G4.16
+			DISP_MOON4_REG->otp_st = 0x00300000; //clk no div //G4.31
+		}
+		else if ( (width == 1280) && (height == 720) ) {
+			//with  formula ( FVCO = (27/(M+1)) * (N+1) )
+			DISP_MOON4_REG->plltv_ctl[0] = 0x80020000; //don't bypass //G4.14
+			DISP_MOON4_REG->plltv_ctl[1] = 0x00800080; //G4.15
+			DISP_MOON4_REG->plltv_ctl[2] = 0xFFFF0827; //en pll , clk = 60M //(FVCO= (27/(M+1)) * (N+1) )/2 M=8,N=39 //G4.16
+			DISP_MOON4_REG->otp_st = 0x00300000; //clk no div //G4.31			
+		}
     }
 }
 
@@ -291,6 +299,12 @@ void disp_set_output_resolution(int is_hdmi, int width, int height)
 		else if((width == 720)&&(height == 576)) {
 			mode = 1;
 		}
+		else if((width == 800)&&(height == 480)) {
+			mode = 7;
+		}
+		else if((width == 1024)&&(height == 600)) {
+			mode = 7;
+		}
 		else if((width == 1280)&&(height == 720)) {
 			mode = 2;
 		}
@@ -300,7 +314,7 @@ void disp_set_output_resolution(int is_hdmi, int width, int height)
 		else {
 			mode = 0;
 		}
-        hdmi_clk_init(mode);
+        hdmi_clk_init(mode, width, height);
 		debug("hdmitx output , mode = %d \n", mode);
 	}
 	else { //TTL output
@@ -406,8 +420,7 @@ static int sp7021_display_probe(struct udevice *dev)
 			ttl_spi_init(0);
 			udelay(1);
 			//STBYB_HIGH();
-		}
-			
+		}		
     }
 
 	DRV_DMIX_Init();
