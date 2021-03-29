@@ -383,7 +383,7 @@
 	"setexpr sz_kernel ${tmpval} + 0x40; " \
 	"setexpr sz_kernel ${sz_kernel} + 0x48; " \
 	"setexpr sz_kernel ${sz_kernel} + 0x200; setexpr sz_kernel ${sz_kernel} / 0x200; " \
-	"mmc read ${addr_temp_kernel} ${addr_src_kernel} ${sz_kernel}; " \
+	"mmc read ${addr_dst_kernel} ${addr_src_kernel} ${sz_kernel}; " \
 	"setenv bootargs ${b_c} ${emmc_root} ${args_emmc} ${args_kern}; " \
 	"run boot_kernel \0" \
 "qk_emmc_boot=mmc read ${addr_tmp_header} ${addr_src_kernel} 0x1; " \
@@ -403,8 +403,8 @@
 	dbg_scr("md ${addr_tmp_header} 0x10; printenv tmpval; ") \
 	"setexpr sz_kernel ${tmpval} + 0x40; " \
 	"setexpr sz_kernel ${sz_kernel} + 0x48; " \
-	dbg_scr("echo from kernel partition to ${addr_temp_kernel} sz ${sz_kernel}; ") \
-	"nand read ${addr_temp_kernel} kernel ${sz_kernel}; " \
+	dbg_scr("echo from kernel partition to ${addr_dst_kernel} sz ${sz_kernel}; ") \
+	"nand read ${addr_dst_kernel} kernel ${sz_kernel}; " \
 	"setenv bootargs ${b_c} root=ubi0:rootfs rw ubi.mtd=9,2048 rootflags=sync rootfstype=ubifs mtdparts=sp_spinand:128k(nand_header),128k(xboot1),1280k(uboot1),2560k(uboot2),512k(env),512k(env_redund),1m(nonos),256k(dtb),15m(kernel),-(rootfs) user_debug=255 rootwait ;" \
 	"run boot_kernel \0" \
 "boot_kernel="\
@@ -413,10 +413,11 @@
 	"fi; " \
 	"setexpr addr_dst_kernel ${addr_dst_kernel} + 0x40; " \
 	"setexpr addr_temp_kernel ${addr_temp_kernel} + 0x40; " \
-	"unzip ${addr_temp_kernel} ${addr_dst_kernel}; " \
+	"if itest.l *${bootinfo_base} == " __stringify(SPI_NOR_BOOT) "; then " \
+		"unzip ${addr_temp_kernel} ${addr_dst_kernel}; " \
+	"fi; " \
 	dbg_scr("echo booti ${addr_dst_kernel} - ${fdtcontroladdr}; ") \
 	"booti ${addr_dst_kernel} - ${fdtcontroladdr}\0" \
-	"\0" \
 "qk_zmem_boot=sp_go ${addr_dst_kernel} ${fdtcontroladdr}\0" \
 "zmem_boot=setenv verify 0; " \
 	"bootm ${addr_dst_kernel} - ${fdtcontroladdr}\0" \
@@ -426,7 +427,7 @@
 	"setexpr sz_kernel ${tmpval} + 0x40; " \
 	"setexpr sz_kernel ${sz_kernel} + 0x48; " \
 	"setexpr sz_kernel ${sz_kernel} + 0x200; setexpr sz_kernel ${sz_kernel} / 0x200; " \
-	"mmc read ${addr_temp_kernel} ${addr_src_kernel} ${sz_kernel}; " \
+	"mmc read ${addr_dst_kernel} ${addr_src_kernel} ${sz_kernel}; " \
 	"sp_go ${addr_dst_kernel} ${fdtcontroladdr}\0" \
 "tftp_boot=setenv ethaddr ${macaddr} && printenv ethaddr; " \
 	"printenv serverip; " \
