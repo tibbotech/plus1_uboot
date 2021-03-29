@@ -222,6 +222,8 @@
 	"echo Stop; " \
 "fi"
 
+#define TMPADDR_KERNEL		0x3FFFFC0
+
 #define DSTADDR_KERNEL		0x47FFC0 /* if stext is on 0x480000 */
 #define DSTADDR_DTB		0x3FFFC0
 #define TMPADDR_HEADER		0x800000
@@ -279,10 +281,10 @@
 
 #if (NOR_JFFS2 == 1)
 #define NOR_LOAD_KERNEL \
-	dbg_scr("echo kernel from ${addr_src_kernel} to ${addr_dst_kernel} sz ${sz_kernel}; ") \
+	dbg_scr("echo kernel from ${addr_src_kernel} to ${addr_temp_kernel} sz ${sz_kernel}; ") \
 	"setexpr kernel_off ${addr_src_kernel} - 0x98000000; " \
 	"sf probe 0 50000000; " \
-	"sf read ${addr_dst_kernel} ${kernel_off} ${sz_kernel}; " \
+	"sf read ${addr_temp_kernel} ${kernel_off} ${sz_kernel}; " \
 	"setexpr sz_kernel ${sz_kernel} + 0xffff; " \
 	"setexpr sz_kernel ${sz_kernel} / 0x10000; " \
 	"setexpr sz_kernel ${sz_kernel} * 0x10000; " \
@@ -291,8 +293,8 @@
 #else
 #define NOR_LOAD_KERNEL \
 	"setexpr sz_kernel ${sz_kernel} + 3; setexpr sz_kernel ${sz_kernel} / 4; " \
-	dbg_scr("echo kernel from ${addr_src_kernel} to ${addr_dst_kernel} sz ${sz_kernel}; ") \
-	"cp.l ${addr_src_kernel} ${addr_dst_kernel} ${sz_kernel}; "
+	dbg_scr("echo kernel from ${addr_src_kernel} to ${addr_temp_kernel} sz ${sz_kernel}; ") \
+	"cp.l ${addr_src_kernel} ${addr_temp_kernel} ${sz_kernel}; "
 #endif
 
 #define CONFIG_EXTRA_ENV_SETTINGS \
@@ -309,6 +311,7 @@
 "addr_dst_kernel="		__stringify(DSTADDR_KERNEL) "\0" \
 "addr_dst_dtb="			__stringify(DSTADDR_DTB) "\0" \
 "addr_tmp_header="		__stringify(TMPADDR_HEADER) "\0" \
+"addr_temp_kernel=" 	__stringify(TMPADDR_KERNEL) "\0" \
 "nfs_gatewayip="		__stringify(NFS_ROOTFS_GATEWAY_IP) "\0" \
 "nfs_netmask="			__stringify(NFS_ROOTFS_NETMASK) "\0" \
 "nfs_clintip=" 			__stringify(NFS_ROOTFS_CLINT_IP) "\0" \
@@ -380,7 +383,7 @@
 	"setexpr sz_kernel ${tmpval} + 0x40; " \
 	"setexpr sz_kernel ${sz_kernel} + 0x48; " \
 	"setexpr sz_kernel ${sz_kernel} + 0x200; setexpr sz_kernel ${sz_kernel} / 0x200; " \
-	"mmc read ${addr_dst_kernel} ${addr_src_kernel} ${sz_kernel}; " \
+	"mmc read ${addr_temp_kernel} ${addr_src_kernel} ${sz_kernel}; " \
 	"setenv bootargs ${b_c} ${emmc_root} ${args_emmc} ${args_kern}; " \
 	"run boot_kernel \0" \
 "qk_emmc_boot=mmc read ${addr_tmp_header} ${addr_src_kernel} 0x1; " \
@@ -400,15 +403,19 @@
 	dbg_scr("md ${addr_tmp_header} 0x10; printenv tmpval; ") \
 	"setexpr sz_kernel ${tmpval} + 0x40; " \
 	"setexpr sz_kernel ${sz_kernel} + 0x48; " \
-	dbg_scr("echo from kernel partition to ${addr_dst_kernel} sz ${sz_kernel}; ") \
-	"nand read ${addr_dst_kernel} kernel ${sz_kernel}; " \
+	dbg_scr("echo from kernel partition to ${addr_temp_kernel} sz ${sz_kernel}; ") \
+	"nand read ${addr_temp_kernel} kernel ${sz_kernel}; " \
 	"setenv bootargs ${b_c} root=ubi0:rootfs rw ubi.mtd=9,2048 rootflags=sync rootfstype=ubifs mtdparts=sp_spinand:128k(nand_header),128k(xboot1),1280k(uboot1),2560k(uboot2),512k(env),512k(env_redund),1m(nonos),256k(dtb),15m(kernel),-(rootfs) user_debug=255 rootwait ;" \
 	"run boot_kernel \0" \
 "boot_kernel="\
 	"if itest ${if_use_nfs_rootfs} == 1; then " \
 		"setenv bootargs ${b_c} root=/dev/nfs nfsroot=${nfs_serverip}:${nfs_rootfs_dir} ip=${nfs_clintip}:${nfs_serverip}:${nfs_gatewayip}:${nfs_netmask}::eth0:off rdinit=/linuxrc noinitrd rw; "\
 	"fi; " \
-	"bootm ${addr_dst_kernel} - ${fdtcontroladdr}; " \
+	"setexpr addr_dst_kernel ${addr_dst_kernel} + 0x40; " \
+	"setexpr addr_temp_kernel ${addr_temp_kernel} + 0x40; " \
+	"unzip ${addr_temp_kernel} ${addr_dst_kernel}; " \
+	dbg_scr("echo booti ${addr_dst_kernel} - ${fdtcontroladdr}; ") \
+	"booti ${addr_dst_kernel} - ${fdtcontroladdr}\0" \
 	"\0" \
 "qk_zmem_boot=sp_go ${addr_dst_kernel} ${fdtcontroladdr}\0" \
 "zmem_boot=setenv verify 0; " \
@@ -419,7 +426,7 @@
 	"setexpr sz_kernel ${tmpval} + 0x40; " \
 	"setexpr sz_kernel ${sz_kernel} + 0x48; " \
 	"setexpr sz_kernel ${sz_kernel} + 0x200; setexpr sz_kernel ${sz_kernel} / 0x200; " \
-	"mmc read ${addr_dst_kernel} ${addr_src_kernel} ${sz_kernel}; " \
+	"mmc read ${addr_temp_kernel} ${addr_src_kernel} ${sz_kernel}; " \
 	"sp_go ${addr_dst_kernel} ${fdtcontroladdr}\0" \
 "tftp_boot=setenv ethaddr ${macaddr} && printenv ethaddr; " \
 	"printenv serverip; " \
