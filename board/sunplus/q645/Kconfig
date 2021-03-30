@@ -32,7 +32,7 @@ config SRCADDR_NONOS
 	hex "nonos source address"
 	default 0x0 if SD_BOOT
 	default 0x0 if NAND_BOOT
-	default 0x98100000
+	default 0xF0120000
 	help
 	  nonos source address
 	  nonos image is stored in this address.
@@ -42,7 +42,7 @@ config SRCADDR_KERNEL
 	hex "Linux kernel source address"
 	default 0x0 if SD_BOOT
 	default 0x0 if NAND_BOOT
-	default 0x98200000
+	default 0xF0220000
 	help
 	  Linux kernel source address
 	  Linux kernel image is stored in this
@@ -53,7 +53,7 @@ config SRCADDR_DTB
 	hex "DTB source address"
 	default 0x0 if SD_BOOT
 	default 0x0 if NAND_BOOT
-	default 0x98020000
+	default 0xF0040000
 	help
 	  DTB(device tree blob) source address
 	  DTB image is stored in this address.
