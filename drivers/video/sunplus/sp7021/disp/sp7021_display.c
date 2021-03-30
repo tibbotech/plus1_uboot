@@ -381,6 +381,12 @@ static int sp7021_display_probe(struct udevice *dev)
 	int width, height;
 	void *fb_alloc;
 
+	#if 0 //TBD, for DTS
+	unsigned char *ttl_name;
+	unsigned int ttl_out_enable = 0;
+	int ui_width, ui_height, ui_format;
+	#endif
+
 	#ifdef CONFIG_EN_SP7021_TTL
 	is_hdmi = 0; //Switch to TTL out
 	#else	
@@ -390,6 +396,30 @@ static int sp7021_display_probe(struct udevice *dev)
 
 	debug("Disp: probe ... \n");
 
+	#if 0 //TBD, for DTS
+	ttl_name = (unsigned char *)dev_read_string(dev,"ttl-name");
+	printf("Disp: ttl_name %s \n", ttl_name);
+	ttl_out_enable = dev_read_u32_default(dev,"ttl-out-enable", 0);
+	printf("Disp: ttl_out_enable %d \n", ttl_out_enable);
+	if(ttl_out_enable)
+		is_hdmi = 0;
+	else
+		is_hdmi = 1;
+
+	ui_width = dev_read_u32_default(dev,"ui_width", 0);
+	printf("Disp: ui_width %d width %d \n", ui_width, width);
+	if ((ui_width != 0) && (ui_width != width))
+		width = ui_width;
+
+	ui_height = dev_read_u32_default(dev,"ui_height", 0);
+	printf("Disp: ui_height %d height %d \n", ui_height, height);
+	if ((ui_height != 0) && (ui_height != height))
+		height = ui_height;
+
+	ui_format = dev_read_u32_default(dev,"ui_format", 0);
+	printf("Disp: ui_format %d \n", ui_format);
+
+	#endif
 	#if 0 //TBD, for DTS
 	priv->regs = (void *)dev_read_addr_index(dev,0);
 	if ((fdt_addr_t)priv->regs == FDT_ADDR_T_NONE) {
@@ -401,8 +431,7 @@ static int sp7021_display_probe(struct udevice *dev)
 	}
 	#endif
 
-	fb_alloc = malloc((CONFIG_VIDEO_SP7021_MAX_XRES*
-					CONFIG_VIDEO_SP7021_MAX_YRES*
+	fb_alloc = malloc((width*height*
 					(CONFIG_VIDEO_SP7021_MAX_BPP >> 3)) + 64 );
 	if (fb_alloc == NULL) {
 		printf("Error: malloc in %s failed! \n",__func__);
