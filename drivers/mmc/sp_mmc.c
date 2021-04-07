@@ -22,6 +22,9 @@
 #elif defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C)
 #define SPMMC_CLK_SRC CLOCK_222M    /* Host controller's clk source */
 #endif
+#if defined(CONFIG_TARGET_PENTAGRAM_Q645)
+#define SPMMC_CLK_SRC CLOCK_222M    /* Host controller's clk source */
+#endif
 
 #define SPMMC_MAX_CLK CLOCK_25M     /* Max supported SD Card frequency */
 #define SPEMMC_MAX_CLK CLOCK_45M     /* Max supported emmc Card frequency */
@@ -288,7 +291,7 @@ static void sp_mmc_set_clock(struct mmc *mmc, uint clock)
 		clock = mmc->cfg->f_min;
 	if (clock > mmc->cfg->f_max)
 		clock = mmc->cfg->f_max;
-	
+
 	sys_clk = SPMMC_CLK_SRC;
 	clkrt = (sys_clk / clock) - 1;
 
@@ -1493,14 +1496,21 @@ static sp_mmc_dev_info q628_dev_info[] = {
 		.type = SPMMC_DEVICE_TYPE_EMMC,
 		.version = SP_MMC_VER_I143,
 	},
-#endif	
+#endif
+#if defined(CONFIG_TARGET_PENTAGRAM_Q645)
+	{
+		.id = 0,
+		.type = SPMMC_DEVICE_TYPE_EMMC,
+		.version = SP_MMC_VER_Q645,
+	},
+#endif
 };
 
 
 static const struct udevice_id sunplus_mmc_ids[] = {
 #if defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)
 
-	#if defined(CONFIG_MMC_SP_7021_SD) 
+	#if defined(CONFIG_MMC_SP_7021_SD)
 		{
 			.compatible	= "sunplus,sunplus-q628-sd",
 			.data		= (ulong)&q628_dev_info[1],
@@ -1521,13 +1531,19 @@ static const struct udevice_id sunplus_mmc_ids[] = {
 			.data		= (ulong)&q628_dev_info[0],
 		},
 	#endif
-	
+
 #elif defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C)
 	{
 		.compatible	= "sunplus,i143-emmc",
 		.data		= (ulong)&q628_dev_info[0],
-	},	
-#endif 	
+	},
+#endif
+#if defined(CONFIG_TARGET_PENTAGRAM_Q645)
+	{
+		.compatible = "sunplus,q645-emmc",
+		.data		= (ulong)&q628_dev_info[0],
+	},
+#endif
 	{
 	}
 };
