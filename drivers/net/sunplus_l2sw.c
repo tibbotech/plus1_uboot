@@ -18,10 +18,11 @@
 #include <net.h>
 #include <asm/cache.h>
 #include "sunplus_l2sw.h"
+#include "sp_otp.h"
 
 
-extern int read_otp_data(int addr, char *value);
-
+extern int read_otp_data(volatile struct hb_gp_regs *otp_data, volatile struct otprx_regs *regs,
+				int addr, char *value);
 
 static struct l2sw_reg* l2sw_reg_base = NULL;
 #ifdef CONFIG_SUNPLUS_L2SW
@@ -862,7 +863,7 @@ static int l2sw_emac_eth_ofdata_to_platdata(struct udevice *dev)
 	}
 	if (priv->otp_mac_addr < 128) {
 		for (i = 0; i < ARP_HLEN; i++) {
-			read_otp_data(priv->otp_mac_addr+i, (char*)&otp_mac[i]);
+			read_otp_data(HB_GP_REG, SP_OTPRX_REG, priv->otp_mac_addr+i, (char*)&otp_mac[i]);
 		}
 		//eth_info("mac address = %pM\n", otp_mac);
 		check_mac_vendor_id_and_convert(otp_mac);
