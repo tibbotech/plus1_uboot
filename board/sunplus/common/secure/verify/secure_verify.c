@@ -1,7 +1,9 @@
 #include <common.h>
+#include <image.h>
 #include "secure_verify.h"
 #include "../ed25519/ed25519.h"
 #include "sp_otp.h"
+
 
 #define VERIFY_SIGN_MAGIC_DATA	(0x7369676E)
 
@@ -57,7 +59,8 @@ static void load_otp_pub_key(u8 in_pub[])
 	prn_dump_buffer(in_pub,32);
 }
 
-int verify_kernel_signature(const image_header_t  *hdr)
+// verify_kernel_signature
+int do_verify(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
 	int sig_size = 64;
 	int sig_flag_size = 8;
@@ -68,9 +71,25 @@ int verify_kernel_signature(const image_header_t  *hdr)
 	int imgsize = 0;
 	int tv1=0,tv2=0;
 	unsigned int data_size=0;
+	image_header_t  *hdr;
+	
+	if (argc == 1) 
+	{
+		return CMD_RET_USAGE;
+	}
+	
+	int kernel_addr =  simple_strtoul(argv[1], NULL, 0);
+	
+	hdr = (image_header_t  *)kernel_addr;
+	printf("\nkernel_hdr addr = %x\n",(unsigned int)hdr);
 	if(hdr == NULL)
 		goto out;
 	
+	if (!image_check_magic(hdr)) {
+		puts("Bad Magic Number\n");
+		return (int)NULL;
+	}
+
 	if ((read_sb_flag() & 0x01) == 0) {
 		puts("\n ******OTP Secure Boot is OFF, return success******\n");
 		return 0;
@@ -123,6 +142,19 @@ int verify_kernel_signature(const image_header_t  *hdr)
 	printf("\n time %dms\n",tv2);
 
 out:
+	if(ret)
+	{
+		printf("veify kernel fail !!");
+		while(1);
+	}
 	return ret;
 }
 
+
+U_BOOT_CMD(
+	verify, 2, 1, do_verify,
+	"verify command",
+	"verify kernel signature.\n"
+	"\taddr: kernel addr, include uImage header.\n"
+	"\tverify 0x307fc0\n"
+);

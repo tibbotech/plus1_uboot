@@ -285,6 +285,7 @@
 	"setexpr addr_temp_kernel ${addr_temp_kernel} + 0x40; " \
 	"unzip ${addr_temp_kernel} ${addr_dst_kernel}; " \
 	dbg_scr("echo booti ${addr_dst_kernel} - ${fdtcontroladdr}; ") \
+	"verify ${addr_dst_kernel}; " \
 	"booti ${addr_dst_kernel} - ${fdtcontroladdr}\0" \
 "romter_boot=cp.b ${addr_src_kernel} ${addr_tmp_header} 0x40; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
@@ -351,6 +352,7 @@
 	"setexpr addr_temp_kernel ${addr_temp_kernel} + 0x40; " \
 	"setexpr addr_dst_kernel ${addr_dst_kernel} + 0x40; " \
 	"unzip ${addr_temp_kernel} ${addr_dst_kernel}; " \
+	"verify ${addr_dst_kernel}; " \
 	"booti ${addr_dst_kernel} - ${addr_dst_dtb}; " \
 	"\0" \
 "isp_usb=setenv isp_if usb && setenv isp_dev 0; " \

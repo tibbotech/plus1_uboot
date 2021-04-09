@@ -282,6 +282,7 @@
 	dbg_scr("echo kernel from ${addr_src_kernel} to ${addr_dst_kernel} sz ${sz_kernel}; ") \
 	"cp.l ${addr_src_kernel} ${addr_dst_kernel} ${sz_kernel}; " \
 	dbg_scr("echo bootm ${addr_dst_kernel} - ${fdtcontroladdr}; ") \
+	"verify ${addr_dst_kernel}; " \
 	"bootm ${addr_dst_kernel} - ${fdtcontroladdr}\0" \
 "qk_romter_boot=cp.b ${addr_src_kernel} ${addr_tmp_header} 0x40; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
@@ -299,6 +300,7 @@
 	"setexpr sz_kernel ${sz_kernel} + 0x200; setexpr sz_kernel ${sz_kernel} / 0x200; " \
 	"mmc read ${addr_dst_kernel} ${addr_src_kernel} ${sz_kernel}; " \
 	"setenv bootargs console=ttyS0,115200 earlyprintk root=/dev/mmcblk0p7 rw user_debug=255 rootwait ;" \
+	"verify ${addr_dst_kernel}; " \
 	"bootm ${addr_dst_kernel} - ${fdtcontroladdr}\0" \
 "qk_emmc_boot=mmc read ${addr_tmp_header} ${addr_src_kernel} 0x1; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
@@ -320,6 +322,7 @@
 	"printenv serverip; " \
 	"dhcp ${addr_dst_dtb} ${serverip}:dtb" __stringify(USER_NAME) "; " \
 	"dhcp ${addr_dst_kernel} ${serverip}:uImage" __stringify(USER_NAME) "; " \
+	"verify ${addr_dst_kernel}; " \
 	"bootm ${addr_dst_kernel} - ${addr_dst_dtb}; " \
 	"\0" \
 "isp_usb=setenv isp_if usb && setenv isp_dev 0; " \
