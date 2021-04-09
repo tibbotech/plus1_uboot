@@ -223,14 +223,11 @@
 "fi"
 
 #define TMPADDR_KERNEL		0x3FFFFC0
-
+#define TMPADDR_HEADER		0x800000
 #define DSTADDR_KERNEL		0x47FFC0 /* if stext is on 0x480000 */
 #define DSTADDR_DTB		0x3FFFC0
-#define TMPADDR_HEADER		0x800000
-#define DSTADDR_ROOTFS		0x13FFFC0
 #define DSTADDR_NONOS		0x10000
 
-#define XBOOT_SIZE		0x10000	/* for sdcard .ISPBOOOT.BIN size is equal to xboot.img size, do boot.otherwise do ISP*/
 
 //#define SUPPROT_NFS_ROOTFS
 #ifdef SUPPROT_NFS_ROOTFS
@@ -283,7 +280,9 @@
 #define NOR_LOAD_KERNEL \
 	dbg_scr("echo kernel from ${addr_src_kernel} to ${addr_temp_kernel} sz ${sz_kernel}; ") \
 	"setexpr kernel_off ${addr_src_kernel} - 0xf0000000; " \
+	"echo sf probe 0 50000000; " \
 	"sf probe 0 50000000; " \
+	"echo sf read ${addr_temp_kernel} ${kernel_off} ${sz_kernel}; " \
 	"sf read ${addr_temp_kernel} ${kernel_off} ${sz_kernel}; " \
 	"setexpr sz_kernel ${sz_kernel} + 0xffff; " \
 	"setexpr sz_kernel ${sz_kernel} / 0x10000; " \
@@ -294,6 +293,7 @@
 #define NOR_LOAD_KERNEL \
 	"setexpr sz_kernel ${sz_kernel} + 3; setexpr sz_kernel ${sz_kernel} / 4; " \
 	dbg_scr("echo kernel from ${addr_src_kernel} to ${addr_temp_kernel} sz ${sz_kernel}; ") \
+	"echo cp.l ${addr_src_kernel} ${addr_temp_kernel} ${sz_kernel}; " \
 	"cp.l ${addr_src_kernel} ${addr_temp_kernel} ${sz_kernel}; "
 #endif
 
@@ -352,7 +352,9 @@
 	"setexpr sz_nonos ${tmpval} + 0x40; " \
 	"setexpr sz_nonos ${sz_nonos} + 3; setexpr sz_nonos ${sz_nonos} / 4; " \
 	dbg_scr("echo sz_nonos ${sz_nonos}  addr_dst_nonos ${addr_dst_nonos};") \
+	"echo cp.l ${addr_src_nonos} ${addr_dst_nonos} ${sz_nonos}; " \
 	"cp.l ${addr_src_nonos} ${addr_dst_nonos} ${sz_nonos}; " \
+	"echo Booting M4 at ${addr_dst_nonos}; " \
 	"sp_nonos_go ${addr_dst_nonos}; " \
 	"cp.b ${addr_src_kernel} ${addr_tmp_header} 0x40; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
@@ -377,6 +379,7 @@
 	"setexpr sz_nonos ${sz_nonos} + 0x200; setexpr sz_nonos ${sz_nonos} / 0x200; " \
 	dbg_scr("echo sz_nonos ${sz_nonos}  addr_dst_nonos ${addr_dst_nonos};") \
 	"mmc read ${addr_dst_nonos} ${addr_src_nonos} ${sz_nonos}; " \
+	"echo Booting M4 at ${addr_dst_nonos}; " \
 	"sp_nonos_go ${addr_dst_nonos}; " \
 	"mmc read ${addr_tmp_header} ${addr_src_kernel} 0x1; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
@@ -397,6 +400,7 @@
 	"setexpr sz_nonos ${tmpval} + 0x40; " \
 	"nand read ${addr_dst_nonos} nonos ${sz_nonos}; " \
 	dbg_scr("echo sz_nonos ${sz_nonos}  addr_dst_nonos ${addr_dst_nonos};") \
+	"echo Booting M4 at ${addr_dst_nonos}; " \
 	"sp_nonos_go ${addr_dst_nonos}; " \
 	"nand read ${addr_tmp_header} kernel 0x40; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
@@ -414,9 +418,11 @@
 	"setexpr addr_dst_kernel ${addr_dst_kernel} + 0x40; " \
 	"if itest.l *${bootinfo_base} == " __stringify(SPI_NOR_BOOT) "; then " \
 		"setexpr addr_temp_kernel ${addr_temp_kernel} + 0x40; " \
+		"echo unzip ${addr_temp_kernel} ${addr_dst_kernel}; " \
 		"unzip ${addr_temp_kernel} ${addr_dst_kernel}; " \
 	"fi; " \
 	dbg_scr("echo booti ${addr_dst_kernel} - ${fdtcontroladdr}; ") \
+	"echo booti ${addr_dst_kernel} - ${fdtcontroladdr}; " \
 	"booti ${addr_dst_kernel} - ${fdtcontroladdr}\0" \
 "qk_zmem_boot=sp_go ${addr_dst_kernel} ${fdtcontroladdr}\0" \
 "zmem_boot=setenv verify 0; " \
@@ -437,7 +443,7 @@
 		"setexpr tmpval $filesize + 3; setexpr tmpval $tmpval / 4; " \
 		"echo Copying nonos image to $addr_dst_nonos; " \
 		"cp.l $addr_dst_kernel $addr_dst_nonos $tmpval; " \
-		"echo \"## Booting A926 from image at ${addr_dst_nonos}\"; " \
+		"echo Booting M4 at ${addr_dst_nonos}; " \
 		"sp_nonos_go ${addr_dst_nonos}; " \
 	"fi; " \
 	"dhcp ${addr_dst_dtb} ${serverip}:dtb" __stringify(USER_NAME) " && " \
