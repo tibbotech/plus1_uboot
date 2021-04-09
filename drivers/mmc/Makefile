@@ -73,4 +73,5 @@ obj-y += sp_mmc.o
 endif
 
 obj-$(CONFIG_MMC_SP_SD) += sp_sd_i143.o
+obj-$(CONFIG_MMC_SP_Q645_SD) += sp_sd_q645.o
 obj-$(CONFIG_MMC_SP_8388) += sp_mmc_8388.o
