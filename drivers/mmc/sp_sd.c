@@ -12,7 +12,7 @@
 #include <mmc.h>
 #include <dm.h>
 #include <malloc.h>
-#include "sp_sd_q645.h"
+#include "sp_sd.h"
 
 #define MAX_SDDEVICES   2
 
@@ -98,12 +98,12 @@ static u32 loglevel = 0x003;
 
 
 /* Function declaration */
-static int Sd_q645_Bus_Reset_Channel(struct sp_mmc_host *host);
-static int Reset_q645_Controller(struct sp_mmc_host *host);
-static void sp_q645_mmc_prep_cmd_rsp(struct sp_mmc_host *host, struct mmc_cmd *cmd);
-static void sp_q645_mmc_prep_data_info(struct sp_mmc_host *host, struct mmc_cmd *cmd, struct mmc_data *data);
-static void sp_q645_mmc_wait_sdstate_new(struct sp_mmc_host *host);
-static int sp_q645_mmc_read_data_pio(sp_mmc_host *host,  struct mmc_data *data);
+static int Sd_Bus_Reset_Channel(struct sp_mmc_host *host);
+static int Reset_Controller(struct sp_mmc_host *host);
+static void sp_mmc_prep_cmd_rsp(struct sp_mmc_host *host, struct mmc_cmd *cmd);
+static void sp_mmc_prep_data_info(struct sp_mmc_host *host, struct mmc_cmd *cmd, struct mmc_data *data);
+static void sp_mmc_wait_sdstate_new(struct sp_mmc_host *host);
+static int sp_mmc_read_data_pio(sp_mmc_host *host,  struct mmc_data *data);
 
 #if defined(CONFIG_SP_PNG_DECODER)
 int sp_png_dec_run(void);
@@ -338,25 +338,25 @@ static void sp_mmc_set_clock(struct mmc *mmc, uint clock)
 }
 
 
-static int Reset_q645_Controller(struct sp_mmc_host *host)
+static int Reset_Controller(struct sp_mmc_host *host)
 {
 	sp_mmc_hw_ops *ops = host->ops;
 	return ops->reset_mmc(host);
 }
 
 
-static int Sd_q645_Bus_Reset_Channel(struct sp_mmc_host *host)
+static int Sd_Bus_Reset_Channel(struct sp_mmc_host *host)
 {
 	sp_mmc_hw_ops *ops = host->ops;
 	return ops->reset_dma(host);
 }
 
-static void sp_q645_mmc_prep_cmd_rsp(struct sp_mmc_host *host, struct mmc_cmd *cmd)
+static void sp_mmc_prep_cmd_rsp(struct sp_mmc_host *host, struct mmc_cmd *cmd)
 {
 	sp_mmc_hw_ops *ops = host->ops;
 	/* printk("Process Command & Response (No Data)\n"); */
 	/* Reset */
-	Reset_q645_Controller(host);
+	Reset_Controller(host);
 	ops->set_cmd(host, cmd);
 
 	return;
@@ -381,7 +381,7 @@ static void sp_mmc_check_sdstatus_errors(struct sp_mmc_host *host, struct mmc_da
  * DMA transfer mode, used for all other data transfer commands besides read/write block commands (cmd17, 18, 24, 25)
  * Due to host limitations, this kind of DMA transfer mode only supports 1 consecution memory area
  */
-static void sp_q645_mmc_prep_data_info(struct sp_mmc_host *host, struct mmc_cmd *cmd, struct mmc_data *data)
+static void sp_mmc_prep_data_info(struct sp_mmc_host *host, struct mmc_cmd *cmd, struct mmc_data *data)
 {
 	ulong hw_address = 0;
 	unsigned int hw_len = 0;
@@ -415,7 +415,7 @@ static inline void sp_mmc_txdummy(struct sp_mmc_host *host)
 	ops->tx_dummy(host);
 }
 
-static void sp_q645_mmc_wait_sdstate_new(struct sp_mmc_host *host)
+static void sp_mmc_wait_sdstate_new(struct sp_mmc_host *host)
 {
 	/* Wait transaction to finish (either done or error occured) */
 	sp_mmc_hw_ops *ops = host->ops;
@@ -430,14 +430,14 @@ static void sp_q645_mmc_wait_sdstate_new(struct sp_mmc_host *host)
 }
 
 
-void send_q645_stop_cmd(struct sp_mmc_host *host)
+void send_stop_cmd(struct sp_mmc_host *host)
 {
 	struct mmc_cmd stop = {};
 	stop.cmdidx = MMC_CMD_STOP_TRANSMISSION;
 	stop.cmdarg = 0;
 	stop.resp_type = MMC_RSP_R1b;
 
-	sp_q645_mmc_prep_cmd_rsp(host, &stop);
+	sp_mmc_prep_cmd_rsp(host, &stop);
 	sp_mmc_trigger_sdstate(host);
 	sp_mmc_get_rsp(host, &stop); /* Makes sure host returns to a idle or error state */
 	/* sp_mmc_check_sdstatus_errors(host, NULL, NULL); */
@@ -481,13 +481,13 @@ sp_mmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
 		sp_sd_trace();
 		/* post process send command requests, trigger transaction */
 		if (data == NULL) {
-			sp_q645_mmc_prep_cmd_rsp(host, cmd);
+			sp_mmc_prep_cmd_rsp(host, cmd);
 			sp_mmc_trigger_sdstate(host);
 			if (cmd->resp_type & MMC_RSP_PRESENT) {
 				sp_mmc_get_rsp(host, cmd); /* Makes sure host returns to a idle or error state */
 			} else {
 				sp_sd_trace();
-				sp_q645_mmc_wait_sdstate_new(host);
+				sp_mmc_wait_sdstate_new(host);
 				sp_sd_trace();
 			}
 
@@ -495,7 +495,7 @@ sp_mmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
 			sp_mmc_check_sdstatus_errors(host, data, &ret);
 		} else {
 			sp_sd_trace();
-			sp_q645_mmc_prep_data_info(host, cmd, data);
+			sp_mmc_prep_data_info(host, cmd, data);
 			sp_mmc_trigger_sdstate(host);
 
 			/* Host's "read data start bit timeout counter" is broken, use
@@ -503,7 +503,7 @@ sp_mmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
 			 */
 
 			if(SP_MMC_PIO_MODE == host->dmapio_mode) {
-				sp_q645_mmc_read_data_pio(host, data);
+				sp_mmc_read_data_pio(host, data);
 			}
 
 			sp_mmc_get_rsp(host, cmd); /* Makes sure host returns to a idle or error state */
@@ -515,7 +515,7 @@ sp_mmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
 		} else {
 			if ((MMC_CMD_READ_MULTIPLE_BLOCK == cmd->cmdidx)
 			    || (MMC_CMD_WRITE_MULTIPLE_BLOCK == cmd->cmdidx)) {
-				send_q645_stop_cmd(host);
+				send_stop_cmd(host);
 			}
 			/* MMC_CMD_SEND_OP_COND response timeout need to re-init */
 			if (cmd->cmdidx == MMC_CMD_SEND_OP_COND)
@@ -577,7 +577,7 @@ static int sp_mmc_getcd(struct mmc *mmc)
 
 
 #ifdef CONFIG_DM_MMC
-const struct dm_mmc_ops sp_q645_mmc_ops = {
+const struct dm_mmc_ops sp_mmc_ops = {
 	.send_cmd	= sp_mmc_send_cmd,
 	.set_ios	= sp_mmc_set_ios,
 	.get_cd		= sp_mmc_getcd,
@@ -610,7 +610,7 @@ static int sp_mmc_bind(struct udevice *dev)
 /* hw related ops */
 /* sd controller ops */
 /* Initialize MMC/SD controller */
-static int sp_645_sd_hw_init(sp_mmc_host *host)
+static int sp_sd_hw_init(sp_mmc_host *host)
 {
 	host->base->sdddrmode = 0;
 	host->base->sdiomode = 0;
@@ -631,7 +631,7 @@ static int sp_645_sd_hw_init(sp_mmc_host *host)
 	return 0;
 }
 
-static int sp_645_sd_hw_set_clock(struct sp_mmc_host *host, uint div)
+static int sp_sd_hw_set_clock(struct sp_mmc_host *host, uint div)
 {
 	host->base->sdfqsel = div & 0xFFF;
 	/* Delay 4 msecs for now (wait till clk stabilizes?) */
@@ -640,7 +640,7 @@ static int sp_645_sd_hw_set_clock(struct sp_mmc_host *host, uint div)
 	return 0;
 }
 
-static int sp_645_sd_hw_tunel_read_dly (sp_mmc_host *host, sp_mmc_timing_info *dly)
+static int sp_sd_hw_tunel_read_dly (sp_mmc_host *host, sp_mmc_timing_info *dly)
 {
 	host->base->sd_rd_rsp_dly_sel = dly->rd_rsp_dly;
 	host->base->sd_rd_dat_dly_sel = dly->rd_dat_dly;
@@ -648,20 +648,20 @@ static int sp_645_sd_hw_tunel_read_dly (sp_mmc_host *host, sp_mmc_timing_info *d
 	return 0;
 }
 
-static int sp_645_sd_hw_tunel_write_dly  (sp_mmc_host *host, sp_mmc_timing_info *dly)
+static int sp_sd_hw_tunel_write_dly  (sp_mmc_host *host, sp_mmc_timing_info *dly)
 {
 	host->base->sd_wr_dat_dly_sel = dly->wr_dat_dly;
 	host->base->sd_wr_cmd_dly_sel = dly->wr_cmd_dly;
 	return 0;
 }
 
-static int sp_645_sd_hw_tunel_clock_dly  (sp_mmc_host *host, sp_mmc_timing_info *dly)
+static int sp_sd_hw_tunel_clock_dly  (sp_mmc_host *host, sp_mmc_timing_info *dly)
 {
 	host->base->sd_clk_dly_sel = dly->clk_dly;
 	return 0;
 }
 
-int sp_645_sd_hw_highspeed_en (sp_mmc_host *host, bool en)
+int sp_sd_hw_highspeed_en (sp_mmc_host *host, bool en)
 {
 	if (en)
 		host->base->sd_high_speed_en = 1;
@@ -671,7 +671,7 @@ int sp_645_sd_hw_highspeed_en (sp_mmc_host *host, bool en)
 	return 0;
 }
 
-int sp_645_sd_hw_set_bus_width (sp_mmc_host *host, uint bus_width)
+int sp_sd_hw_set_bus_width (sp_mmc_host *host, uint bus_width)
 {
 	/* Set the bus width */
 	if (bus_width == 4) {
@@ -691,7 +691,7 @@ int sp_645_sd_hw_set_bus_width (sp_mmc_host *host, uint bus_width)
 	return 0;
 }
 
-int sp_645_sd_hw_set_sdddr_mode (sp_mmc_host *host, int ddrmode)
+int sp_sd_hw_set_sdddr_mode (sp_mmc_host *host, int ddrmode)
 {
 	sp_sd_trace();
 	if (ddrmode)
@@ -702,7 +702,7 @@ int sp_645_sd_hw_set_sdddr_mode (sp_mmc_host *host, int ddrmode)
 	return 0;
 }
 
-int sp_645_sd_hw_set_cmd (sp_mmc_host *host, struct mmc_cmd *cmd)
+int sp_sd_hw_set_cmd (sp_mmc_host *host, struct mmc_cmd *cmd)
 {
 	/* printf("Configuring registers\n"); */
 	/* Configure Group SD Registers */
@@ -744,7 +744,7 @@ int sp_645_sd_hw_set_cmd (sp_mmc_host *host, struct mmc_cmd *cmd)
 }
 
 
-int sp_645_sd_hw_get_reseponse (sp_mmc_host *host, struct mmc_cmd *cmd)
+int sp_sd_hw_get_reseponse (sp_mmc_host *host, struct mmc_cmd *cmd)
 {
 
 	sp_sd_trace();
@@ -826,12 +826,12 @@ int sp_645_sd_hw_get_reseponse (sp_mmc_host *host, struct mmc_cmd *cmd)
 
 
 
-int sp_645_sd_hw_set_data_info (sp_mmc_host *host, struct mmc_cmd *cmd, struct mmc_data *data)
+int sp_sd_hw_set_data_info (sp_mmc_host *host, struct mmc_cmd *cmd, struct mmc_data *data)
 {
 	ulong hw_address;
 	/* Reset */
-	Reset_q645_Controller(host);
-	Sd_q645_Bus_Reset_Channel(host);
+	Reset_Controller(host);
+	Sd_Bus_Reset_Channel(host);
 	/* Configure Group SD Registers */
 	host->base->sd_cmdbuf0 = (u8)(cmd->cmdidx | 0x40);	/* add start bit, according to spec, command format */
 	host->base->sd_cmdbuf1 = (u8)((cmd->cmdarg >> 24) & 0xff);
@@ -917,13 +917,13 @@ int sp_645_sd_hw_set_data_info (sp_mmc_host *host, struct mmc_cmd *cmd, struct m
 	return 0;
 }
 
-int sp_645_sd_hw_trigger (sp_mmc_host *host)
+int sp_sd_hw_trigger (sp_mmc_host *host)
 {
 	host->base->sdctrl0 = 1;   /* Start transaction */
 	return 0;
 }
 
-int sp_645_sd_hw_reset_mmc (sp_mmc_host *host)
+int sp_sd_hw_reset_mmc (sp_mmc_host *host)
 {
 	sp_sd_trace();
 	SD_RST_seq(host->base);
@@ -932,7 +932,7 @@ int sp_645_sd_hw_reset_mmc (sp_mmc_host *host)
 	return 0;
 }
 
-int sp_645_sd_hw_reset_dma (sp_mmc_host *host)
+int sp_sd_hw_reset_dma (sp_mmc_host *host)
 {
 
 	host->base->dmaidle = 1;
@@ -949,17 +949,17 @@ int sp_645_sd_hw_reset_dma (sp_mmc_host *host)
 	return 0;
 }
 
-int sp_645_sd_hw_reset_sdio (sp_mmc_host *host)
+int sp_sd_hw_reset_sdio (sp_mmc_host *host)
 {
 	return 0;
 }
 
-int sp_645_sd_hw_wait_data_timeout (sp_mmc_host *host, uint timeout)
+int sp_sd_hw_wait_data_timeout (sp_mmc_host *host, uint timeout)
 {
 	return 0;
 }
 
-int sp_645_sd_hw_check_finish (sp_mmc_host *host)
+int sp_sd_hw_check_finish (sp_mmc_host *host)
 {
 	/* printf("sdstate_new 0x%x\n", host->base->sdstate_new); */
 	if ((host->base->sdstate_new & SDSTATE_NEW_FINISH_IDLE) == 0x40)
@@ -970,13 +970,13 @@ int sp_645_sd_hw_check_finish (sp_mmc_host *host)
 	return 0;
 }
 
-int	sp_645_sd_hw_tx_dummy (sp_mmc_host *host)
+int	sp_sd_hw_tx_dummy (sp_mmc_host *host)
 {
 	host->base->sdctrl1 = 1;
 	return 0;
 }
 
-int sp_645_sd_hw_check_error (sp_mmc_host *host, bool with_data)
+int sp_sd_hw_check_error (sp_mmc_host *host, bool with_data)
 {
 	int ret = 0;
 
@@ -1004,7 +1004,7 @@ int sp_645_sd_hw_check_error (sp_mmc_host *host, bool with_data)
 				ret = -EILSEQ;
 			}
 
-			Sd_q645_Bus_Reset_Channel(host);
+			Sd_Bus_Reset_Channel(host);
 		}
 
 		/*
@@ -1022,7 +1022,7 @@ int sp_645_sd_hw_check_error (sp_mmc_host *host, bool with_data)
 
 /* emmc */
 /* Initialize eMMC controller */
-static int sp_645_emmc_hw_init(sp_mmc_host *host)
+static int sp_emmc_hw_init(sp_mmc_host *host)
 {
 	sp_sd_trace();
 	volatile EMMCREG *base = host->ebase;
@@ -1047,7 +1047,7 @@ static int sp_645_emmc_hw_init(sp_mmc_host *host)
 	return 0;
 }
 
-static int sp_645_emmc_hw_set_clock(struct sp_mmc_host *host, uint div)
+static int sp_emmc_hw_set_clock(struct sp_mmc_host *host, uint div)
 {
 	host->ebase->sdfqsel = div;
 	mdelay(4);
@@ -1058,7 +1058,7 @@ static int sp_645_emmc_hw_set_clock(struct sp_mmc_host *host, uint div)
 }
 
 
-static int sp_645_emmc_hw_tunel_read_dly (sp_mmc_host *host, sp_mmc_timing_info *dly)
+static int sp_emmc_hw_tunel_read_dly (sp_mmc_host *host, sp_mmc_timing_info *dly)
 {
 	host->ebase->sd_rd_rsp_dly_sel = dly->rd_rsp_dly;
 	host->ebase->sd_rd_dat_dly_sel = dly->rd_dat_dly;
@@ -1066,14 +1066,14 @@ static int sp_645_emmc_hw_tunel_read_dly (sp_mmc_host *host, sp_mmc_timing_info 
 	return 0;
 }
 
-static int sp_645_emmc_hw_tunel_write_dly  (sp_mmc_host *host, sp_mmc_timing_info *dly)
+static int sp_emmc_hw_tunel_write_dly  (sp_mmc_host *host, sp_mmc_timing_info *dly)
 {
 	host->ebase->sd_wr_dat_dly_sel = dly->wr_dat_dly;
 	host->ebase->sd_wr_cmd_dly_sel = dly->wr_cmd_dly;
 	return 0;
 }
 
-static int sp_645_emmc_hw_tunel_clock_dly (sp_mmc_host *host, sp_mmc_timing_info *dly)
+static int sp_emmc_hw_tunel_clock_dly (sp_mmc_host *host, sp_mmc_timing_info *dly)
 {
 	sp_sd_trace();
 	host->ebase->sd_clk_dly_sel = dly->clk_dly;
@@ -1082,7 +1082,7 @@ static int sp_645_emmc_hw_tunel_clock_dly (sp_mmc_host *host, sp_mmc_timing_info
 
 
 
-int sp_645_emmc_hw_highspeed_en (sp_mmc_host *host, bool en)
+int sp_emmc_hw_highspeed_en (sp_mmc_host *host, bool en)
 {
 	sp_sd_trace();
 	if (en)
@@ -1093,7 +1093,7 @@ int sp_645_emmc_hw_highspeed_en (sp_mmc_host *host, bool en)
 	return 0;
 }
 
-int sp_645_emmc_hw_set_bus_width (sp_mmc_host *host, uint bus_width)
+int sp_emmc_hw_set_bus_width (sp_mmc_host *host, uint bus_width)
 {
 	sp_sd_trace();
 	/* Set the bus width */
@@ -1114,7 +1114,7 @@ int sp_645_emmc_hw_set_bus_width (sp_mmc_host *host, uint bus_width)
 	return 0;
 }
 
-int sp_645_emmc_hw_set_sdddr_mode (sp_mmc_host *host, int ddrmode)
+int sp_emmc_hw_set_sdddr_mode (sp_mmc_host *host, int ddrmode)
 {
 	sp_sd_trace();
 	if (ddrmode)
@@ -1125,7 +1125,7 @@ int sp_645_emmc_hw_set_sdddr_mode (sp_mmc_host *host, int ddrmode)
 	return 0;
 }
 
-int sp_645_emmc_hw_set_cmd (sp_mmc_host *host, struct mmc_cmd *cmd)
+int sp_emmc_hw_set_cmd (sp_mmc_host *host, struct mmc_cmd *cmd)
 {
 	sp_sd_trace();
 	/* printf("Configuring registers\n"); */
@@ -1168,7 +1168,7 @@ int sp_645_emmc_hw_set_cmd (sp_mmc_host *host, struct mmc_cmd *cmd)
 }
 
 
-int sp_645_emmc_hw_get_reseponse (sp_mmc_host *host, struct mmc_cmd *cmd)
+int sp_emmc_hw_get_reseponse (sp_mmc_host *host, struct mmc_cmd *cmd)
 {
 	sp_sd_trace();
 	unchar *rspBuf = (unchar *)cmd->response;
@@ -1238,7 +1238,7 @@ int sp_645_emmc_hw_get_reseponse (sp_mmc_host *host, struct mmc_cmd *cmd)
 	return 0;
 }
 
-static int sp_q645_mmc_read_data_pio (sp_mmc_host *host,  struct mmc_data *data)
+static int sp_mmc_read_data_pio (sp_mmc_host *host,  struct mmc_data *data)
 {
 	unsigned int need_read_count;
 	unsigned int* pTmp_buf;
@@ -1279,13 +1279,13 @@ static int sp_q645_mmc_read_data_pio (sp_mmc_host *host,  struct mmc_data *data)
 	return 0;
 }
 
-int sp_645_emmc_hw_set_data_info (sp_mmc_host *host, struct mmc_cmd *cmd, struct mmc_data *data)
+int sp_emmc_hw_set_data_info (sp_mmc_host *host, struct mmc_cmd *cmd, struct mmc_data *data)
 {
 	sp_sd_trace();
 	ulong hw_address;
 	/* Reset */
-	Reset_q645_Controller(host);
-	Sd_q645_Bus_Reset_Channel(host);
+	Reset_Controller(host);
+	Sd_Bus_Reset_Channel(host);
 
 	/* Configure Group SD Registers */
 	host->ebase->sd_cmdbuf0 = (u8)(cmd->cmdidx | 0x40);	/* add start bit, according to spec, command format */
@@ -1371,14 +1371,14 @@ int sp_645_emmc_hw_set_data_info (sp_mmc_host *host, struct mmc_cmd *cmd, struct
 	return 0;
 }
 
-int sp_645_emmc_hw_trigger (sp_mmc_host *host)
+int sp_emmc_hw_trigger (sp_mmc_host *host)
 {
 	sp_sd_trace();
 	host->ebase->sdctrl0 = 1;
 	return 0;
 }
 
-int sp_645_emmc_hw_reset_mmc (sp_mmc_host *host)
+int sp_emmc_hw_reset_mmc (sp_mmc_host *host)
 {
 	sp_sd_trace();
 	SD_RST_seq(host->ebase);
@@ -1387,7 +1387,7 @@ int sp_645_emmc_hw_reset_mmc (sp_mmc_host *host)
 	return 0;
 }
 
-int sp_645_emmc_hw_reset_dma (sp_mmc_host *host)
+int sp_emmc_hw_reset_dma (sp_mmc_host *host)
 {
 	sp_sd_trace();
 	host->ebase->hw_dma_rst = 1;
@@ -1402,19 +1402,19 @@ int sp_645_emmc_hw_reset_dma (sp_mmc_host *host)
 	return 0;
 }
 
-int sp_645_emmc_hw_reset_sdio (sp_mmc_host *host)
+int sp_emmc_hw_reset_sdio (sp_mmc_host *host)
 {
 	sp_sd_trace();
 	return 0;
 }
 
-int sp_645_emmc_hw_wait_data_timeout(sp_mmc_host *host, uint timeout)
+int sp_emmc_hw_wait_data_timeout(sp_mmc_host *host, uint timeout)
 {
 	sp_sd_trace();
 	return 0;
 }
 
-int sp_645_emmc_hw_check_finish (sp_mmc_host *host)
+int sp_emmc_hw_check_finish (sp_mmc_host *host)
 {
 	sp_sd_trace();
 	if ((host->ebase->sdstate_new & SDSTATE_NEW_FINISH_IDLE) == 0x40)
@@ -1425,14 +1425,14 @@ int sp_645_emmc_hw_check_finish (sp_mmc_host *host)
 	return 0;
 }
 
-int	sp_645_emmc_hw_tx_dummy (sp_mmc_host *host)
+int	sp_emmc_hw_tx_dummy (sp_mmc_host *host)
 {
 	sp_sd_trace();
 	host->ebase->sdctrl1 = 1;
 	return 0;
 }
 
-int sp_645_emmc_hw_check_error (sp_mmc_host *host, bool with_data)
+int sp_emmc_hw_check_error (sp_mmc_host *host, bool with_data)
 {
 	sp_sd_trace();
 	int ret = 0;
@@ -1461,7 +1461,7 @@ int sp_645_emmc_hw_check_error (sp_mmc_host *host, bool with_data)
 				ret = -EILSEQ;
 			}
 
-			Sd_q645_Bus_Reset_Channel(host);
+			Sd_Bus_Reset_Channel(host);
 		}
 
 		/*
@@ -1479,48 +1479,48 @@ int sp_645_emmc_hw_check_error (sp_mmc_host *host, bool with_data)
 
 
 
-sp_mmc_hw_ops sd_q645_hw_ops = {
-	.hw_init			= sp_645_sd_hw_init,
-	.set_clock			= sp_645_sd_hw_set_clock,
-	.highspeed_en		= sp_645_sd_hw_highspeed_en,
-	.tunel_read_dly		= sp_645_sd_hw_tunel_read_dly,
-	.tunel_write_dly	= sp_645_sd_hw_tunel_write_dly,
-	.tunel_clock_dly	= sp_645_sd_hw_tunel_clock_dly,
-	.set_bus_width		= sp_645_sd_hw_set_bus_width,
-	.set_sdddr_mode		= sp_645_sd_hw_set_sdddr_mode,
-	.set_cmd			= sp_645_sd_hw_set_cmd,
-	.get_response		= sp_645_sd_hw_get_reseponse,
-	.set_data_info		= sp_645_sd_hw_set_data_info,
-	.trigger			= sp_645_sd_hw_trigger,
-	.reset_mmc			= sp_645_sd_hw_reset_mmc,
-	.reset_dma			= sp_645_sd_hw_reset_dma,
-	.reset_sdio			= sp_645_sd_hw_reset_sdio,
-	.wait_data_timeout	= sp_645_sd_hw_wait_data_timeout,
-	.check_finish		= sp_645_sd_hw_check_finish,
-	.tx_dummy			= sp_645_sd_hw_tx_dummy,
-	.check_error		= sp_645_sd_hw_check_error,
+sp_mmc_hw_ops sd_hw_ops = {
+	.hw_init			= sp_sd_hw_init,
+	.set_clock			= sp_sd_hw_set_clock,
+	.highspeed_en		= sp_sd_hw_highspeed_en,
+	.tunel_read_dly		= sp_sd_hw_tunel_read_dly,
+	.tunel_write_dly	= sp_sd_hw_tunel_write_dly,
+	.tunel_clock_dly	= sp_sd_hw_tunel_clock_dly,
+	.set_bus_width		= sp_sd_hw_set_bus_width,
+	.set_sdddr_mode		= sp_sd_hw_set_sdddr_mode,
+	.set_cmd			= sp_sd_hw_set_cmd,
+	.get_response		= sp_sd_hw_get_reseponse,
+	.set_data_info		= sp_sd_hw_set_data_info,
+	.trigger			= sp_sd_hw_trigger,
+	.reset_mmc			= sp_sd_hw_reset_mmc,
+	.reset_dma			= sp_sd_hw_reset_dma,
+	.reset_sdio			= sp_sd_hw_reset_sdio,
+	.wait_data_timeout	= sp_sd_hw_wait_data_timeout,
+	.check_finish		= sp_sd_hw_check_finish,
+	.tx_dummy			= sp_sd_hw_tx_dummy,
+	.check_error		= sp_sd_hw_check_error,
 };
 
-sp_mmc_hw_ops emmc_q645_hw_ops = {
-	.hw_init			= sp_645_emmc_hw_init,
-	.set_clock			= sp_645_emmc_hw_set_clock,
-	.highspeed_en		= sp_645_emmc_hw_highspeed_en,
-	.tunel_read_dly		= sp_645_emmc_hw_tunel_read_dly,
-	.tunel_write_dly	= sp_645_emmc_hw_tunel_write_dly,
-	.tunel_clock_dly	= sp_645_emmc_hw_tunel_clock_dly,
-	.set_bus_width		= sp_645_emmc_hw_set_bus_width,
-	.set_sdddr_mode		= sp_645_emmc_hw_set_sdddr_mode,
-	.set_cmd			= sp_645_emmc_hw_set_cmd,
-	.get_response		= sp_645_emmc_hw_get_reseponse,
-	.set_data_info		= sp_645_emmc_hw_set_data_info,
-	.trigger			= sp_645_emmc_hw_trigger,
-	.reset_mmc			= sp_645_emmc_hw_reset_mmc,
-	.reset_dma			= sp_645_emmc_hw_reset_dma,
-	.reset_sdio			= sp_645_emmc_hw_reset_sdio,
-	.wait_data_timeout	= sp_645_emmc_hw_wait_data_timeout,
-	.check_finish		= sp_645_emmc_hw_check_finish,
-	.tx_dummy			= sp_645_emmc_hw_tx_dummy,
-	.check_error		= sp_645_emmc_hw_check_error,
+sp_mmc_hw_ops emmc_hw_ops = {
+	.hw_init			= sp_emmc_hw_init,
+	.set_clock			= sp_emmc_hw_set_clock,
+	.highspeed_en		= sp_emmc_hw_highspeed_en,
+	.tunel_read_dly		= sp_emmc_hw_tunel_read_dly,
+	.tunel_write_dly	= sp_emmc_hw_tunel_write_dly,
+	.tunel_clock_dly	= sp_emmc_hw_tunel_clock_dly,
+	.set_bus_width		= sp_emmc_hw_set_bus_width,
+	.set_sdddr_mode		= sp_emmc_hw_set_sdddr_mode,
+	.set_cmd			= sp_emmc_hw_set_cmd,
+	.get_response		= sp_emmc_hw_get_reseponse,
+	.set_data_info		= sp_emmc_hw_set_data_info,
+	.trigger			= sp_emmc_hw_trigger,
+	.reset_mmc			= sp_emmc_hw_reset_mmc,
+	.reset_dma			= sp_emmc_hw_reset_dma,
+	.reset_sdio			= sp_emmc_hw_reset_sdio,
+	.wait_data_timeout	= sp_emmc_hw_wait_data_timeout,
+	.check_finish		= sp_emmc_hw_check_finish,
+	.tx_dummy			= sp_emmc_hw_tx_dummy,
+	.check_error		= sp_emmc_hw_check_error,
 };
 
 
@@ -1543,7 +1543,7 @@ static int sp_mmc_probe(struct udevice *dev)
 	host->dev_info = *((sp_mmc_dev_info *)dev_get_driver_data(dev));
 	IFPRINTK("dev_info.id = %d\n", host->dev_info.id);
 	IFPRINTK("host type: %s\n", (host->dev_info.type == SPMMC_DEVICE_TYPE_EMMC) ? "EMMC":"SD");
-	IFPRINTK("version type: %s\n", (host->dev_info.version == SP_MMC_VER_Q628) ? "Q628" : "q645");
+	IFPRINTK("version type: %s\n", (host->dev_info.version == SP_MMC_VER_Q628) ? "1" : "2");
 
 	if (host->dev_info.set_clock) {
 		if (host->dev_info.set_clock(&host->dev_info)) {
@@ -1559,7 +1559,7 @@ static int sp_mmc_probe(struct udevice *dev)
 		/* Limited by sdram_sector_#_size max value */
 		cfg->b_max		= CONFIG_SYS_MMC_MAX_BLK_COUNT;
 		cfg->name		= "emmc";
-		ops = &emmc_q645_hw_ops;
+		ops = &emmc_hw_ops;
 		/* cfg->host_caps |= MMC_MODE_DDR_52MHz; */
 		host->dmapio_mode = SP_MMC_DMA_MODE;
 	}
@@ -1572,7 +1572,7 @@ static int sp_mmc_probe(struct udevice *dev)
 		cfg->b_max		= CONFIG_SYS_MMC_MAX_BLK_COUNT;
 		cfg->name		= "sd";
 
-		ops = &sd_q645_hw_ops;
+		ops = &sd_hw_ops;
 		host->dmapio_mode = SP_MMC_DMA_MODE;
 	}
 	host->ops = ops;
@@ -1590,7 +1590,7 @@ static int sp_mmc_probe(struct udevice *dev)
 
 
 
-int sp_q645_print_mmcinfo(struct mmc *mmc)
+int sp_print_mmcinfo(struct mmc *mmc)
 {
 	struct sp_mmc_host *host = mmc->priv;
 	printf("use %s mode\n", (host->dmapio_mode == SP_MMC_PIO_MODE) ? "PIO":"DMA" );
@@ -1598,7 +1598,7 @@ int sp_q645_print_mmcinfo(struct mmc *mmc)
 }
 
 
-int sp_q645_mmc_set_dmapio(struct mmc *mmc, uint val)
+int sp_mmc_set_dmapio(struct mmc *mmc, uint val)
 {
 	struct sp_mmc_host *host = mmc->priv;
 	host->dmapio_mode = val;
@@ -1637,7 +1637,11 @@ static sp_mmc_dev_info sp_dev_info[] = {
 
 static const struct udevice_id sunplus_mmc_ids[] = {
 	{
-		.compatible	= "sunplus,q645-card1",
+		.compatible	= "sunplus,i143-card1",
+		.data		= (ulong)&sp_dev_info[1],
+	},
+	{
+		.compatible	= "sunplus,q645-card",
 		.data		= (ulong)&sp_dev_info[1],
 	},
 
@@ -1655,5 +1659,5 @@ U_BOOT_DRIVER(sdcard_sunplus) ={
 	.priv_auto_alloc_size		= sizeof(struct sp_mmc_host),
 	.bind						= sp_mmc_bind,
 	.probe						= sp_mmc_probe,
-	.ops						= &sp_q645_mmc_ops,
+	.ops						= &sp_mmc_ops,
 };

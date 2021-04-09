@@ -1,6 +1,6 @@
 #ifndef __SPMMC_H__
 #define __SPMMC_H__
-#include "sp_sd_q645_regs.h"
+#include "sp_sd_regs.h"
 
 #ifdef CONFIG_MMC_SP_EMMC
 #define EMMC_SLOT_ID            0

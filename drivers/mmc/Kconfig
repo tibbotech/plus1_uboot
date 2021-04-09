@@ -615,20 +615,11 @@ config MMC_SP_7021_SD
 	  If you have a controller with this interface, say Y here.
 	  If unsure, say N.
 	  
-config MMC_SP_Q645_SD
-	bool "Sunplus Q645 SD Host Controller Interface support"
-	depends on DM_MMC && BLK
-	help
-	  This selects the Sunplus I143 SD Host Controller Interface.
-	  If you have a controller with this interface, say Y here.
-	  If unsure, say N.
-
-	  
 config MMC_SP_SD
-	bool "Sunplus I143 SD Host Controller Interface support"
+	bool "Sunplus SD Host Controller Interface support"
 	depends on DM_MMC && BLK
 	help
-	  This selects the Sunplus I143 SD Host Controller Interface.
+	  This selects the Sunplus SD Host Controller Interface.
 	  If you have a controller with this interface, say Y here.
 	  If unsure, say N.
 
