@@ -349,6 +349,7 @@
 	dbg_scr("md ${addr_tmp_header} 0x10; printenv tmpval; ") \
 	"setexpr sz_kernel ${tmpval} + 0x40; " \
 	"setexpr sz_kernel ${sz_kernel} + 0x48; " \
+	"echo loading kernel ...; "\
 	NOR_LOAD_KERNEL \
 	dbg_scr("echo bootm ${addr_dst_kernel} - ${fdtcontroladdr}; ") \
 	"run boot_kernel \0" \
@@ -401,6 +402,7 @@
 	"if itest ${if_use_nfs_rootfs} == 1; then " \
 		"setenv bootargs ${b_c} root=/dev/nfs nfsroot=${nfs_serverip}:${nfs_rootfs_dir} ip=${nfs_clintip}:${nfs_serverip}:${nfs_gatewayip}:${nfs_netmask}::eth0:off rdinit=/linuxrc noinitrd rw; "\
 	"fi; " \
+	"verify ${addr_dst_kernel}; " \
 	"bootm ${addr_dst_kernel} - ${fdtcontroladdr}; " \
 	"\0" \
 "qk_zmem_boot=sp_go ${addr_dst_kernel} ${fdtcontroladdr}\0" \
@@ -430,6 +432,7 @@
 	"	echo Error occurred while getting images from tftp server!; " \
 	"	exit; " \
 	"fi; " \
+	"verify ${addr_dst_kernel}; " \
 	"bootm ${addr_dst_kernel} - ${addr_dst_dtb}; " \
 	"\0" \
 "isp_usb=setenv isp_if usb && setenv isp_dev 0; " \
