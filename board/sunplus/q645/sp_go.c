@@ -318,6 +318,7 @@ void SPI_nor_set_clk_div(int clkd)
 		dev_dbg("wait spi_reg->spi_ctrl = 0x%08x\n", spi_reg->spi_ctrl);
 	}
 	spi_reg->spi_ctrl = ctrl;
+	dev_dbg("spi_reg->spi_ctrl = 0x%08x\n", spi_reg->spi_ctrl);
 
 	unmap_sysmem((void*)spi_reg);
 }
@@ -340,7 +341,11 @@ void SPI_nor_speed_up_clk(void)
 
 	if ((id != SUNPLUS_ROMTER_ID) && (id != 0) && (id != 0xFFFFFF)) {
 		printf("\n");
+#if defined(CONFIG_SYS_ENV_ZEBU)
+		SPI_nor_set_clk_div(SPI_CLK_D_2);
+#else
 		SPI_nor_set_clk_div(SPI_CLK_D_4);
+#endif
 	} else {
 		if (id == SUNPLUS_ROMTER_ID)
 			printf("(Sunplus romter)\n");

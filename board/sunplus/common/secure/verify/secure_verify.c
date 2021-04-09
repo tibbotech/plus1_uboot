@@ -19,7 +19,13 @@
 |---------------------------|
 ***********************************/
 
-static volatile struct hbgpio_sunplus *otp_data = (volatile struct hbgpio_sunplus *)(HB_GPIO);
+#if (defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)) || \
+	(defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C))
+static volatile struct hb_gp_regs *otp_data = (volatile struct hb_gp_regs *)(HB_GP_REG);
+#elif defined(CONFIG_TARGET_PENTAGRAM_Q645)
+static volatile struct hb_gp_regs *otp_data = (volatile struct hb_gp_regs *)(KEY_HB_GP_REG);
+#endif
+
 
 static u32 read_sb_flag(void)
 {
@@ -42,7 +48,12 @@ static void load_otp_pub_key(u8 in_pub[])
 {
 	int i;
 	for (i = 0; i < 32; i++) {
-		read_otp_data(i+64,(char *)&in_pub[i]);
+#if (defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)) || \
+		(defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C))
+			read_otp_data(HB_GP_REG, SP_OTPRX_REG, i+64,(char *)&in_pub[i]);
+#elif defined(CONFIG_TARGET_PENTAGRAM_Q645)
+			read_otp_data(KEY_HB_GP_REG, KEY_OTPRX_REG, i+64,(char *)&in_pub[i]);
+#endif
 	}
 	puts("uboot  OTP pub-key:\n");
 	prn_dump_buffer(in_pub,32);
