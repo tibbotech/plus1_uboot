@@ -156,7 +156,7 @@ static int do_sp_nonos_go(cmd_tbl_t *cmdtp, int flag, int argc, char * const arg
 {
 	int     rcode = 0;
 	image_header_t *hdr=NULL;
-	u32 nonos_addr; /* these two addr will include headers. */
+	long nonos_addr; /* these two addr will include headers. */
 	u32 nonos_size;
 
 	if (argc < 2 )
@@ -171,7 +171,7 @@ static int do_sp_nonos_go(cmd_tbl_t *cmdtp, int flag, int argc, char * const arg
 	hdr = (image_header_t *)nonos_addr;
 	nonos_size = image_get_data_size(hdr);
 
-	printf("[u-boot] nonos_B address 0x%08x  nonos_size= %d \n",nonos_addr,nonos_size);
+	printf("[u-boot] nonos_B address 0x%08lx  nonos_size= %d \n", nonos_addr, nonos_size);
 
 	nonos_size = ALIGN(nonos_size, CONFIG_SYS_CACHELINE_SIZE);
 	flush_cache((u32)nonos_addr, nonos_size);
