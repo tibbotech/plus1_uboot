@@ -29,20 +29,23 @@ void* pin_registered_by_udev[MAX_PINS];
 
 #ifdef PINCTRL_DEBUG
 #ifdef SUPPORT_PINMUX
-void pinmux_grps_dump( void) {
- int i = 0, mask, rval, val;
- const char *pin_func;
- func_t *func = &list_funcs[ i];
- for ( i = 0; i < list_funcsSZ; i++) {
-    func = &( list_funcs[ i]);
-    if ( func->gnum == 0) continue;
-    if ( func->freg != fOFF_G) continue;
-    mask = ( 1 << func->blen) - 1;
-    rval = GPIO_PINGRP( func->roff);  val = ( rval >> func->boff) & mask;
-    if ( val == 0) continue;
-    printf( "%s\t=%d regval:%X\n", list_funcs[ i].name, val, rval);
- }
- return;  }
+void pinmux_grps_dump(void)
+{
+	int i = 0, mask, rval, val;
+	const char *pin_func;
+
+	func_t *func = &list_funcs[i];
+	for (i = 0; i < list_funcsSZ; i++) {
+		func = &(list_funcs[i]);
+		if (func->gnum == 0) continue;
+		if (func->freg != fOFF_G) continue;
+		mask = (1 << func->blen) - 1;
+		rval = GPIO_PINGRP(func->roff);
+		val = (rval >> func->boff) & mask;
+		if (val == 0) continue;
+		printf("%s\t=%d regval:%X\n", list_funcs[i].name, val, rval);
+	}
+}
 
 void pinmux_reg_dump(void)
 {
