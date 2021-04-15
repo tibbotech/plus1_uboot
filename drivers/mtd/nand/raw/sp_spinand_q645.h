@@ -11,11 +11,11 @@
  */
 //#define CONFIG_SPINAND_USE_SRAM
 #ifdef  CONFIG_SPINAND_USE_SRAM
-#define CONFIG_SPINAND_SRAM_ADDR    0x9e800000
+#define CONFIG_SPINAND_SRAM_ADDR    0xfa200000
 #endif
-#define SPI_NAND_DIRECT_MAP         0x9dff0000
+#define SPI_NAND_DIRECT_MAP         0xf4000000
 
-#define SPINAND_CLKSRC_REG          ((volatile u32 *)(0x9c000000 + (4*32 + 13)*4))
+#define SPINAND_CLKSRC_REG          ((volatile u32 *)(0xf8000000 + (4*32 + 13)*4))
 #define SPINAND_SET_CLKSRC(a)       (*SPINAND_CLKSRC_REG = (0x001e0000+(((a)&0x0f)<<1)))
 #define SPINAND_GET_CLKSRC()        (((*SPINAND_CLKSRC_REG)>>1)&0x0f)
 
@@ -28,8 +28,13 @@
 #define CONFIG_SPINAND_WRITE_BITMODE         SPINAND_4BIT_MODE
 #define CONFIG_SPINAND_BUF_SZ                (8 << 10)
 #define CONFIG_SPINAND_TIMEOUT               (100)   /* unit: ms */
+#if 1 // CCHo: for zebu sim
+#define CONFIG_SPINAND_READ_TIMING_SEL       (0)
+#define CONFIG_SPINAND_TRSMODE               SPINAND_TRS_DMA
+#else
 #define CONFIG_SPINAND_READ_TIMING_SEL       (2)
 #define CONFIG_SPINAND_TRSMODE               SPINAND_TRS_DMA_AUTOBCH
+#endif
 #define CONFIG_SPINAND_TRSMODE_RAW           SPINAND_TRS_DMA
 #define CONFIG_SPINAND_AUTOBCH_DECSRC        0 /* 0:spi-nand ctrl, 1:system memory */
 
@@ -280,7 +285,15 @@ enum SPINAND_BIT_MODE {
 #define ERASE_STATUS            0x04
 
 /*protect status */
-#define PROTECT_STATUS          0x38
+#define PROTECT_STATUS                  0x38
+
+/* macro for device status register */
+#define DEVICE_STATUS_PFAIL_MSK         (1<<3)
+#define DEVICE_STATUS_EFAIL_MSK         (1<<2)
+#define DEVICE_STATUS_WEL_MSK           (1<<1)
+#define DEVICE_STATUS_OIP_MSK           (1<<0)
+
+#define DEVICE_STATUS_WEL               (DEVICE_STATUS_WEL_MSK)
 
 /*
  *  spi nand device feature address

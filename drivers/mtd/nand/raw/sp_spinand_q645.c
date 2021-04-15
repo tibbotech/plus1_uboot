@@ -426,6 +426,19 @@ static int spi_nand_select_die(struct sp_spinand_info *info, u32 id)
 	return wait_spi_idle(info);
 }
 
+static int spi_nand_wait_dev_idle(struct sp_spinand_info *info)
+{
+	u32 timeout = CONFIG_SPINAND_TIMEOUT;
+	u32 time_start = get_timer(0);
+	u32 status;
+	do {
+		status = spi_nand_getfeatures(info, DEVICE_STATUS_ADDR);
+		if ((status & DEVICE_STATUS_OIP_MSK) == 0)
+			break;
+	} while (get_timer(time_start) < timeout);
+	return status;
+}
+
 static int spi_nand_blkerase(struct sp_spinand_info *info, u32 row)
 {
 	struct sp_spinand_regs *regs = info->regs;
@@ -1459,7 +1472,9 @@ static int sp_spinand_init(struct sp_spinand_info *info)
 	info->nand.ecc.layout = &info->ecc_layout;
 	info->nand.ecc.mode = NAND_ECC_HW;
 
+#if 0 // We can't find this register on Q645
 	SPINAND_SET_CLKSRC(CONFIG_SPINAND_CLK_SRC);
+#endif
 	info->spi_clk_div = CONFIG_SPINAND_CLK_DIV;
 
 	if (spi_nand_reset(info) < 0) {
@@ -1586,7 +1601,7 @@ static int sp_spinand_probe(struct udevice *dev)
 	SPINAND_LOGI("sp_spinand: regs@0x%p\n", info->regs);
 
 	/* get bch reg */
-	node = fdt_node_offset_by_compatible(blob, 0, "sunplus,sunplus-q645-bch");
+	node = fdt_node_offset_by_compatible(blob, 0, "sunplus,q645-bch");
 	info->bch_regs = (void __iomem *)fdtdec_get_addr_size_auto_parent(blob,
 		dev_of_offset(dev->parent), node, "reg", 0, NULL, false);
 
@@ -1600,7 +1615,7 @@ static int sp_spinand_probe(struct udevice *dev)
 }
 
 static const struct udevice_id sunplus_spinand[] = {
-	{ .compatible = "sunplus,sunplus-q645-spinand"},
+	{ .compatible = "sunplus,q645-spi-nand"},
 	{}
 };
 

@@ -106,14 +106,18 @@
 #endif
 
 
-#ifdef CONFIG_SP_SPINAND
+#ifdef CONFIG_SP_SPINAND_Q645
 //#define CONFIG_MTD_PARTITIONS
 #define CONFIG_SYS_MAX_NAND_DEVICE	1
 #define CONFIG_SYS_NAND_SELF_INIT
-#define CONFIG_SYS_NAND_BASE		0x9c002b80
+#define CONFIG_SYS_NAND_BASE		0xf8002b80
 //#define CONFIG_MTD_DEVICE		/* needed for mtdparts cmd */
 #define MTDIDS_DEFAULT			"nand0=sp_spinand.0"
+#if 0 // Set default mtdparts for zebu sim
+#define MTDPARTS_DEFAULT		"mtdparts=sp_spinand.0:128k(nand_header),256k(xboot1),1280k(uboot1),2432k(uboot2),512k(env),512k(env_redund),1m(nonos),256k(dtb),25m(kernel),230144k(rootfs)"
+#else
 #define MTDPARTS_DEFAULT		"mtdparts=sp_spinand.0:-(whole_nand)"
+#endif
 #endif
 
 /* TFTP server IP and board MAC address settings for TFTP ISP.
@@ -527,7 +531,7 @@ mmc read 0x2fffc0 0x1422 0xa ; mmc read 0x307fc0 0x1822 0x30f0 ; sp_go 0x308000 
 
 #define CONFIG_ENV_OVERWRITE    /* Allow to overwrite ethaddr and serial */
 
-#if !defined(CONFIG_SP_SPINAND)
+#if !defined(CONFIG_SP_SPINAND_Q645)
 #define SPEED_UP_SPI_NOR_CLK    /* Set CLK based on flash id */
 #endif
 
