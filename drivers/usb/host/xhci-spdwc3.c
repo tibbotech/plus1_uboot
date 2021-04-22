@@ -36,16 +36,21 @@ static const char *const usbphy_modes[] = {
 	[USBPHY_INTERFACE_MODE_SERIAL]	= "serial",
 	[USBPHY_INTERFACE_MODE_HSIC]	= "hsic",
 };
-//sunplus phy
-#define REG_BASE           0x9c000000
+
 #define RF_GRP(_grp, _reg) ((((_grp) * 32 + (_reg)) * 4) + REG_BASE)
 #define RF_AMBA(_grp, _reg) ((((_grp) * 1024 + (_reg)) * 4) + REG_BASE)
 
 #define RF_MASK_V(_mask, _val)       (((_mask) << 16) | (_val))
 #define RF_MASK_V_SET(_mask)         (((_mask) << 16) | (_mask))
 #define RF_MASK_V_CLR(_mask)         (((_mask) << 16) | 0)
+#if defined(CONFIG_TARGET_PENTAGRAM_Q645)
+#define REG_BASE           0xF8000000
+#define U3PHY_0_REG ((volatile struct uphy_u3_regs *)RF_AMBA(189, 0))//190
+#define U3PHY_1_REG ((volatile struct uphy_u3_regs *)RF_AMBA(190, 0))//190
+#elif defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C)
+//sunplus phy
+#define REG_BASE           0x9c000000
 
-#if defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C)
 struct uphy_rn_regs {
 	u32 cfg[28];		       // 150.0
 	u32 gctrl[3];		       // 150.28
@@ -55,11 +60,11 @@ struct uphy_rn_regs {
 struct uphy_u3_regs {
 	u32 cfg[160];		       // 265.0
 };
-#endif
+
 
 #define UPHY2_RN_REG ((volatile struct uphy_rn_regs *)RF_GRP(151, 0))
 #define UPHY3_U3_REG ((volatile struct uphy_u3_regs *)RF_AMBA(265, 0))
-
+#endif
 struct moon0_regs {
 	unsigned int stamp;            // 0.0
 	unsigned int clken[10];        // 0.1
@@ -109,7 +114,22 @@ struct moon5_regs {
 
 static void uphy_init(void)
 {
-#if defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C)
+#if defined(CONFIG_TARGET_PENTAGRAM_Q645)
+// 1. enable UPHY 3_0/1 */
+	MOON0_REG->clken[3] = RF_MASK_V_SET(1 << 11);
+	MOON0_REG->clken[3] = RF_MASK_V_SET(1 << 12);
+
+	mdelay(1);
+
+	// 2. reset UPHY 2/3
+	MOON0_REG->reset[3] = RF_MASK_V_SET(1 << 11);
+	MOON0_REG->reset[3] = RF_MASK_V_SET(1 << 12);
+	mdelay(1);
+	MOON0_REG->reset[3] = RF_MASK_V_CLR(1 << 11);
+	MOON0_REG->reset[3] = RF_MASK_V_CLR(1 << 12);
+	
+	mdelay(1);
+#elif defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C)
 	// 1. enable UPHY 2/3 */
 	MOON0_REG->clken[2] = RF_MASK_V_SET(1 << 15);
 	MOON0_REG->clken[2] = RF_MASK_V_SET(1 << 9);
