@@ -75,8 +75,8 @@ static const sppctlgrp_t q645grps_wakeup1[] = {
 	EGRP("WAKEUP1", 1, pins_wakeup1)
 };
 
-static const unsigned pins_int_x1[] = { 77 };
-static const unsigned pins_int_x2[] = { 78 };
+static const unsigned pins_int_x1[] = { 78 };
+static const unsigned pins_int_x2[] = { 79 };
 static const unsigned pins_int_x3[] = { 52 };
 static const unsigned pins_int_x4[] = { 53 };
 static const unsigned pins_int_x5[] = { 49 };
