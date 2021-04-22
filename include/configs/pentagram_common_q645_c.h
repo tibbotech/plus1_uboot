@@ -52,7 +52,7 @@
 /* Main storage selection */
 #if (SPINOR == 1) || (NOR_JFFS2 == 1)
 #define SP_MAIN_STORAGE			"nor"
-#elif defined(CONFIG_SP_SPINAND)
+#elif defined(CONFIG_SP_SPINAND_Q645)
 #define SP_MAIN_STORAGE			"nand"
 #elif defined(CONFIG_MMC_SP_EMMC)
 #define SP_MAIN_STORAGE			"emmc"
