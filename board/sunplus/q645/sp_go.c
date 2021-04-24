@@ -179,7 +179,7 @@ static int do_sp_nonos_go(cmd_tbl_t *cmdtp, int flag, int argc, char * const arg
 	nonos_addr += 0x40;
 
 	// set nonos run addr to B_START_POS,and the B will start boot from this addr in iboot/xboot
-	*(volatile unsigned int *)B_START_POS = nonos_addr;
+	//*(volatile unsigned int *)B_START_POS = nonos_addr;
 
 	return rcode;
 }
