@@ -14,6 +14,8 @@ struct sp_bootinfo {
 	u32     app_blk_start;       // the block after xboot block(s)
 	u32     mp_flag;             // mp machine flag
 	u32     bootcpu;             // 0: B, 1: A
+	u32     in_xboot;            // 0=in iboot, 1=in xboot
+	u32     hw_security;         // hw security
 };
 
 /* copy from iboot "include/common.h" */
@@ -33,5 +35,12 @@ enum Device_table {
 #define SP_IS_ISPBOOT()       (SP_GET_BOOTINFO()->gbootRom_boot_mode == USB_ISP || \
                                SP_GET_BOOTINFO()->gbootRom_boot_mode == SDCARD_ISP || \
                                SP_GET_BOOTINFO()->gbootRom_boot_mode == UART_ISP )
+
+
+#define FLAG_SECURE_ENABLE       (1 << 0)
+#define FLAG_HSM_DISABLE         (1 << 8)
+
+#define IS_IC_SECURE_ENABLE()	(SP_GET_BOOTINFO()->hw_security & FLAG_SECURE_ENABLE)
+#define IS_IC_HSM_DISABLE()		(SP_GET_BOOTINFO()->hw_security & FLAG_HSM_DISABLE )
 
 #endif /* __SP_BOOTINFO_Q645_H */

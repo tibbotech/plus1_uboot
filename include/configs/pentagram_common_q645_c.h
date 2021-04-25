@@ -328,6 +328,7 @@
 "serverip="                     __stringify(TFTP_SERVER_IP) "\0" \
 "macaddr="                      __stringify(BOARD_MAC_ADDR) "\0" \
 "sdcard_devid="                 __stringify(SDCARD_DEVICE_ID) "\0" \
+"do_secure="                    __stringify(COMPILE_WITH_SECURE) "\0" \
 "loadbootscr=fatload ${isp_if} ${isp_dev}:1 ${scriptaddr} /${bootscr} || " \
 	"fatload ${isp_if} ${isp_dev}:1 ${scriptaddr} /boot/${bootscr} || " \
 	"fatload ${isp_if} ${isp_dev}:1 ${scriptaddr} /sunplus/sp7021/${bootscr}; " \
@@ -430,6 +431,7 @@
 	"booti ${addr_dst_kernel} - ${fdtcontroladdr}\0" \
 "qk_zmem_boot=sp_go ${addr_dst_kernel} ${fdtcontroladdr}\0" \
 "zmem_boot=setenv verify 0; " \
+	"verify ${addr_dst_kernel} 0; "\
 	"bootm ${addr_dst_kernel} - ${fdtcontroladdr}\0" \
 "zebu_emmc_boot=mmc rescan; mmc part; " \
 	"mmc read ${addr_tmp_header} ${addr_src_kernel} 0x1; " \
