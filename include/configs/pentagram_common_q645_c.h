@@ -114,9 +114,9 @@
 //#define CONFIG_MTD_DEVICE		/* needed for mtdparts cmd */
 #define MTDIDS_DEFAULT			"nand0=sp_spinand.0"
 #if 0 // Set default mtdparts for zebu sim
-#define MTDPARTS_DEFAULT		"mtdparts=sp_spinand.0:128k(nand_header),256k(xboot1),1280k(uboot1),2432k(uboot2),512k(env),512k(env_redund),1m(nonos),256k(dtb),16m(kernel),16m(rootfs)"
+#define MTDPARTS_DEFAULT		"sp_spinand.0:128k(nand_header),256k(xboot1),1280k(uboot1),2432k(uboot2),512k(env),512k(env_redund),1m(nonos),256k(dtb),10m(kernel),16128k(rootfs)"
 #else
-#define MTDPARTS_DEFAULT		"mtdparts=sp_spinand.0:-(whole_nand)"
+#define MTDPARTS_DEFAULT		"sp_spinand.0:128k(nand_header),256k(xboot1),1280k(uboot1),2432k(uboot2),512k(env),512k(env_redund),1m(nonos),256k(dtb),25m(kernel),230144k(rootfs)"
 #endif
 #endif
 
@@ -431,7 +431,7 @@
 	"booti ${addr_dst_kernel} - ${fdtcontroladdr}\0" \
 "qk_zmem_boot=sp_go ${addr_dst_kernel} ${fdtcontroladdr}\0" \
 "zmem_boot=setenv verify 0; " \
-	"verify ${addr_dst_kernel} 0; "\
+	"verify ${addr_dst_kernel} 0; " \
 	"bootm ${addr_dst_kernel} - ${fdtcontroladdr}\0" \
 "zebu_emmc_boot=mmc rescan; mmc part; " \
 	"mmc read ${addr_tmp_header} ${addr_src_kernel} 0x1; " \
