@@ -564,7 +564,7 @@ static int spi_nand_program_load(struct sp_spinand_info *info, u32 io_mode,
 	writel(value, &regs->spi_auto_cfg);
 
 	size = (size + 3) & (~3);
-	if (!((u32)buf & 0x03)) {
+	if (!((u64)buf & 0x03)) {
 		/* the buf address is aligned to 4 bytes*/
 		for(i=0; i<size; i+=4) {
 			value = *(u32 *)(buf+i);
@@ -651,14 +651,14 @@ static int spi_nand_readcache(struct sp_spinand_info *info, u32 io_mode,
 	} while((value >> 24) != cmd);
 
 	i = col;
-	if (!(col&0x03) && !((u32)buf&0x03)) {
+	if (!(col&0x03) && !((u64)buf&0x03)) {
 		/* 4 byte aligned case */
 		for (; i<(col+size)>>2<<2; i+=4,buf+=4) {
-			*(u32*)buf = *(u32*)(SPI_NAND_DIRECT_MAP + i);
+			*(u32*)buf = *(u32*)((u64)SPI_NAND_DIRECT_MAP + i);
 		}
 	}
 	for (; i<(col+size); i++,buf++)
-		*buf = *(u8*)(SPI_NAND_DIRECT_MAP + i);
+		*buf = *(u8*)((u64)SPI_NAND_DIRECT_MAP + i);
 
 	return wait_spi_idle(info);
 }
@@ -864,7 +864,7 @@ static int spi_nand_write_by_pio_auto(struct sp_spinand_info *info, u32 io_mode,
 	writel(value, &regs->spi_auto_cfg);
 
 	size = (size + 3) & (~3);
-	if (!((u32)buf & 0x03)) {
+	if (!((u64)buf & 0x03)) {
 		/* the buf address is aligned to 4 bytes */
 		for(i=0; i<size; i+=4) {
 			value = *(u32 *)(buf+i);
@@ -929,7 +929,7 @@ static int spi_nand_read_by_dma(struct sp_spinand_info *info, u32 io_mode,
 		| SPINAND_PAGE_SIZE((page_size >> 10) - 1);
 	writel(value, &regs->spi_page_size);
 
-	writel((u32)buf, &regs->mem_data_addr);
+	writel((u64)buf, &regs->mem_data_addr);
 
 	value = SPINAND_USR_READCACHE_CMD(cmd)
 		| SPINAND_USR_READCACHE_EN;
@@ -980,7 +980,7 @@ static int spi_nand_write_by_dma(struct sp_spinand_info *info, u32 io_mode,
 		| SPINAND_PAGE_SIZE((page_size >> 10) - 1);
 	writel(value, &regs->spi_page_size);
 
-	writel((u32)buf, &regs->mem_data_addr);
+	writel((u64)buf, &regs->mem_data_addr);
 
 	value = SPINAND_DMA_DONE_MASK;
 	writel(value, &regs->spi_intr_msk);
@@ -1045,8 +1045,8 @@ static int spi_nand_pageread_autobch(struct sp_spinand_info *info, u32 io_mode,
 		| SPINAND_PAGE_SIZE((page_size >> 10) - 1);
 	writel(value, &regs->spi_page_size);
 
-	writel((u32)buf, &regs->mem_data_addr);
-	writel((u32)buf+info->page_size, &regs->mem_parity_addr);
+	writel((u64)buf, &regs->mem_data_addr);
+	writel((u64)buf+info->page_size, &regs->mem_parity_addr);
 
 	value = SPINAND_BCH_DECSRC(info->bch_dec_src)
 		| SPINAND_BCH_DATA_LEN(info->parity_sector_size)
@@ -1121,8 +1121,8 @@ static int spi_nand_pagewrite_autobch(struct sp_spinand_info *info, u32 io_mode,
 		| SPINAND_PAGE_SIZE((page_size >> 10) - 1);
 	writel(value, &regs->spi_page_size);
 
-	writel((u32)buf, &regs->mem_data_addr);
-	writel((u32)buf+info->page_size, &regs->mem_parity_addr);
+	writel((u64)buf, &regs->mem_data_addr);
+	writel((u64)buf+info->page_size, &regs->mem_parity_addr);
 
 	value = SPINAND_BCH_DECSRC(info->bch_dec_src)
 		| SPINAND_BCH_DATA_LEN(info->parity_sector_size)
@@ -1449,12 +1449,12 @@ static int sp_spinand_init(struct sp_spinand_info *info)
 	/* the buff should be cacheline-aligned */
 	info->buff.virt_base = buf;
 	buf = buf + CONFIG_SYS_CACHELINE_SIZE - 1;
-	info->buff.virt = (u8*)((u32)buf & (~(CONFIG_SYS_CACHELINE_SIZE-1)));
+	info->buff.virt = (u8*)((u64)buf & (~(CONFIG_SYS_CACHELINE_SIZE-1)));
 	#endif
 
 	info->buff.phys = (dma_addr_t)info->buff.virt;
 	SPINAND_LOGI("%s in\n", __FUNCTION__);
-	SPINAND_LOGI("buff=0x%p@0x%08x size=%u\n", info->buff.virt,
+	SPINAND_LOGI("buff=0x%p@0x%08llx size=%u\n", info->buff.virt,
 		info->buff.phys, info->buff.size);
 
 	info->nand.select_chip = sp_spinand_select_chip;
@@ -1676,7 +1676,7 @@ static int sp_spinand_test_rw(u32 addr, u32 size, u32 seed)
 	u32 block_size = mtd->erasesize;
 	u32 block_num = (size + block_size - 1) / block_size;
 	u32 start_block = addr / block_size;
-	u32 actual_size;
+	size_t actual_size;
 	u32 now_seed;
 	u32 i, j;
 	int ret;
@@ -1780,7 +1780,7 @@ static int sp_spinand_test_speed(void)
 	unsigned long speed;
 	unsigned long average;
 	unsigned long data_size = mtd->erasesize * TEST_BLOCK_NUM;
-	u32 actual_size;
+	size_t actual_size;
 	u8  *buf;
 	s32 i, j;
 	int ret;
@@ -1904,7 +1904,7 @@ static int sp_spinand_test_stress(void)
 	nand_erase_options_t erase_opts;
 	u32 blocks = nand->chipsize / mtd->erasesize;
 	u32 data_size = mtd->erasesize;
-	u32 actual_size;
+	size_t actual_size;
 	u32 progress;
 	u32 offset;
 	u8  *src_buf;
@@ -1985,7 +1985,7 @@ static int sp_spinand_test_stress1(u32 block)
 	nand_erase_options_t erase_opts;
 	u32 row_addr = mtd->erasesize * block;
 	u32 data_size = mtd->erasesize;
-	u32 actual_size;
+	size_t actual_size;
 	u8  *src_buf;
 	u8  *dst_buf;
 	u32 k;

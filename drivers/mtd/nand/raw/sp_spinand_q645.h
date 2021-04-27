@@ -28,9 +28,9 @@
 #define CONFIG_SPINAND_WRITE_BITMODE         SPINAND_4BIT_MODE
 #define CONFIG_SPINAND_BUF_SZ                (8 << 10)
 #define CONFIG_SPINAND_TIMEOUT               (100)   /* unit: ms */
-#if 1 // CCHo: for zebu sim
+#if 0 // For zebu sim
 #define CONFIG_SPINAND_READ_TIMING_SEL       (0)
-#define CONFIG_SPINAND_TRSMODE               SPINAND_TRS_DMA
+#define CONFIG_SPINAND_TRSMODE               SPINAND_TRS_DMA_AUTOBCH
 #else
 #define CONFIG_SPINAND_READ_TIMING_SEL       (2)
 #define CONFIG_SPINAND_TRSMODE               SPINAND_TRS_DMA_AUTOBCH

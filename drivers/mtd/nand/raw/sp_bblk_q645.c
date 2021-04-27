@@ -322,7 +322,7 @@ int sp_nand_write_bblk(nand_info_t *nand, loff_t off, size_t *length,
 	 */
 	printf("%s: alloc size %d\n", __func__, nand->writesize + CONFIG_SYS_CACHELINE_SIZE);
 	raw_buf = malloc(nand->writesize + CONFIG_SYS_CACHELINE_SIZE);
-	buf = (u_char *)(((u32)raw_buf + CONFIG_SYS_CACHELINE_SIZE - 1)
+	buf = (u_char *)(((u64)raw_buf + CONFIG_SYS_CACHELINE_SIZE - 1)
 			 & ~(CONFIG_SYS_CACHELINE_SIZE - 1));
 
 	if (!raw_buf) {
@@ -341,7 +341,7 @@ int sp_nand_write_bblk(nand_info_t *nand, loff_t off, size_t *length,
 		}
 
 		// buf = data + 0xff .... 0xff
-		printf("%s: memcpy size %d, off=0x%x\n", __func__, *length,
+		printf("%s: memcpy size %ld, off=0x%x\n", __func__, *length,
 		       (uint32_t)off);
 		memcpy(buf, data, *length);
 		memset(buf + *length, 0xff, nand->writesize - *length);
@@ -453,7 +453,7 @@ int sp_nand_read_bblk(struct mtd_info *nand, loff_t off, size_t *length,
 	printf("%s: alloc size %d\n", __func__,
 	       nand->writesize + CONFIG_SYS_CACHELINE_SIZE);
 	raw_buf = malloc(nand->writesize + CONFIG_SYS_CACHELINE_SIZE);
-	buf = (u_char *)(((u32)raw_buf + CONFIG_SYS_CACHELINE_SIZE - 1)
+	buf = (u_char *)(((u64)raw_buf + CONFIG_SYS_CACHELINE_SIZE - 1)
 			 & ~(CONFIG_SYS_CACHELINE_SIZE - 1));
 
 	if (!raw_buf) {
