@@ -420,6 +420,7 @@
 	"if itest ${if_use_nfs_rootfs} == 1; then " \
 		"setenv bootargs ${b_c} root=/dev/nfs nfsroot=${nfs_serverip}:${nfs_rootfs_dir} ip=${nfs_clintip}:${nfs_serverip}:${nfs_gatewayip}:${nfs_netmask}::eth0:off rdinit=/linuxrc noinitrd rw; "\
 	"fi; " \
+	"verify ${addr_dst_kernel} ${do_secure}; "\
 	"setexpr addr_dst_kernel ${addr_dst_kernel} + 0x40; " \
 	"if itest.l *${bootinfo_base} == " __stringify(SPI_NOR_BOOT) "; then " \
 		"setexpr addr_temp_kernel ${addr_temp_kernel} + 0x40; " \

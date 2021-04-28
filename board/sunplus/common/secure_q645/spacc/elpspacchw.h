@@ -52,11 +52,11 @@
 #endif
 
 // Q645 :
-// ELP_SPACC_CONFIG_MSG_ADDR_WIDTH = 16 (64KB)
+// ELP_SPACC_CONFIG_MSG_ADDR_WIDTH = 20 (1024KB)
 
 /* max message size from HW configuration */
-/* usually defined in ICD as (2 exponent 16) -1 */
-#define _SPACC_MAX_MSG_MALLOC_SIZE     16
+/* usually defined in ICD as (2 exponent 20) -1 */
+#define _SPACC_MAX_MSG_MALLOC_SIZE     20
 #define SPACC_MAX_MSG_MALLOC_SIZE     (1 << _SPACC_MAX_MSG_MALLOC_SIZE)
 
 #ifndef SPACC_MAX_MSG_SIZE

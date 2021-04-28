@@ -27,13 +27,12 @@ static int is_nonzero(const u8 *buf, int len)
 	return 0;
 }
 
-const uint8_t ed_pub_0[32] = { 0x5B, 0x1D, 0x18, 0x90, 0x04, 0x36, 0x70, 0x8B, 0x00, 0x8B, 0x2F, 0xB1, 0x12, 0x5F, 0xF6, 0xE8, 0xE6, 0x51, 0x24, 0x8C, 0x45, 0x59, 0x30, 0xCF, 0x2F, 0x46, 0x1C, 0x6A, 0x43, 0xB7, 0x6D, 0x48 };
 static int q645_load_otp_Sb_pub_key(u8 in_pub[32])
 {
 	int ret = 0;
 
 #if 1//test code for use test-keys
-	//#include "../secure/test-keys/ed_pub_0.inc"
+	#include "../../../../../../build/tools/secure_hsm/secure/otp_Sb_keys/ed_pub_0.inc"
 	memcpy(in_pub, ed_pub_0, 32);
 	printf("Test pub-key:\n");
 #else
@@ -41,7 +40,7 @@ static int q645_load_otp_Sb_pub_key(u8 in_pub[32])
 	ret = SC_key_otp_load(in_pub, 0, 32); // G779.0~7
 #endif
 
-#ifdef CONFIG_BOOT_ON_ZEBU
+#ifdef CONFIG_SYS_ENV_ZEBU
 	prn_dump("Kpub:\n", in_pub, 32);
 #endif
 	return ret;
@@ -171,7 +170,7 @@ int do_verify(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	
 	if (!IS_IC_SECURE_ENABLE()) {
 		printf("Error: non-secure IC can't boot Secure image\n");
-		//return -1;
+		return -1;
 	}
 	/* Secure boot flow requirement:
 	 * 1. OTP[RMA] != 0
