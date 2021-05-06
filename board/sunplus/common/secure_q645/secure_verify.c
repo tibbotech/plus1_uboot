@@ -31,7 +31,7 @@ static int q645_load_otp_Sb_pub_key(u8 in_pub[32])
 {
 	int ret = 0;
 
-#if 1//test code for use test-keys
+#if 0//test code for use test-keys
 	#include "../../../../../../build/tools/secure_hsm/secure/otp_Sb_keys/ed_pub_0.inc"
 	memcpy(in_pub, ed_pub_0, 32);
 	printf("Test pub-key:\n");

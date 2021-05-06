@@ -288,6 +288,19 @@
 	"cp.l ${addr_src_kernel} ${addr_dst_kernel} ${sz_kernel}; "
 #endif
 
+#ifdef CONFIG_PENTAGRAM_SEPDTS
+#define DTS_LOAD_ADDR "${addr_dst_dtb}"
+#define DTS_LOAD_EMMC \
+	"mmc read ${addr_tmp_header} ${addr_src_dtb} 0x1; " \
+	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x4; run be2le; " \
+	"setexpr sz_dtb ${tmpval} + 0x28; " \
+	"setexpr sz_dtb ${sz_dtb} + 0x200; setexpr sz_dtb ${sz_dtb} / 0x200; " \
+	"mmc read ${addr_dst_dtb} ${addr_src_dtb} ${sz_dtb}; "
+#else
+#define DTS_LOAD_ADDR "${fdtcontroladdr}"
+#define DTS_LOAD_EMMC
+#endif
+
 #define CONFIG_EXTRA_ENV_SETTINGS \
 "b_c=console=tty1 console=ttyS0,115200 earlyprintk\0" \
 "emmc_root=root=/dev/mmcblk0p8 rw rootwait\0" \
@@ -369,6 +382,7 @@
 	dbg_scr("echo nonosize ${sz_nonos}  addr_dst_nonos ${addr_dst_nonos};")\
 	"mmc read ${addr_dst_nonos} ${addr_src_nonos} ${sz_nonos}; " \
 	"sp_nonos_go ${addr_dst_nonos}; "\
+	DTS_LOAD_EMMC \
 	"mmc read ${addr_tmp_header} ${addr_src_kernel} 0x1; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
 	"setexpr sz_kernel ${tmpval} + 0x40; " \
@@ -403,7 +417,7 @@
 		"setenv bootargs ${b_c} root=/dev/nfs nfsroot=${nfs_serverip}:${nfs_rootfs_dir} ip=${nfs_clintip}:${nfs_serverip}:${nfs_gatewayip}:${nfs_netmask}::eth0:off rdinit=/linuxrc noinitrd rw; "\
 	"fi; " \
 	"verify ${addr_dst_kernel}; " \
-	"bootm ${addr_dst_kernel} - ${fdtcontroladdr}; " \
+	"bootm ${addr_dst_kernel} - " DTS_LOAD_ADDR "; " \
 	"\0" \
 "qk_zmem_boot=sp_go ${addr_dst_kernel} ${fdtcontroladdr}\0" \
 "zmem_boot=bootm ${addr_dst_kernel} - ${fdtcontroladdr}\0" \

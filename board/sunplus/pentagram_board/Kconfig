@@ -120,4 +120,12 @@ config TPS_UPD_USB
 	bool "tps_upd src - usb"
 	default y if USB
 
+config PENTAGRAM_SEPDTS
+	bool "Use separate DTS"
+	default n
+	help
+	  By default Pentagram boards U-Boot share the DTS with the kernel.
+	  TPS boards can edit kernel DTS. Separate U-Boot DTS allows U-Boot 
+	  to not depend on potential kernel DTS errors.
+
 endif
