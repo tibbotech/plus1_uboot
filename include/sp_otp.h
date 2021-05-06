@@ -2,11 +2,11 @@
 #define __SP_OTP_H
 #include <common.h>
 
-	#if (defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)) || \
+	#ifdef CONFIG_TARGET_PENTAGRAM_Q645
+#define REG_BASE           0xF8000000
+	#elif (defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)) || \
 		(defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C))
 #define REG_BASE           0x9c000000
-	#elif defined(CONFIG_TARGET_PENTAGRAM_Q645)
-#define REG_BASE           0xF8000000
 	#endif
 #define RF_GRP(_grp, _reg) ((((_grp) * 32 + (_reg)) * 4) + REG_BASE)
 

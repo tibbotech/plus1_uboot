@@ -78,10 +78,13 @@ static int do_read_otp(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]
 	char value;
 	int i, j;
 
+	efuse = 0;
 	if (argc == 3) {
-#if (defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)) || \
-	(defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C))
+#ifndef CONFIG_TARGET_PENTAGRAM_Q645
+	#if (defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)) || \
+		(defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C))
 		return CMD_RET_USAGE;
+	#endif
 #endif
 		efuse = simple_strtoul(argv[2], NULL, 0);
 		if (efuse == 0) {
@@ -90,16 +93,21 @@ static int do_read_otp(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]
 		} else if (efuse == 1) {
 			otp_data = KEY_HB_GP_REG;
 			otp_size = QAK645_EFUSE1_SIZE;
+		} else if (efuse == 2) {
+			otp_data = CUSTOMER_HB_GP_REG;
+			otp_size = QAK645_EFUSE2_SIZE;
 		} else
 			return CMD_RET_USAGE;
-#if (defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)) || \
-	(defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C))
+#ifndef CONFIG_TARGET_PENTAGRAM_Q645
+	#if (defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)) || \
+		(defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C))
 	} else if (argc == 2) {
 		otp_data = HB_GP_REG;
-	#if defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)
+		#if defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)
 		otp_size = QAC628_EFUSE_SIZE;
-	#elif defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C)
+		#elif defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C)
 		otp_size = I143_EFUSE_SIZE;
+		#endif
 	#endif
 #endif
 	} else {
@@ -107,12 +115,27 @@ static int do_read_otp(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]
 	}
 
 	if (strcmp(argv[1], "a") == 0) {
+		printf("         eFuse%d\n", efuse);
 		printf(" (byte No.)   (data)\n");
 		j = 0;
 
 		for (addr = 0 ; addr < (otp_size - 1); addr += (OTP_WORD_SIZE * OTP_WORDS_PER_BANK)) {
+#ifdef CONFIG_TARGET_PENTAGRAM_Q645
+			if (efuse == 0) {
+				if (read_otp_data(HB_GP_REG, SP_OTPRX_REG, addr, &value) == -1)
+					return CMD_RET_FAILURE;
+			} else if (efuse == 1) {
+				if (read_otp_data(KEY_HB_GP_REG, KEY_OTPRX_REG, addr, &value) == -1)
+					return CMD_RET_FAILURE;
+			} else if (efuse == 2) {
+				if (read_otp_data(CUSTOMER_HB_GP_REG, CUSTOMER_OTPRX_REG, addr, &value) == -1)
+					return CMD_RET_FAILURE;
+			}
+#elif (defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)) || \
+	(defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C))
 			if (read_otp_data(HB_GP_REG, SP_OTPRX_REG, addr, &value) == -1)
 				return CMD_RET_FAILURE;
+#endif
 
 			for (i = 0; i < 4; i++, j++) {
 				printf("  %03u~%03u : 0x%08X\n", 3+j*4, j*4, otp_data->hb_gpio_rgst_bus32[8+i]);
@@ -122,16 +145,34 @@ static int do_read_otp(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]
 		}
 	} else {
 		addr = simple_strtoul(argv[1], NULL, 0);
+
+		if ((strcmp(argv[1], "0") != 0) && (addr == 0))
+			return CMD_RET_USAGE;
+
 		if (addr >= otp_size) {
 			printf("out of OTP size (0 ~ %d)\n", (otp_size - 1));
 			return CMD_RET_USAGE;
 		}
 
+#ifdef CONFIG_TARGET_PENTAGRAM_Q645
+		if (efuse == 0) {
+			if (read_otp_data(HB_GP_REG, SP_OTPRX_REG, addr, &value) == -1)
+				return CMD_RET_FAILURE;
+		} else if (efuse == 1) {
+			if (read_otp_data(KEY_HB_GP_REG, KEY_OTPRX_REG, addr, &value) == -1)
+				return CMD_RET_FAILURE;
+		} else if (efuse == 2) {
+			if (read_otp_data(CUSTOMER_HB_GP_REG, CUSTOMER_OTPRX_REG, addr, &value) == -1)
+				return CMD_RET_FAILURE;
+		}
+#elif (defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)) || \
+	(defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C))
 		if (read_otp_data(HB_GP_REG, SP_OTPRX_REG, addr, &value) == -1)
 			return CMD_RET_FAILURE;
+#endif
 
 		data = value;
-		printf("OTP DATA (byte %u) = 0x%02X\n", addr, data);
+		printf("eFuse%d DATA (byte %u) = 0x%02X\n", efuse, addr, data);
 	}
 
 	return 0;
@@ -147,24 +188,30 @@ static int do_write_otp(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[
 	char value;
 
 	if (argc == 4) {
-	#if (defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)) || \
-		(defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C))
+	#ifndef CONFIG_TARGET_PENTAGRAM_Q645
+		#if (defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)) || \
+			(defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C))
 		return CMD_RET_USAGE;
+		#endif
 	#endif
 		efuse = simple_strtoul(argv[3], NULL, 0);
 		if (efuse == 0)
 			otp_size = QAK645_EFUSE0_SIZE;
 		else if (efuse == 1)
 			otp_size = QAK645_EFUSE1_SIZE;
+		else if (efuse == 2)
+			otp_size = QAK645_EFUSE2_SIZE;
 		else
 			return CMD_RET_USAGE;
-	#if (defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)) || \
-		(defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C))
+	#ifndef CONFIG_TARGET_PENTAGRAM_Q645
+		#if (defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)) || \
+			(defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C))
 	} else if (argc == 3) {
-		#if defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)
+			#if defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)
 		otp_size = QAC628_EFUSE_SIZE;
-		#elif defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C)
+			#elif defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C)
 		otp_size = I143_EFUSE_SIZE;
+			#endif
 		#endif
 	#endif
 	} else {
@@ -174,13 +221,30 @@ static int do_write_otp(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[
 	addr = simple_strtoul(argv[1], NULL, 0);
 	data = simple_strtoul(argv[2], NULL, 0);
 
-	if ((addr >= otp_size) || (data >= 0xFF))
+	if (((strcmp(argv[1], "0") != 0) && (addr == 0)) || ((strcmp(argv[2], "0") != 0) && (data == 0)))
+		return CMD_RET_USAGE;
+
+	if ((addr >= otp_size) || (data > 0xFF))
 		return CMD_RET_USAGE;
 
 	value = data & 0xFF;
 
-	if (write_otp_data(HB_GP_REG, SP_OTPRX_REG, addr, value) == -1)
+#ifdef CONFIG_TARGET_PENTAGRAM_Q645
+	if (efuse == 0) {
+		if (write_otp_data(HB_GP_REG, SP_OTPRX_REG, addr, &value) == -1)
+			return CMD_RET_FAILURE;
+	} else if (efuse == 1) {
+		if (write_otp_data(KEY_HB_GP_REG, KEY_OTPRX_REG, addr, &value) == -1)
+			return CMD_RET_FAILURE;
+	} else if (efuse == 2) {
+		if (write_otp_data(CUSTOMER_HB_GP_REG, CUSTOMER_OTPRX_REG, addr, &value) == -1)
+			return CMD_RET_FAILURE;
+	}
+#elif (defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)) || \
+	(defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C))
+	if (write_otp_data(HB_GP_REG, SP_OTPRX_REG, addr, &value) == -1)
 		return CMD_RET_FAILURE;
+#endif
 
 	printf("OTP write complete !!\n");
 
@@ -189,7 +253,22 @@ static int do_write_otp(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[
 #endif
 
 /*******************************************************/
-#if (defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)) || \
+
+#ifdef CONFIG_TARGET_PENTAGRAM_Q645
+U_BOOT_CMD(
+	rotp, 3, 1, do_read_otp,
+	"read 1 byte data or all data of OTP",
+	"[OTP address (0, 1, 2,.., n byte) | all (a)] [eFuse (0:sunplus, 1:security, 2:customer)]"
+);
+
+	#ifdef SUPPORT_WRITE_OTP
+U_BOOT_CMD(
+	wotp, 4, 1, do_write_otp,
+	"write 1 byte data to OTP",
+	"[OTP address (0, 1, 2,.., n byte)] [data (0~255)] [eFuse (0:sunplus, 1:security, 2:customer)]"
+);
+	#endif
+#elif (defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)) || \
 	(defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C))
 U_BOOT_CMD(
 	rotp, 2, 1, do_read_otp,
@@ -202,20 +281,6 @@ U_BOOT_CMD(
 	wotp, 3, 1, do_write_otp,
 	"write 1 byte data to OTP",
 	"[OTP address (0, 1,..., 127 byte)] [data (0~255)]"
-);
-	#endif
-#elif defined(CONFIG_TARGET_PENTAGRAM_Q645)
-U_BOOT_CMD(
-	rotp, 3, 1, do_read_otp,
-	"read 1 byte data or all data of OTP",
-	"[OTP address (0, 1, 2,.., n byte) | all (a)] [eFuse (0:sunplus, 1:security, 2:customer]"
-);
-
-	#ifdef SUPPORT_WRITE_OTP
-U_BOOT_CMD(
-	wotp, 4, 1, do_write_otp,
-	"write 1 byte data to OTP",
-	"[OTP address (0, 1, 2,.., n byte)] [data (0~255)] [eFuse (0:sunplus, 1:security, 2:customer]"
 );
 	#endif
 #endif
