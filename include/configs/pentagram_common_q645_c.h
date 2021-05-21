@@ -18,7 +18,7 @@
 //#define CONFIG_NR_DRAM_BANKS		1
 #define CONFIG_SYS_SDRAM_BASE		0
 #if defined(CONFIG_SYS_ENV_ZEBU)
-#define CONFIG_SYS_SDRAM_SIZE          (256 << 20)// (64 << 20)
+#define CONFIG_SYS_SDRAM_SIZE          (1024 << 20)// (64 << 20)
 #elif defined(CONFIG_SYS_ENV_Q645_EVB)
 #define CONFIG_SYS_SDRAM_SIZE           (512 << 20)
 #else /* normal SP7021 evb environment can have larger DRAM size */
