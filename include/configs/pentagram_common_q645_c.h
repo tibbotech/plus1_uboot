@@ -397,6 +397,7 @@
 	"setexpr sz_kernel ${tmpval} + 0x40; " \
 	"setexpr sz_kernel ${sz_kernel} + 0x48; " \
 	"setexpr sz_kernel ${sz_kernel} + 0x200; setexpr sz_kernel ${sz_kernel} / 0x200; " \
+	"echo mmc read addr ${addr_src_kernel} ${addr_dst_kernel} ${sz_kernel}; " \
 	"mmc read ${addr_dst_kernel} ${addr_src_kernel} ${sz_kernel}; " \
 	"setenv bootargs ${b_c} ${emmc_root} ${args_emmc} ${args_kern}; " \
 	"run boot_kernel \0" \
@@ -426,14 +427,15 @@
 	"if itest ${if_use_nfs_rootfs} == 1; then " \
 		"setenv bootargs ${b_c} root=/dev/nfs nfsroot=${nfs_serverip}:${nfs_rootfs_dir} ip=${nfs_clintip}:${nfs_serverip}:${nfs_gatewayip}:${nfs_netmask}::eth0:off rdinit=/linuxrc noinitrd rw; "\
 	"fi; " \
-	"setexpr addr_dst_kernel ${addr_dst_kernel} + 0x40; " \
 	"if itest.l *${bootinfo_base} == " __stringify(SPI_NOR_BOOT) "; then " \
 		"verify ${addr_temp_kernel} ${do_secure}; "\
 		"setexpr addr_temp_kernel ${addr_temp_kernel} + 0x40; " \
+	  "setexpr addr_dst_kernel ${addr_dst_kernel} + 0x40; " \
 		"echo unzip ${addr_temp_kernel} ${addr_dst_kernel}; " \
 		"unzip ${addr_temp_kernel} ${addr_dst_kernel}; " \
 	"else"\
 		"verify ${addr_dst_kernel} ${do_secure}; "\
+	  "setexpr addr_dst_kernel ${addr_dst_kernel} + 0x40; " \
 	"fi; " \
 	dbg_scr("echo booti ${addr_dst_kernel} - ${fdtcontroladdr}; ") \
 	"echo booti ${addr_dst_kernel} - ${fdtcontroladdr}; " \
