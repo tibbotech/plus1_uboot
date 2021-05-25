@@ -432,7 +432,7 @@
 		"setexpr addr_temp_kernel ${addr_temp_kernel} + 0x40; " \
 		"echo unzip ${addr_temp_kernel} ${addr_dst_kernel}; " \
 		"unzip ${addr_temp_kernel} ${addr_dst_kernel}; " \
-	"else"\
+	"else " \
 		"verify ${addr_dst_kernel} ${do_secure}; "\
 	"fi; " \
 	dbg_scr("echo booti ${addr_dst_kernel} - ${fdtcontroladdr}; ") \
