@@ -442,7 +442,7 @@
 	"booti ${addr_dst_kernel} - ${fdtcontroladdr}\0" \
 "qk_zmem_boot=sp_go ${addr_dst_kernel} ${fdtcontroladdr}\0" \
 "zmem_boot=setenv verify 0; " \
-	"verify ${addr_dst_kernel} 0; " \
+	"verify ${addr_dst_kernel} ${do_secure}; " \
 	"bootm ${addr_dst_kernel} - ${fdtcontroladdr}\0" \
 "zebu_emmc_boot=mmc rescan; mmc part; " \
 	"mmc read ${addr_tmp_header} ${addr_src_kernel} 0x1; " \
