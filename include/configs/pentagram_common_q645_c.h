@@ -433,7 +433,7 @@
 	  "setexpr addr_dst_kernel ${addr_dst_kernel} + 0x40; " \
 		"echo unzip ${addr_temp_kernel} ${addr_dst_kernel}; " \
 		"unzip ${addr_temp_kernel} ${addr_dst_kernel}; " \
-	"else"\
+	"else " \
 		"verify ${addr_dst_kernel} ${do_secure}; "\
 	  "setexpr addr_dst_kernel ${addr_dst_kernel} + 0x40; " \
 	"fi; " \
