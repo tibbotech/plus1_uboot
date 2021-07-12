@@ -79,8 +79,8 @@ struct pad_ctl_regs {
 
 
 struct hb_gp_regs {
-        unsigned int hb_otp_data[12];
-        unsigned int reserved_8[20];
+	unsigned int hb_otp_data[12];
+	unsigned int reserved_8[20];
 };
 #define OTP_REG     ((volatile struct hb_gp_regs *)RF_GRP(350, 0))
 #define KEY_OTP_REG    ((volatile struct hb_gp_regs *)RF_GRP(779, 0))
@@ -122,34 +122,36 @@ struct otprx_regs {
 struct stc_regs {
 	unsigned int stc_15_0;       // 12.0
 	unsigned int stc_31_16;      // 12.1
-	unsigned int stc_64;         // 12.2
-	unsigned int stc_divisor;    // 12.3
-	unsigned int rtc_15_0;       // 12.4
-	unsigned int rtc_23_16;      // 12.5
-	unsigned int rtc_divisor;    // 12.6
-	unsigned int stc_config;     // 12.7
-	unsigned int timer0_ctrl;    // 12.8
-	unsigned int timer0_cnt;     // 12.9
-	unsigned int timer1_ctrl;    // 12.10
-	unsigned int timer1_cnt;     // 12.11
-	unsigned int timerw_ctrl;    // 12.12
-	unsigned int timerw_cnt;     // 12.13
-	unsigned int stc_47_32;      // 12.14
-	unsigned int stc_63_48;      // 12.15
-	unsigned int timer2_ctl;     // 12.16
-	unsigned int timer2_pres_val;// 12.17
-	unsigned int timer2_reload;  // 12.18
+	unsigned int stc_47_32;      // 12.2
+	unsigned int stc_63_48;      // 12.3
+	unsigned int stc_64;         // 12.4
+	unsigned int stc_divisor;    // 12.5
+	unsigned int stc_config;     // 12.6
+	unsigned int rtc_15_0;       // 12.7
+	unsigned int rtc_23_16;      // 12.8
+	unsigned int rtc_divisor;    // 12.9
+	unsigned int timerw_ctl;     // 12.10
+	unsigned int timerw_cnt;     // 12.11
+	unsigned int timer0_ctl;     // 12.12
+	unsigned int timer0_cnt;     // 12.13
+	unsigned int timer0_reload;  // 12.14
+	unsigned int timer1_ctl;     // 12.15
+	unsigned int timer1_cnt;     // 12.16
+	unsigned int timer1_reload;  // 12.17
+	unsigned int timer2_ctl;     // 12.18
 	unsigned int timer2_cnt;     // 12.19
-	unsigned int timer3_ctl;     // 12.20
-	unsigned int timer3_pres_val;// 12.21
-	unsigned int timer3_reload;  // 12.22
+	unsigned int timer2_reload;  // 12.20
+	unsigned int timer2_pres_val;// 12.21
+	unsigned int timer3_ctl;     // 12.22
 	unsigned int timer3_cnt;     // 12.23
-	unsigned int stcl_0;         // 12.24
-	unsigned int stcl_1;         // 12.25
-	unsigned int stcl_2;         // 12.26
-	unsigned int atc_0;          // 12.27
-	unsigned int atc_1;          // 12.28
-	unsigned int atc_2;          // 12.29
+	unsigned int timer3_reload;  // 12.24
+	unsigned int timer3_pres_val;// 12.25
+	unsigned int stcl_0;         // 12.26
+	unsigned int stcl_1;         // 12.27
+	unsigned int stcl_2;         // 12.28
+	unsigned int atc_0;          // 12.29
+	unsigned int atc_1;          // 12.30
+	unsigned int atc_2;          // 12.31
 };
 #define STC_REG     ((volatile struct stc_regs *)RF_GRP(12, 0))
 #define STC_AV0_REG ((volatile struct stc_regs *)RF_GRP(96, 0))
@@ -341,7 +343,7 @@ struct emmc_ctl_regs {
 			unsigned int dram_sector_cnt:3;				// 2:00 ro
 			unsigned int hw_block_cnt:2;				// 04:03 ro
 			unsigned int reserved11:11;				// 15:05 ro
-			unsigned int hw_page_cnt:16;				// 31:16 ro 
+			unsigned int hw_page_cnt:16;				// 31:16 ro
 		};
 		unsigned int sdram_sector_block_cnt;
 	};
@@ -419,7 +421,7 @@ struct emmc_ctl_regs {
 	unsigned int reserved17:16;
 	/* g1.4 */
 	union {
-		struct {	
+		struct {
 			unsigned int sdpiomode:1;
 			unsigned int sdddrmode:1;
 			unsigned int sd_len_mode:1;
@@ -453,7 +455,7 @@ struct emmc_ctl_regs {
 			unsigned int con_req:1;
 			unsigned int sus_data_flag:1;
 			unsigned int int_multi_trig:1;
-			unsigned int reserved18:25; 
+			unsigned int reserved18:25;
 		};
 		unsigned int sdio_ctrl;
 	};
@@ -464,7 +466,7 @@ struct emmc_ctl_regs {
 			unsigned int sdrst:1;
 			unsigned int sdcrcrst:1;
 			unsigned int sdiorst:1;
-			unsigned int reserved19:29; 
+			unsigned int reserved19:29;
 		};
 		unsigned int sd_rst;
 	};
@@ -484,7 +486,7 @@ struct emmc_ctl_regs {
 	union {
 		struct {
 			unsigned int sdstatus:19;
-			unsigned int reserved21:13;	 
+			unsigned int reserved21:13;
 		};
 		unsigned int sd_status;
 	};
@@ -492,11 +494,11 @@ struct emmc_ctl_regs {
 	union {
 		struct {
 			unsigned int sdstate:3;
-			unsigned int reserved22:1; 
-			unsigned int sdcrdcrc:3; 
-			unsigned int reserved23:1; 
-			unsigned int sdstate_new:7; 
-			unsigned int reserved24:17; 
+			unsigned int reserved22:1;
+			unsigned int sdcrdcrc:3;
+			unsigned int reserved23:1;
+			unsigned int sdstate_new:7;
+			unsigned int reserved24:17;
 		};
 		unsigned int sd_state;
 	};
@@ -504,21 +506,21 @@ struct emmc_ctl_regs {
 	/* g1.10 */
 	union {
 		struct {
-			unsigned int hwsd_sm:10;	
-			unsigned int reserved25:22; 
-		}; 
+			unsigned int hwsd_sm:10;
+			unsigned int reserved25:22;
+		};
 		unsigned int sd_hw_state;
 	};
 
 	/* g1.11 */
 	union {
 		struct {
-			unsigned int sddatalen:11;	
-			unsigned int reserved26:21; 
-		}; 
+			unsigned int sddatalen:11;
+			unsigned int reserved26:21;
+		};
 		unsigned int sd_blocksize;
 	};
-	
+
 	/* g1.12 */
 	union {
 		struct {
@@ -526,7 +528,7 @@ struct emmc_ctl_regs {
 			unsigned int sdcrctmr:11;
 			unsigned int sdrsptmr:11;
 			unsigned int sd_high_speed_en:1;
-		}; 
+		};
 		unsigned int sd_config1;
 	};
 
@@ -550,9 +552,9 @@ struct emmc_ctl_regs {
 	};
 
 	/* g1.14 */
-	unsigned int sd_rxdattmr:29; 
+	unsigned int sd_rxdattmr:29;
 	unsigned int reserved30:3;
-	
+
 	/* g1.15 */
 	unsigned int sd_piodatatx:16;
 	unsigned int reserved31:16;

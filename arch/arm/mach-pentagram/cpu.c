@@ -7,6 +7,42 @@
 DECLARE_GLOBAL_DATA_PTR;
 
 /* Group 96, 97, 99: STC_AV0 - STC_AV2 */
+#ifdef CONFIG_TARGET_PENTAGRAM_Q645
+typedef struct {
+	unsigned int stc_15_0;       // 12.0
+	unsigned int stc_31_16;      // 12.1
+	unsigned int stc_47_32;      // 12.2
+	unsigned int stc_63_48;      // 12.3
+	unsigned int stc_64;         // 12.4
+	unsigned int stc_divisor;    // 12.5
+	unsigned int stc_config;     // 12.6
+	unsigned int rtc_15_0;       // 12.7
+	unsigned int rtc_23_16;      // 12.8
+	unsigned int rtc_divisor;    // 12.9
+	unsigned int timerw_ctl;     // 12.10
+	unsigned int timerw_cnt;     // 12.11
+	unsigned int timer0_ctl;     // 12.12
+	unsigned int timer0_cnt;     // 12.13
+	unsigned int timer0_reload;  // 12.14
+	unsigned int timer1_ctl;     // 12.15
+	unsigned int timer1_cnt;     // 12.16
+	unsigned int timer1_reload;  // 12.17
+	unsigned int timer2_ctl;     // 12.18
+	unsigned int timer2_cnt;     // 12.19
+	unsigned int timer2_reload;  // 12.20
+	unsigned int timer2_pres_val;// 12.21
+	unsigned int timer3_ctl;     // 12.22
+	unsigned int timer3_cnt;     // 12.23
+	unsigned int timer3_reload;  // 12.24
+	unsigned int timer3_pres_val;// 12.25
+	unsigned int stcl_0;         // 12.26
+	unsigned int stcl_1;         // 12.27
+	unsigned int stcl_2;         // 12.28
+	unsigned int atc_0;          // 12.29
+	unsigned int atc_1;          // 12.30
+	unsigned int atc_2;          // 12.31
+} stc_avReg_t;
+#else
 typedef struct {
 	volatile unsigned int stc_15_0;
 	volatile unsigned int stc_31_16;
@@ -20,8 +56,8 @@ typedef struct {
 	volatile unsigned int timer0_cnt;
 	volatile unsigned int timer1_ctrl;
 	volatile unsigned int timer1_cnt;
-	volatile unsigned int timerw_ctrl;	/* Only STCs @ 0x9C000600 and 0x9C003000 */
-	volatile unsigned int timerw_cnt;	/* Only STCs @ 0x9C000600 and 0x9C003000 */
+	volatile unsigned int timerw_ctrl;      /* Only STCs @ 0x9C000600 and 0x9C003000 */
+	volatile unsigned int timerw_cnt;       /* Only STCs @ 0x9C000600 and 0x9C003000 */
 	volatile unsigned int stc_47_32;
 	volatile unsigned int stc_63_48;
 	volatile unsigned int timer2_ctrl;
@@ -41,6 +77,7 @@ typedef struct {
 	volatile unsigned int timer0_reload;
 	volatile unsigned int timer1_reload;
 } stc_avReg_t;
+#endif
 
 #ifdef CONFIG_TARGET_PENTAGRAM_Q645
 #define PENTAGRAM_BASE_ADDR	(0xf8000000)
