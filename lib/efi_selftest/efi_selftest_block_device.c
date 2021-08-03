@@ -15,6 +15,7 @@
 
 #include <efi_selftest.h>
 #include "efi_selftest_disk_image.h"
+#include <asm/cache.h>
 
 /* Block size of compressed disk image */
 #define COMPRESSED_DISK_IMAGE_BLOCK_SIZE 8
@@ -24,8 +25,8 @@
 
 static struct efi_boot_services *boottime;
 
-static const efi_guid_t block_io_protocol_guid = BLOCK_IO_GUID;
-static const efi_guid_t guid_device_path = DEVICE_PATH_GUID;
+static const efi_guid_t block_io_protocol_guid = EFI_BLOCK_IO_PROTOCOL_GUID;
+static const efi_guid_t guid_device_path = EFI_DEVICE_PATH_PROTOCOL_GUID;
 static const efi_guid_t guid_simple_file_system_protocol =
 					EFI_SIMPLE_FILE_SYSTEM_PROTOCOL_GUID;
 static const efi_guid_t guid_file_system_info = EFI_FILE_SYSTEM_INFO_GUID;
@@ -193,7 +194,7 @@ static int setup(const efi_handle_t handle,
 	decompress(&image);
 
 	block_io.media->block_size = 1 << LB_BLOCK_SIZE;
-	block_io.media->last_block = img.length >> LB_BLOCK_SIZE;
+	block_io.media->last_block = (img.length >> LB_BLOCK_SIZE) - 1;
 
 	ret = boottime->install_protocol_interface(
 				&disk_handle, &block_io_protocol_guid,
@@ -257,9 +258,9 @@ static int teardown(void)
 				disk_handle, &block_io_protocol_guid,
 				&block_io);
 		if (r != EFI_SUCCESS) {
-			efi_st_todo(
+			efi_st_error(
 				"Failed to uninstall block I/O protocol\n");
-			return EFI_ST_SUCCESS;
+			return EFI_ST_FAILURE;
 		}
 	}
 
@@ -300,6 +301,7 @@ static int execute(void)
 	efi_handle_t *handles;
 	efi_handle_t handle_partition = NULL;
 	struct efi_device_path *dp_partition;
+	struct efi_block_io *block_io_protocol;
 	struct efi_simple_file_system_protocol *file_system;
 	struct efi_file_handle *root, *file;
 	struct {
@@ -308,6 +310,7 @@ static int execute(void)
 	} system_info;
 	efi_uintn_t buf_size;
 	char buf[16] __aligned(ARCH_DMA_MINALIGN);
+	u32 part1_size;
 	u64 pos;
 
 	/* Connect controller to virtual disk */
@@ -337,7 +340,7 @@ static int execute(void)
 		}
 		if (len >= dp_size(dp_partition))
 			continue;
-		if (efi_st_memcmp(dp, dp_partition, len))
+		if (memcmp(dp, dp_partition, len))
 			continue;
 		handle_partition = handles[i];
 		break;
@@ -352,6 +355,23 @@ static int execute(void)
 		return EFI_ST_FAILURE;
 	}
 
+	/* Open the block_io_protocol */
+	ret = boottime->open_protocol(handle_partition,
+				      &block_io_protocol_guid,
+				      (void **)&block_io_protocol, NULL, NULL,
+				      EFI_OPEN_PROTOCOL_GET_PROTOCOL);
+	if (ret != EFI_SUCCESS) {
+		efi_st_error("Failed to open block IO protocol\n");
+		return EFI_ST_FAILURE;
+	}
+	/* Get size of first MBR partition */
+	memcpy(&part1_size, image + 0x1ca, sizeof(u32));
+	if (block_io_protocol->media->last_block != part1_size - 1) {
+		efi_st_error("Last LBA of partition %x, expected %x\n",
+			     (unsigned int)block_io_protocol->media->last_block,
+			     part1_size - 1);
+		return EFI_ST_FAILURE;
+	}
 	/* Open the simple file system protocol */
 	ret = boottime->open_protocol(handle_partition,
 				      &guid_simple_file_system_protocol,
@@ -409,7 +429,7 @@ static int execute(void)
 			     (unsigned int)buf_size);
 		return EFI_ST_FAILURE;
 	}
-	if (efi_st_memcmp(buf, "ello world!", 11)) {
+	if (memcmp(buf, "ello world!", 11)) {
 		efi_st_error("Unexpected file content\n");
 		return EFI_ST_FAILURE;
 	}
@@ -480,7 +500,7 @@ static int execute(void)
 			     (unsigned int)buf_size);
 		return EFI_ST_FAILURE;
 	}
-	if (efi_st_memcmp(buf, "U-Boot", 7)) {
+	if (memcmp(buf, "U-Boot", 7)) {
 		efi_st_error("Unexpected file content %s\n", buf);
 		return EFI_ST_FAILURE;
 	}

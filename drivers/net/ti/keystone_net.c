@@ -8,6 +8,8 @@
 #include <common.h>
 #include <command.h>
 #include <console.h>
+#include <asm/global_data.h>
+#include <linux/delay.h>
 
 #include <dm.h>
 #include <dm/lists.h>
@@ -21,6 +23,7 @@
 #include <asm/ti-common/keystone_net.h>
 #include <asm/ti-common/keystone_serdes.h>
 #include <asm/arch/psc_defs.h>
+#include <linux/libfdt.h>
 
 #include "cpsw_mdio.h"
 
@@ -88,6 +91,7 @@ struct ks2_eth_priv {
 	struct mii_dev			*mdio_bus;
 	int				phy_addr;
 	phy_interface_t			phy_if;
+	int				phy_of_handle;
 	int				sgmii_link_type;
 	void				*mdio_base;
 	struct rx_buff_desc		net_rx_buffs;
@@ -493,7 +497,7 @@ static void ks2_eth_stop(struct udevice *dev)
 int ks2_eth_read_rom_hwaddr(struct udevice *dev)
 {
 	struct ks2_eth_priv *priv = dev_get_priv(dev);
-	struct eth_pdata *pdata = dev_get_platdata(dev);
+	struct eth_pdata *pdata = dev_get_plat(dev);
 	u32 maca = 0;
 	u32 macb = 0;
 
@@ -516,7 +520,7 @@ int ks2_eth_read_rom_hwaddr(struct udevice *dev)
 int ks2_eth_write_hwaddr(struct udevice *dev)
 {
 	struct ks2_eth_priv *priv = dev_get_priv(dev);
-	struct eth_pdata *pdata = dev_get_platdata(dev);
+	struct eth_pdata *pdata = dev_get_plat(dev);
 
 	writel(mac_hi(pdata->enetaddr),
 	       DEVICE_EMACSW_BASE(pdata->iobase, priv->slave_port - 1) +
@@ -588,6 +592,10 @@ static int ks2_eth_probe(struct udevice *dev)
 	if (priv->has_mdio) {
 		priv->phydev = phy_connect(priv->mdio_bus, priv->phy_addr,
 					   dev, priv->phy_if);
+#ifdef CONFIG_DM_ETH
+	if (priv->phy_of_handle)
+		priv->phydev->node = offset_to_ofnode(priv->phy_of_handle);
+#endif
 		phy_config(priv->phydev);
 	}
 
@@ -679,6 +687,7 @@ static int ks2_eth_parse_slave_interface(int netcp, int slave,
 	int phy;
 	int dma_count;
 	u32 dma_channel[8];
+	const char *phy_mode;
 
 	priv->slave_port = fdtdec_get_int(fdt, slave, "slave-port", -1);
 	priv->net_rx_buffs.rx_flow = priv->slave_port * 8;
@@ -700,7 +709,9 @@ static int ks2_eth_parse_slave_interface(int netcp, int slave,
 	priv->link_type = fdtdec_get_int(fdt, slave, "link-interface", -1);
 
 	phy = fdtdec_lookup_phandle(fdt, slave, "phy-handle");
+
 	if (phy >= 0) {
+		priv->phy_of_handle = phy;
 		priv->phy_addr = fdtdec_get_int(fdt, phy, "reg", -1);
 
 		mdio = fdt_parent_offset(fdt, phy);
@@ -717,7 +728,19 @@ static int ks2_eth_parse_slave_interface(int netcp, int slave,
 		priv->sgmii_link_type = SGMII_LINK_MAC_PHY;
 		priv->has_mdio = true;
 	} else if (priv->link_type == LINK_TYPE_RGMII_LINK_MAC_PHY) {
-		priv->phy_if = PHY_INTERFACE_MODE_RGMII;
+		phy_mode = fdt_getprop(fdt, slave, "phy-mode", NULL);
+		if (phy_mode) {
+			priv->phy_if = phy_get_interface_by_name(phy_mode);
+			if (priv->phy_if != PHY_INTERFACE_MODE_RGMII &&
+			    priv->phy_if != PHY_INTERFACE_MODE_RGMII_ID &&
+			    priv->phy_if != PHY_INTERFACE_MODE_RGMII_RXID &&
+			    priv->phy_if != PHY_INTERFACE_MODE_RGMII_TXID) {
+				pr_err("invalid phy-mode\n");
+				return -EINVAL;
+			}
+		} else {
+			priv->phy_if = PHY_INTERFACE_MODE_RGMII;
+		}
 		pdata->phy_interface = priv->phy_if;
 		priv->has_mdio = true;
 	}
@@ -725,10 +748,10 @@ static int ks2_eth_parse_slave_interface(int netcp, int slave,
 	return 0;
 }
 
-static int ks2_sl_eth_ofdata_to_platdata(struct udevice *dev)
+static int ks2_sl_eth_of_to_plat(struct udevice *dev)
 {
 	struct ks2_eth_priv *priv = dev_get_priv(dev);
-	struct eth_pdata *pdata = dev_get_platdata(dev);
+	struct eth_pdata *pdata = dev_get_plat(dev);
 	const void *fdt = gd->fdt_blob;
 	int slave = dev_of_offset(dev);
 	int interfaces;
@@ -748,10 +771,10 @@ static int ks2_sl_eth_ofdata_to_platdata(struct udevice *dev)
 	return 0;
 }
 
-static int ks2_eth_ofdata_to_platdata(struct udevice *dev)
+static int ks2_eth_of_to_plat(struct udevice *dev)
 {
 	struct ks2_eth_priv *priv = dev_get_priv(dev);
-	struct eth_pdata *pdata = dev_get_platdata(dev);
+	struct eth_pdata *pdata = dev_get_plat(dev);
 	const void *fdt = gd->fdt_blob;
 	int gbe_0 = -ENODEV;
 	int netcp_devices;
@@ -765,7 +788,7 @@ static int ks2_eth_ofdata_to_platdata(struct udevice *dev)
 
 	ks2_eth_parse_slave_interface(dev_of_offset(dev), gbe_0, priv, pdata);
 
-	pdata->iobase = devfdt_get_addr(dev);
+	pdata->iobase = dev_read_addr(dev);
 
 	return 0;
 }
@@ -778,12 +801,12 @@ static const struct udevice_id ks2_eth_ids[] = {
 U_BOOT_DRIVER(eth_ks2_slave) = {
 	.name	= "eth_ks2_sl",
 	.id	= UCLASS_ETH,
-	.ofdata_to_platdata = ks2_sl_eth_ofdata_to_platdata,
+	.of_to_plat = ks2_sl_eth_of_to_plat,
 	.probe	= ks2_eth_probe,
 	.remove	= ks2_eth_remove,
 	.ops	= &ks2_eth_ops,
-	.priv_auto_alloc_size = sizeof(struct ks2_eth_priv),
-	.platdata_auto_alloc_size = sizeof(struct eth_pdata),
+	.priv_auto	= sizeof(struct ks2_eth_priv),
+	.plat_auto	= sizeof(struct eth_pdata),
 	.flags = DM_FLAG_ALLOC_PRIV_DMA,
 };
 
@@ -791,11 +814,11 @@ U_BOOT_DRIVER(eth_ks2) = {
 	.name	= "eth_ks2",
 	.id	= UCLASS_ETH,
 	.of_match = ks2_eth_ids,
-	.ofdata_to_platdata = ks2_eth_ofdata_to_platdata,
+	.of_to_plat = ks2_eth_of_to_plat,
 	.probe	= ks2_eth_probe,
 	.remove	= ks2_eth_remove,
 	.ops	= &ks2_eth_ops,
-	.priv_auto_alloc_size = sizeof(struct ks2_eth_priv),
-	.platdata_auto_alloc_size = sizeof(struct eth_pdata),
+	.priv_auto	= sizeof(struct ks2_eth_priv),
+	.plat_auto	= sizeof(struct eth_pdata),
 	.flags = DM_FLAG_ALLOC_PRIV_DMA,
 };

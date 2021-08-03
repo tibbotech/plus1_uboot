@@ -1,4 +1,5 @@
 #include <common.h>
+#include <cpu_func.h>
 #include "../secure_config.h"
 #include "../spacc/elpspacchw.h"
 #include "../spacc/spacc_hw.h"

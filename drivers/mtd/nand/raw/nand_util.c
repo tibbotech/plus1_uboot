@@ -20,10 +20,13 @@
 
 #include <common.h>
 #include <command.h>
+#include <log.h>
 #include <watchdog.h>
 #include <malloc.h>
 #include <memalign.h>
 #include <div64.h>
+#include <asm/cache.h>
+#include <dm/devres.h>
 
 #include <linux/errno.h>
 #include <linux/mtd/mtd.h>
@@ -37,9 +40,6 @@ typedef struct mtd_info		mtd_info_t;
 #define cpu_to_je16(x) (x)
 #define cpu_to_je32(x) (x)
 
-#ifdef CONFIG_SP_NAND_BBLK
-loff_t g_nand_last_wr_offs;
-#endif
 /**
  * nand_erase_opts: - erase NAND flash with support for various options
  *		      (jffs2 formatting)
@@ -624,15 +624,9 @@ int nand_write_skip_bad(struct mtd_info *mtd, loff_t offset, size_t *length,
 
 		if ((flags & WITH_WR_VERIFY) && !rval)
 			rval = nand_verify(mtd, offset, *length, buffer);
-#ifdef CONFIG_SP_NAND_BBLK
-		if (rval == 0) {
-			g_nand_last_wr_offs = offset;
-			return 0;
-		}
-#else
+
 		if (rval == 0)
 			return 0;
-#endif
 
 		*length = 0;
 		printf("NAND write to offset %llx failed %d\n",
@@ -641,14 +635,14 @@ int nand_write_skip_bad(struct mtd_info *mtd, loff_t offset, size_t *length,
 	}
 
 	while (left_to_write > 0) {
+		loff_t block_start = offset & ~(loff_t)(mtd->erasesize - 1);
 		size_t block_offset = offset & (mtd->erasesize - 1);
 		size_t write_size, truncated_write_size;
 
 		WATCHDOG_RESET();
 
-		if (nand_block_isbad(mtd, offset & ~(mtd->erasesize - 1))) {
-			printf("Skip bad block 0x%08llx\n",
-				offset & ~(mtd->erasesize - 1));
+		if (nand_block_isbad(mtd, block_start)) {
+			printf("Skip bad block 0x%08llx\n", block_start);
 			offset += mtd->erasesize - block_offset;
 			continue;
 		}
@@ -683,11 +677,7 @@ int nand_write_skip_bad(struct mtd_info *mtd, loff_t offset, size_t *length,
 		}
 
 		left_to_write -= write_size;
-#ifdef CONFIG_SP_NAND_BBLK
-		g_nand_last_wr_offs = (offset - write_size);
-#endif
 	}
-	*length = used_for_write;
 
 	return 0;
 }
@@ -790,7 +780,6 @@ int nand_read_skip_bad(struct mtd_info *mtd, loff_t offset, size_t *length,
 		offset       += read_length;
 		p_buffer     += read_length;
 	}
-	*length = used_for_read;
 
 	return 0;
 }

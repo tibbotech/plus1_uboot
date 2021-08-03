@@ -7,11 +7,13 @@
  * Author: Otavio Salvador <otavio@ossystems.com.br>
  */
 
+#include <init.h>
 #include <asm/arch/clock.h>
 #include <asm/arch/iomux.h>
 #include <asm/arch/imx-regs.h>
 #include <asm/arch/mx6-pins.h>
 #include <asm/arch/sys_proto.h>
+#include <asm/global_data.h>
 #include <asm/gpio.h>
 #include <asm/mach-imx/iomux-v3.h>
 #include <asm/mach-imx/mxc_i2c.h>
@@ -19,7 +21,7 @@
 #include <linux/sizes.h>
 #include <common.h>
 #include <watchdog.h>
-#include <fsl_esdhc.h>
+#include <fsl_esdhc_imx.h>
 #include <i2c.h>
 #include <mmc.h>
 #include <usb.h>
@@ -69,7 +71,7 @@ int board_mmc_getcd(struct mmc *mmc)
 	return 1;	/* Assume boot SD always present */
 }
 
-int board_mmc_init(bd_t *bis)
+int board_mmc_init(struct bd_info *bis)
 {
 	static iomux_v3_cfg_t const usdhc2_pads[] = {
 		MX6_PAD_SD2_CLK__USDHC2_CLK | MUX_PAD_CTRL(USDHC_PAD_CTRL),

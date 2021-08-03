@@ -55,7 +55,7 @@ struct cbdma_reg {
 #define wmb()		dmb()
 #endif
 
-static int dram_tst_simple_rw(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
+static int dram_tst_simple_rw(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 {
 	unsigned int addr, data;
 	unsigned int *ptr;
@@ -113,7 +113,7 @@ static int dram_tst_simple_rw(cmd_tbl_t *cmdtp, int flag, int argc, char *const 
 #ifdef FOR_ZEBU_CSIM
 extern unsigned long long get_ticks(void);	/* sp_timer.c */
 #endif
-static int dram_tst_cbdma(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
+static int dram_tst_cbdma(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 {
 	volatile struct cbdma_reg *cbdma_ptr = (volatile struct cbdma_reg *)(CBDMA0_REG_BASE);
 	const unsigned int test_length = ALIGN_1M_ROUND_DOWN(MAX_SIZE_CBDMA);
@@ -223,7 +223,7 @@ static int dram_tst_cbdma(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv
 	return 0;
 }
 
-static int do_dram_tst(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
+static int do_dram_tst(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 {
 	int ret;
 

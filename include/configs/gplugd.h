@@ -29,13 +29,6 @@
  */
 #define CONFIG_SYS_INIT_SP_ADDR		(CONFIG_SYS_TEXT_BASE - 0x00200000)
 
-/*
- * Commands configuration
- */
-
-/* Disable DCACHE */
-#define CONFIG_SYS_DCACHE_OFF
-
 /* Network configuration */
 #ifdef CONFIG_CMD_NET
 #define CONFIG_ARMADA100_FEC
@@ -73,7 +66,6 @@
 /*
  * Environment variables configurations
  */
-#define CONFIG_ENV_SIZE			0x4000
 
 #ifdef CONFIG_CMD_USB
 #define CONFIG_USB_EHCI_ARMADA100

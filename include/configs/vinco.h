@@ -17,7 +17,6 @@
 /* The value in the common file is too far away for the VInCo platform */
 
 /* serial console */
-#define CONFIG_ATMEL_USART
 #define CONFIG_USART_BASE		0xfc00c000
 #define CONFIG_USART_ID			30
 
@@ -43,7 +42,6 @@
 /* MMC */
 
 #ifdef CONFIG_CMD_MMC
-#define CONFIG_SUPPORT_EMMC_BOOT
 #define CONFIG_GENERIC_ATMEL_MCI
 #define ATMEL_BASE_MMCI			0xfc000000
 #define CONFIG_SYS_MMC_CLK_OD		500000
@@ -55,7 +53,6 @@
 /* USB device */
 
 /* Ethernet Hardware */
-#define CONFIG_PHY_SMSC
 #define CONFIG_MACB
 #define CONFIG_RMII
 #define CONFIG_NET_RETRY_COUNT		20
@@ -64,11 +61,6 @@
 #ifdef CONFIG_SPI_BOOT
 /* bootstrap + u-boot + env + linux in serial flash */
 /* Use our own mapping for the VInCo platform */
-#undef CONFIG_ENV_OFFSET
-#undef CONFIG_ENV_SIZE
-
-#define CONFIG_ENV_OFFSET       0x10000
-#define CONFIG_ENV_SIZE         0x10000
 
 /* Update the bootcommand according to our mapping for the VInCo platform */
 #undef CONFIG_BOOTCOMMAND

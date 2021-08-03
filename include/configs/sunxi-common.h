@@ -104,13 +104,7 @@
 #define PHYS_SDRAM_0_SIZE		0x80000000 /* 2 GiB */
 
 #ifdef CONFIG_AHCI
-#define CONFIG_SCSI_AHCI_PLAT
-#define CONFIG_SUNXI_AHCI
 #define CONFIG_SYS_64BIT_LBA
-#define CONFIG_SYS_SCSI_MAX_SCSI_ID	1
-#define CONFIG_SYS_SCSI_MAX_LUN		1
-#define CONFIG_SYS_SCSI_MAX_DEVICE	(CONFIG_SYS_SCSI_MAX_SCSI_ID * \
-					 CONFIG_SYS_SCSI_MAX_LUN)
 #endif
 
 #define CONFIG_SETUP_MEMORY_TAGS
@@ -122,10 +116,6 @@
 #define CONFIG_SYS_NAND_MAX_ECCPOS 1664
 #define CONFIG_SYS_NAND_ONFI_DETECTION
 #define CONFIG_SYS_MAX_NAND_DEVICE 8
-#endif
-
-#ifdef CONFIG_SPL_SPI_SUNXI
-#define CONFIG_SYS_SPI_U_BOOT_OFFS	0x8000
 #endif
 
 /* mmc config */
@@ -144,13 +134,6 @@
 #define CONFIG_BOARD_SIZE_LIMIT		0x7e000
 #endif
 
-#if CONFIG_MMC_SUNXI_SLOT_EXTRA != -1
-/* If we have two devices (most likely eMMC + MMC), favour the eMMC */
-#define CONFIG_SYS_MMC_ENV_DEV		1
-#else
-/* Otherwise, use the only device we have */
-#define CONFIG_SYS_MMC_ENV_DEV		0
-#endif
 #define CONFIG_SYS_MMC_MAX_DEVICE	4
 #endif
 
@@ -175,16 +158,13 @@
 
 #define CONFIG_SYS_MONITOR_LEN		(768 << 10)	/* 768 KiB */
 
-#ifndef CONFIG_ARM64		/* AArch64 FEL support is not ready yet */
 #define CONFIG_SPL_BOARD_LOAD_IMAGE
-#endif
 
 /*
  * We cannot use expressions here, because expressions won't be evaluated in
  * autoconf.mk.
  */
 #if CONFIG_SUNXI_SRAM_ADDRESS == 0x10000
-#define CONFIG_SPL_TEXT_BASE		0x10060		/* sram start+header */
 #define CONFIG_SPL_MAX_SIZE		0x7fa0		/* 32 KiB */
 #ifdef CONFIG_ARM64
 /* end of SRAM A2 for now, as SRAM A1 is pretty tight for an ARM64 build */
@@ -193,31 +173,32 @@
 #define LOW_LEVEL_SRAM_STACK		0x00018000
 #endif /* !CONFIG_ARM64 */
 #elif CONFIG_SUNXI_SRAM_ADDRESS == 0x20000
-#define CONFIG_SPL_TEXT_BASE		0x20060		/* sram start+header */
+#ifdef CONFIG_MACH_SUN50I_H616
+#define CONFIG_SPL_MAX_SIZE		0xbfa0		/* 48 KiB */
+#define LOW_LEVEL_SRAM_STACK		0x58000
+#else
 #define CONFIG_SPL_MAX_SIZE		0x7fa0		/* 32 KiB */
 /* end of SRAM A2 on H6 for now */
 #define LOW_LEVEL_SRAM_STACK		0x00118000
+#endif
 #else
-#define CONFIG_SPL_TEXT_BASE		0x60		/* sram start+header */
 #define CONFIG_SPL_MAX_SIZE		0x5fa0		/* 24KB on sun4i/sun7i */
 #define LOW_LEVEL_SRAM_STACK		0x00008000	/* End of sram */
 #endif
 
 #define CONFIG_SPL_STACK		LOW_LEVEL_SRAM_STACK
 
+#ifndef CONFIG_MACH_SUN50I_H616
 #define CONFIG_SPL_PAD_TO		32768		/* decimal for 'dd' */
+#endif
 
 
 /* I2C */
-#if defined CONFIG_AXP152_POWER || defined CONFIG_AXP209_POWER || \
-    defined CONFIG_SY8106A_POWER
-#endif
-
 #if defined CONFIG_I2C0_ENABLE || defined CONFIG_I2C1_ENABLE || \
     defined CONFIG_I2C2_ENABLE || defined CONFIG_I2C3_ENABLE || \
     defined CONFIG_I2C4_ENABLE || defined CONFIG_R_I2C_ENABLE
 #define CONFIG_SYS_I2C_MVTWSI
-#ifndef CONFIG_DM_I2C
+#if !CONFIG_IS_ENABLED(DM_I2C)
 #define CONFIG_SYS_I2C
 #define CONFIG_SYS_I2C_SPEED		400000
 #define CONFIG_SYS_I2C_SLAVE		0x7f
@@ -242,33 +223,6 @@ extern int soft_i2c_gpio_scl;
 #define CONFIG_VIDEO_LCD_I2C_BUS	-1 /* NA, but necessary to compile */
 #endif
 
-/* PMU */
-#if defined CONFIG_AXP152_POWER || defined CONFIG_AXP209_POWER || \
-    defined CONFIG_AXP221_POWER || defined CONFIG_AXP818_POWER || \
-    defined CONFIG_SY8106A_POWER
-#endif
-
-#ifdef CONFIG_REQUIRE_SERIAL_CONSOLE
-#if CONFIG_CONS_INDEX == 1
-#ifdef CONFIG_MACH_SUN9I
-#define OF_STDOUT_PATH		"/soc/serial@07000000:115200"
-#else
-#define OF_STDOUT_PATH		"/soc@01c00000/serial@01c28000:115200"
-#endif
-#elif CONFIG_CONS_INDEX == 2 && defined(CONFIG_MACH_SUN5I)
-#define OF_STDOUT_PATH		"/soc@01c00000/serial@01c28400:115200"
-#elif CONFIG_CONS_INDEX == 3 && defined(CONFIG_MACH_SUN8I)
-#define OF_STDOUT_PATH		"/soc@01c00000/serial@01c28800:115200"
-#elif CONFIG_CONS_INDEX == 5 && defined(CONFIG_MACH_SUN8I)
-#define OF_STDOUT_PATH		"/soc@01c00000/serial@01f02800:115200"
-#else
-#error Unsupported console port nr. Please fix stdout-path in sunxi-common.h.
-#endif
-#endif /* ifdef CONFIG_REQUIRE_SERIAL_CONSOLE */
-
-/* GPIO */
-#define CONFIG_SUNXI_GPIO
-
 #ifdef CONFIG_VIDEO_SUNXI
 /*
  * The amount of RAM to keep free at the top of RAM when relocating u-boot,
@@ -288,17 +242,9 @@ extern int soft_i2c_gpio_scl;
 
 /* Ethernet support */
 
-#ifdef CONFIG_SUN7I_GMAC
-#define CONFIG_PHY_REALTEK
-#endif
-
 #ifdef CONFIG_USB_EHCI_HCD
 #define CONFIG_USB_OHCI_NEW
 #define CONFIG_SYS_USB_OHCI_MAX_ROOT_PORTS 1
-#endif
-
-#ifdef CONFIG_USB_KEYBOARD
-#define CONFIG_PREBOOT
 #endif
 
 #ifndef CONFIG_SPL_BUILD
@@ -399,6 +345,18 @@ extern int soft_i2c_gpio_scl;
 #define BOOT_TARGET_DEVICES_USB(func)
 #endif
 
+#ifdef CONFIG_CMD_PXE
+#define BOOT_TARGET_DEVICES_PXE(func) func(PXE, pxe, na)
+#else
+#define BOOT_TARGET_DEVICES_PXE(func)
+#endif
+
+#ifdef CONFIG_CMD_DHCP
+#define BOOT_TARGET_DEVICES_DHCP(func) func(DHCP, dhcp, na)
+#else
+#define BOOT_TARGET_DEVICES_DHCP(func)
+#endif
+
 /* FEL boot support, auto-execute boot.scr if a script address was provided */
 #define BOOTENV_DEV_FEL(devtypeu, devtypel, instance) \
 	"bootcmd_fel=" \
@@ -414,8 +372,8 @@ extern int soft_i2c_gpio_scl;
 	BOOT_TARGET_DEVICES_MMC(func) \
 	BOOT_TARGET_DEVICES_SCSI(func) \
 	BOOT_TARGET_DEVICES_USB(func) \
-	func(PXE, pxe, na) \
-	func(DHCP, dhcp, na)
+	BOOT_TARGET_DEVICES_PXE(func) \
+	BOOT_TARGET_DEVICES_DHCP(func)
 
 #ifdef CONFIG_OLD_SUNXI_KERNEL_COMPAT
 #define BOOTCMD_SUNXI_COMPAT \
@@ -437,7 +395,6 @@ extern int soft_i2c_gpio_scl;
 
 #ifdef CONFIG_USB_KEYBOARD
 #define CONSOLE_STDIN_SETTINGS \
-	"preboot=usb start\0" \
 	"stdin=serial,usbkbd\0"
 #else
 #define CONSOLE_STDIN_SETTINGS \
@@ -449,7 +406,6 @@ extern int soft_i2c_gpio_scl;
 	"stdout=serial,vga\0" \
 	"stderr=serial,vga\0"
 #elif CONFIG_DM_VIDEO
-#define CONFIG_SYS_WHITE_ON_BLACK
 #define CONSOLE_STDOUT_SETTINGS \
 	"stdout=serial,vidconsole\0" \
 	"stderr=serial,vidconsole\0"

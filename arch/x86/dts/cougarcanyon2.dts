@@ -14,6 +14,8 @@
 /include/ "rtc.dtsi"
 /include/ "tsc_timer.dtsi"
 
+#include "smbios.dtsi"
+
 / {
 	model = "Intel Cougar Canyon 2";
 	compatible = "intel,cougarcanyon2", "intel,chiefriver";
@@ -154,7 +156,7 @@
 
 				spi-flash@0 {
 					reg = <0>;
-					compatible = "winbond,w25q64bv", "spi-flash";
+					compatible = "winbond,w25q64bv", "jedec,spi-nor";
 					memory-map = <0xff800000 0x00800000>;
 				};
 			};

@@ -32,22 +32,6 @@
 #define SYM_SIZE		0x18
 #endif
 
-
-#define SSTAMP(value) \
-      li a0,value ;		\
-	  mv	s0,a0 ;		\
-	  li	a5,39 ;    \
-	  slli	a5,a5,0x1a ;\
-	  sw	s0,0(a5)
-
-#define REG_STAMP(reg) \
-	  mv	s0,reg ;	\
-	  li	a5,39 ;    \
-	  slli	a5,a5,0x1a ;\
-	  sw	s0,0(a5)
-
-
-
 .section .data
 secondary_harts_relocation_error:
 	.ascii "Relocation of secondary harts has failed, error %d\n"
@@ -59,25 +43,40 @@ _start:
 	csrr	a0, CSR_MHARTID
 #endif
 
-
-	/* save hart id and dtb pointer */
+	/*
+	 * Save hart id and dtb pointer. The thread pointer register is not
+	 * modified by C code. It is used by secondary_hart_loop.
+	 */
 	mv	tp, a0
 	mv	s1, a1
 
+	/*
+	 * Set the global data pointer to a known value in case we get a very
+	 * early trap. The global data pointer will be set its actual value only
+	 * after it has been initialized.
+	 */
+	mv	gp, zero
+
+	/*
+	 * Set the trap handler. This must happen after initializing gp because
+	 * the handler may use it.
+	 */
 	la	t0, trap_entry
 	csrw	MODE_PREFIX(tvec), t0
 
-	/* mask all interrupts */
+	/*
+	 * Mask all interrupts. Interrupts are disabled globally (in m/sstatus)
+	 * for U-Boot, but we will need to read m/sip to determine if we get an
+	 * IPI
+	 */
 	csrw	MODE_PREFIX(ie), zero
 
-#ifdef CONFIG_SMP
+#if CONFIG_IS_ENABLED(SMP)
 	/* check if hart is within range */
 	/* tp: hart id */
 	li	t0, CONFIG_NR_CPUS
 	bge	tp, t0, hart_out_of_bounds_loop
-#endif
 
-#ifdef CONFIG_SMP
 	/* set xSIE bit to receive IPIs */
 #if CONFIG_IS_ENABLED(RISCV_MMODE)
 	li	t0, MIE_MSIE
@@ -100,18 +99,17 @@ call_board_init_f:
 	and	sp, t1, t0		/* force 16 byte alignment */
 
 call_board_init_f_0:
-
 	mv	a0, sp
 	jal	board_init_f_alloc_reserve
 
 	/*
-	 * Set global data pointer here for all harts, uninitialized at this
-	 * point.
+	 * Save global data pointer for later. We don't set it here because it
+	 * is not initialized yet.
 	 */
-	mv	gp, a0
+	mv	s0, a0
 
 	/* setup stack */
-#ifdef CONFIG_SMP
+#if CONFIG_IS_ENABLED(SMP)
 	/* tp: hart id */
 	slli	t0, tp, CONFIG_STACK_SIZE_SHIFT
 	sub	sp, a0, t0
@@ -125,10 +123,18 @@ call_board_init_f_0:
 	 * wait for initialization to complete.
 	 */
 	la	t0, hart_lottery
-	li	s2, 1
+	li	t1, 1
 	amoswap.w s2, t1, 0(t0)
 	bnez	s2, wait_for_gd_init
 #else
+	/*
+	 * FIXME: gp is set before it is initialized. If an XIP U-Boot ever
+	 * encounters a pending IPI on boot it is liable to jump to whatever
+	 * memory happens to be in ipi_data.addr on boot. It may also run into
+	 * problems if it encounters an exception too early (because printf/puts
+	 * accesses gd).
+	 */
+	mv	gp, s0
 	bnez	tp, secondary_hart_loop
 #endif
 
@@ -139,21 +145,26 @@ call_board_init_f_0:
 
 	jal	board_init_f_init_reserve
 
+	SREG	s1, GD_FIRMWARE_FDT_ADDR(gp)
 	/* save the boot hart id to global_data */
 	SREG	tp, GD_BOOT_HART(gp)
 
 #ifndef CONFIG_XIP
 	la	t0, available_harts_lock
-	fence	rw, w
-	amoswap.w zero, zero, 0(t0)
+	amoswap.w.rl zero, zero, 0(t0)
 
 wait_for_gd_init:
 	la	t0, available_harts_lock
 	li	t1, 1
-1:	amoswap.w t1, t1, 0(t0)
-	fence	r, rw
+1:	amoswap.w.aq t1, t1, 0(t0)
 	bnez	t1, 1b
 
+	/*
+	 * Set the global data pointer only when gd_t has been initialized.
+	 * This was already set by arch_setup_gd on the boot hart, but all other
+	 * harts' global data pointers gets set here.
+	 */
+	mv	gp, s0
 
 	/* register available harts in the available_harts mask */
 	li	t1, 1
@@ -162,8 +173,7 @@ wait_for_gd_init:
 	or	t2, t2, t1
 	SREG	t2, GD_AVAILABLE_HARTS(gp)
 
-	fence	rw, w
-	amoswap.w zero, zero, 0(t0)
+	amoswap.w.rl zero, zero, 0(t0)
 
 	/*
 	 * Continue on hart lottery winner, others branch to
@@ -193,7 +203,7 @@ spl_clear_bss:
 spl_clear_bss_loop:
 	SREG	zero, 0(t0)
 	addi	t0, t0, REGBYTES
-	bne	t0, t1, spl_clear_bss_loop
+	blt	t0, t1, spl_clear_bss_loop
 
 spl_stack_gd_setup:
 	jal	spl_relocate_stack_gd
@@ -203,7 +213,7 @@ spl_stack_gd_setup:
 	mv	s0, a0
 
 	/* setup stack on main hart */
-#ifdef CONFIG_SMP
+#if CONFIG_IS_ENABLED(SMP)
 	/* tp: hart id */
 	slli	t0, tp, CONFIG_STACK_SIZE_SHIFT
 	sub	sp, s0, t0
@@ -211,11 +221,13 @@ spl_stack_gd_setup:
 	mv	sp, s0
 #endif
 
+#if CONFIG_IS_ENABLED(SMP)
 	/* set new stack and global data pointer on secondary harts */
 spl_secondary_hart_stack_gd_setup:
 	la	a0, secondary_hart_relocate
 	mv	a1, s0
 	mv	a2, s0
+	mv	a3, zero
 	jal	smp_call_function
 
 	/* hang if relocation of secondary harts has failed */
@@ -224,6 +236,7 @@ spl_secondary_hart_stack_gd_setup:
 	la	a0, secondary_harts_relocation_error
 	jal	printf
 	jal	hang
+#endif
 
 	/* set new global data pointer on main hart */
 1:	mv	gp, s0
@@ -235,7 +248,7 @@ spl_call_board_init_r:
 #endif
 
 /*
- * void relocate_code (addr_sp, gd, addr_moni)
+ * void relocate_code(addr_sp, gd, addr_moni)
  *
  * This "function" does not return, instead it continues in RAM
  * after relocating the monitor code.
@@ -247,13 +260,11 @@ relocate_code:
 	mv	s3, a1			/* save addr of gd */
 	mv	s4, a2			/* save addr of destination */
 
-
-
 /*
  *Set up the stack
  */
 stack_setup:
-#ifdef CONFIG_SMP
+#if CONFIG_IS_ENABLED(SMP)
 	/* tp: hart id */
 	slli	t0, tp, CONFIG_STACK_SIZE_SHIFT
 	sub	sp, s2, t0
@@ -276,6 +287,7 @@ copy_loop:
 	SREG	t5, 0(t1)
 	addi	t1, t1, REGBYTES
 	blt	t0, t2, copy_loop
+
 /*
  * Update dynamic relocations after board_init_f
  */
@@ -344,10 +356,10 @@ clear_bss:
 clbss_l:
 	SREG	zero, 0(t0)		/* clear loop... */
 	addi	t0, t0, REGBYTES
-	bne	t0, t1, clbss_l
+	blt	t0, t1, clbss_l
 
 relocate_secondary_harts:
-#ifdef CONFIG_SMP
+#if CONFIG_IS_ENABLED(SMP)
 	/* send relocation IPI */
 	la	t0, secondary_hart_relocate
 	add	a0, t0, t6
@@ -357,6 +369,7 @@ relocate_secondary_harts:
 
 	mv	a1, s2
 	mv	a2, s3
+	mv	a3, zero
 	jal	smp_call_function
 
 	/* hang if relocation of secondary harts has failed */
@@ -377,9 +390,8 @@ relocate_secondary_harts:
 call_board_init_r:
 	jal	invalidate_icache_all
 	jal	flush_dcache_all
-	la	t0, board_init_r
-	mv	t4, t0			/* offset of board_init_r() */
-	add	t4, t4, t6		/* real address of board_init_r() */
+	la	t0, board_init_r        /* offset of board_init_r() */
+	add	t4, t0, t6		/* real address of board_init_r() */
 /*
  * setup parameters for board_init_r
  */
@@ -391,14 +403,12 @@ call_board_init_r:
  */
 	jr	t4			/* jump to board_init_r() */
 
-#ifdef CONFIG_SMP
+#if CONFIG_IS_ENABLED(SMP)
 hart_out_of_bounds_loop:
 	/* Harts in this loop are out of bounds, increase CONFIG_NR_CPUS. */
 	wfi
 	j	hart_out_of_bounds_loop
-#endif
 
-#ifdef CONFIG_SMP
 /* SMP relocation entry */
 secondary_hart_relocate:
 	/* a1: new sp */
@@ -413,10 +423,14 @@ secondary_hart_relocate:
 	mv	gp, a2
 #endif
 
+/*
+ * Interrupts are disabled globally, but they can still be read from m/sip. The
+ * wfi function will wake us up if we get an IPI, even if we do not trap.
+ */
 secondary_hart_loop:
 	wfi
 
-#ifdef CONFIG_SMP
+#if CONFIG_IS_ENABLED(SMP)
 	csrr	t0, MODE_PREFIX(ip)
 #if CONFIG_IS_ENABLED(RISCV_MMODE)
 	andi	t0, t0, MIE_MSIE
@@ -430,20 +444,3 @@ secondary_hart_loop:
 #endif
 
 	j	secondary_hart_loop
-
-uart_out:
-	lui a5,0x27000
-	addi	a5,a5,577 
-	slli	a5,a5,0x2
-wait:
-	lw	a4,0(a5)
-	andi	a4,a4,1
-	beqz	a4,wait 
-
-	lui a5,0x9c0
-	addi	a5,a5,9
-	sext.w	a0,a0
-	slli	a5,a5,0x8
-	sw	a0,0(a5)
-	li	a0,1
-	ret

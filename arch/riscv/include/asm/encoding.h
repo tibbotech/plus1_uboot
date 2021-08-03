@@ -8,7 +8,11 @@
 #define RISCV_CSR_ENCODING_H
 
 #include <asm/csr.h>
-#ifdef CONFIG_RISCV_SMODE
+#ifndef __ASSEMBLY__
+#include <linux/bitops.h>
+#endif
+
+#if CONFIG_IS_ENABLED(RISCV_SMODE)
 #define MODE_PREFIX(__suffix)	s##__suffix
 #else
 #define MODE_PREFIX(__suffix)	m##__suffix
@@ -50,13 +54,10 @@
 #define SSTATUS64_SD	0x8000000000000000
 
 #define MIP_SSIP	BIT(IRQ_S_SOFT)
-#define MIP_HSIP	BIT(IRQ_H_SOFT)
 #define MIP_MSIP	BIT(IRQ_M_SOFT)
 #define MIP_STIP	BIT(IRQ_S_TIMER)
-#define MIP_HTIP	BIT(IRQ_H_TIMER)
 #define MIP_MTIP	BIT(IRQ_M_TIMER)
 #define MIP_SEIP	BIT(IRQ_S_EXT)
-#define MIP_HEIP	BIT(IRQ_H_EXT)
 #define MIP_MEIP	BIT(IRQ_M_EXT)
 
 #define SIP_SSIP	MIP_SSIP
@@ -73,7 +74,6 @@
 #define VM_SV32		8
 #define VM_SV39		9
 #define VM_SV48		10
-
 
 #define CAUSE_MISALIGNED_FETCH		0
 #define CAUSE_FETCH_ACCESS		1
@@ -156,14 +156,6 @@
 
 #define RISCV_PGSHIFT 12
 #define RISCV_PGSIZE BIT(RISCV_PGSHIFT)
-
-/* CSR numbers */
-
-
-
-
-
-
 
 #endif /* __riscv */
 

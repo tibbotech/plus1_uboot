@@ -8,6 +8,8 @@
 
 #include <video.h>
 
+struct video_priv;
+
 #define VID_FRAC_DIV	256
 
 #define VID_TO_PIXEL(x)	((x) / VID_FRAC_DIV)
@@ -215,6 +217,22 @@ int vidconsole_set_row(struct udevice *dev, uint row, int clr);
 int vidconsole_put_char(struct udevice *dev, char ch);
 
 /**
+ * vidconsole_put_string() - Output a string to the current console position
+ *
+ * Outputs a string to the console and advances the cursor. This function
+ * handles wrapping to new lines and scrolling the console. Special
+ * characters are handled also: \n, \r, \b and \t.
+ *
+ * The device always starts with the cursor at position 0,0 (top left). It
+ * can be adjusted manually using vidconsole_position_cursor().
+ *
+ * @dev:	Device to adjust
+ * @str:	String to write
+ * @return 0 if OK, -ve on error
+ */
+int vidconsole_put_string(struct udevice *dev, const char *str);
+
+/**
  * vidconsole_position_cursor() - Move the text cursor
  *
  * @dev:	Device to adjust
@@ -224,8 +242,6 @@ int vidconsole_put_char(struct udevice *dev, char ch);
  */
 void vidconsole_position_cursor(struct udevice *dev, unsigned col,
 				unsigned row);
-
-#ifdef CONFIG_DM_VIDEO
 
 /**
  * vid_console_color() - convert a color code to a pixel's internal
@@ -239,6 +255,53 @@ void vidconsole_position_cursor(struct udevice *dev, unsigned col,
  * @return	color value
  */
 u32 vid_console_color(struct video_priv *priv, unsigned int idx);
+
+#ifdef CONFIG_VIDEO_COPY
+/**
+ * vidconsole_sync_copy() - Sync back to the copy framebuffer
+ *
+ * This ensures that the copy framebuffer has the same data as the framebuffer
+ * for a particular region. It should be called after the framebuffer is updated
+ *
+ * @from and @to can be in either order. The region between them is synced.
+ *
+ * @dev: Vidconsole device being updated
+ * @from: Start/end address within the framebuffer (->fb)
+ * @to: Other address within the frame buffer
+ * @return 0 if OK, -EFAULT if the start address is before the start of the
+ *	frame buffer start
+ */
+int vidconsole_sync_copy(struct udevice *dev, void *from, void *to);
+
+/**
+ * vidconsole_memmove() - Perform a memmove() within the frame buffer
+ *
+ * This handles a memmove(), e.g. for scrolling. It also updates the copy
+ * framebuffer.
+ *
+ * @dev: Vidconsole device being updated
+ * @dst: Destination address within the framebuffer (->fb)
+ * @src: Source address within the framebuffer (->fb)
+ * @size: Number of bytes to transfer
+ * @return 0 if OK, -EFAULT if the start address is before the start of the
+ *	frame buffer start
+ */
+int vidconsole_memmove(struct udevice *dev, void *dst, const void *src,
+		       int size);
+#else
+static inline int vidconsole_sync_copy(struct udevice *dev, void *from,
+				       void *to)
+{
+	return 0;
+}
+
+static inline int vidconsole_memmove(struct udevice *dev, void *dst,
+				     const void *src, int size)
+{
+	memmove(dst, src, size);
+
+	return 0;
+}
 
 #endif
 

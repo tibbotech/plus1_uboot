@@ -85,7 +85,7 @@ void setup_pinmux(unsigned int chip)
  * Syntax:
  *	jtag <no parameter>
  */
-static int do_jtag(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+static int do_jtag(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[])
 {
 	if (argc == 2) {
 		unsigned int chip = -1;

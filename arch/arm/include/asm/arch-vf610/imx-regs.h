@@ -289,6 +289,8 @@
 #define SRC_SRSR_WDOG_M4				(0x1 << 4)
 #define SRC_SRSR_WDOG_A5				(0x1 << 3)
 #define SRC_SRSR_POR_RST				(0x1 << 0)
+#define SRC_SBMR1_BOOTCFG1_SDMMC        BIT(6)
+#define SRC_SBMR1_BOOTCFG1_MMC          BIT(4)
 #define SRC_SBMR2_BMOD_MASK             (0x3 << 24)
 #define SRC_SBMR2_BMOD_SHIFT            24
 #define SRC_SBMR2_BMOD_FUSES            0x0
@@ -300,6 +302,7 @@
 
 #if !(defined(__KERNEL_STRICT_NAMES) || defined(__ASSEMBLY__))
 #include <asm/types.h>
+#include <linux/bitops.h>
 
 /* System Reset Controller (SRC) */
 struct src {
@@ -472,6 +475,6 @@ struct mscm {
 	u32 cpxcfg3;
 };
 
-#endif	/* __ASSEMBLER__*/
+#endif	/* __ASSEMBLY__ */
 
 #endif	/* __ASM_ARCH_IMX_REGS_H__ */

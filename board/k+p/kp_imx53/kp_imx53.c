@@ -5,6 +5,8 @@
  */
 
 #include <common.h>
+#include <init.h>
+#include <asm/global_data.h>
 #include <asm/io.h>
 #include <asm/arch/imx-regs.h>
 #include <asm/arch/sys_proto.h>
@@ -13,17 +15,16 @@
 #include <asm/arch/iomux-mx53.h>
 #include <asm/arch/clock.h>
 #include <asm/gpio.h>
-#include <mmc.h>
-#include <fsl_esdhc.h>
+#include <env.h>
 #include <power/pmic.h>
 #include <fsl_pmic.h>
+#include <bootstage.h>
 #include "kp_id_rev.h"
 
-#define VBUS_PWR_EN IMX_GPIO_NR(7, 8)
-#define PHY_nRST IMX_GPIO_NR(7, 6)
 #define BOOSTER_OFF IMX_GPIO_NR(2, 23)
 #define LCD_BACKLIGHT IMX_GPIO_NR(1, 1)
 #define KEY1 IMX_GPIO_NR(2, 26)
+#define LED_RED IMX_GPIO_NR(3, 28)
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -45,65 +46,12 @@ int dram_init_banksize(void)
 	return 0;
 }
 
-#ifdef CONFIG_USB_EHCI_MX5
-int board_ehci_hcd_init(int port)
-{
-	gpio_request(VBUS_PWR_EN, "VBUS_PWR_EN");
-	gpio_direction_output(VBUS_PWR_EN, 1);
-	return 0;
-}
-#endif
-
-#ifdef CONFIG_FSL_ESDHC
-struct fsl_esdhc_cfg esdhc_cfg[] = {
-	{MMC_SDHC3_BASE_ADDR},
-};
-
-int board_mmc_getcd(struct mmc *mmc)
-{
-	return 1; /* eMMC is always present */
-}
-
-#define SD_CMD_PAD_CTRL		(PAD_CTL_HYS | PAD_CTL_DSE_HIGH | \
-				 PAD_CTL_PUS_100K_UP)
-#define SD_PAD_CTRL		(PAD_CTL_HYS | PAD_CTL_PUS_47K_UP | \
-				 PAD_CTL_DSE_HIGH)
-
-int board_mmc_init(bd_t *bis)
-{
-	int ret;
-
-	static const iomux_v3_cfg_t sd3_pads[] = {
-		NEW_PAD_CTRL(MX53_PAD_PATA_RESET_B__ESDHC3_CMD,
-			     SD_CMD_PAD_CTRL),
-		NEW_PAD_CTRL(MX53_PAD_PATA_IORDY__ESDHC3_CLK, SD_PAD_CTRL),
-		NEW_PAD_CTRL(MX53_PAD_PATA_DATA8__ESDHC3_DAT0, SD_PAD_CTRL),
-		NEW_PAD_CTRL(MX53_PAD_PATA_DATA9__ESDHC3_DAT1, SD_PAD_CTRL),
-		NEW_PAD_CTRL(MX53_PAD_PATA_DATA10__ESDHC3_DAT2, SD_PAD_CTRL),
-		NEW_PAD_CTRL(MX53_PAD_PATA_DATA11__ESDHC3_DAT3, SD_PAD_CTRL),
-		NEW_PAD_CTRL(MX53_PAD_PATA_DATA0__ESDHC3_DAT4, SD_PAD_CTRL),
-		NEW_PAD_CTRL(MX53_PAD_PATA_DATA1__ESDHC3_DAT5, SD_PAD_CTRL),
-		NEW_PAD_CTRL(MX53_PAD_PATA_DATA2__ESDHC3_DAT6, SD_PAD_CTRL),
-		NEW_PAD_CTRL(MX53_PAD_PATA_DATA3__ESDHC3_DAT7, SD_PAD_CTRL),
-	};
-
-	esdhc_cfg[0].sdhc_clk = mxc_get_clock(MXC_ESDHC3_CLK);
-	imx_iomux_v3_setup_multiple_pads(sd3_pads, ARRAY_SIZE(sd3_pads));
-
-	ret = fsl_esdhc_initialize(bis, &esdhc_cfg[0]);
-	if (ret)
-		return ret;
-
-	return 0;
-}
-#endif
-
 static int power_init(void)
 {
 	struct udevice *dev;
 	int ret;
 
-	ret = pmic_get("mc34708", &dev);
+	ret = pmic_get("mc34708@8", &dev);
 	if (ret) {
 		printf("%s: mc34708 not found !\n", __func__);
 		return ret;
@@ -168,17 +116,6 @@ int board_init(void)
 	return 0;
 }
 
-void eth_phy_reset(void)
-{
-	gpio_request(PHY_nRST, "PHY_nRST");
-	gpio_direction_output(PHY_nRST, 1);
-	udelay(50);
-	gpio_set_value(PHY_nRST, 0);
-	udelay(400);
-	gpio_set_value(PHY_nRST, 1);
-	udelay(50);
-}
-
 void board_disable_display(void)
 {
 	gpio_request(LCD_BACKLIGHT, "LCD_BACKLIGHT");
@@ -210,12 +147,59 @@ int board_late_init(void)
 	if (ret)
 		printf("Error %d reading EEPROM content!\n", ret);
 
-	eth_phy_reset();
-
 	show_eeprom();
 	read_board_id();
 
 	board_misc_setup();
 
 	return ret;
+}
+
+#define GPIO_DR 0x0
+#define GPIO_GDIR 0x4
+#define GPIO_ALT1 0x1
+#define GPIO5_BASE 0x53FDC000
+#define IOMUXC_EIM_WAIT 0x53FA81E4
+/* Green LED: GPIO5_0 */
+#define GPIO_GREEN BIT(0)
+
+void show_boot_progress(int status)
+{
+	/*
+	 * This BOOTSTAGE_ID is called at very early stage of execution. DM gpio
+	 * is not yet initialized.
+	 */
+	if (status == BOOTSTAGE_ID_START_UBOOT_F) {
+		/*
+		 * After ROM execution the EIM_WAIT PAD is set as ALT0
+		 * (according to RM it shall be ALT1 after reset). To use it as
+		 * GPIO we need to set it to ALT1.
+		 */
+		setbits_le32(((uint32_t *)(IOMUXC_EIM_WAIT)), GPIO_ALT1);
+
+		/* Configure green LED GPIO pin direction */
+		setbits_le32(((uint32_t *)(GPIO5_BASE + GPIO_GDIR)),
+			     GPIO_GREEN);
+		/* Turn on green LED */
+		setbits_le32(((uint32_t *)(GPIO5_BASE + GPIO_DR)), GPIO_GREEN);
+	}
+
+	/*
+	 * This BOOTSTAGE_ID is called just before handling execution to kernel
+	 * - i.e. gpio subsystem is already initialized
+	 */
+	if (status == BOOTSTAGE_ID_BOOTM_HANDOFF) {
+		/*
+		 * Off green LED - the same approach - i.e. non dm gpio
+		 * (*bits_le32) is used as in the very early stage.
+		 */
+		clrbits_le32(((uint32_t *)(GPIO5_BASE + GPIO_DR)),
+			     GPIO_GREEN);
+
+		/*
+		 * On red LED
+		 */
+		gpio_request(LED_RED, "LED_RED_ERROR");
+		gpio_direction_output(LED_RED, 1);
+	}
 }

@@ -18,11 +18,11 @@
 //#define CONFIG_NR_DRAM_BANKS		1
 #define CONFIG_SYS_SDRAM_BASE		0
 #if defined(CONFIG_SYS_ENV_ZEBU)
-#define CONFIG_SYS_SDRAM_SIZE          (1024 << 20)// (64 << 20)
+#define CONFIG_SYS_SDRAM_SIZE           (1024 << 20)
 #elif defined(CONFIG_SYS_ENV_Q645_EVB)
-#define CONFIG_SYS_SDRAM_SIZE           (512 << 20)
+#define CONFIG_SYS_SDRAM_SIZE           (1024 << 20)
 #else /* normal SP7021 evb environment can have larger DRAM size */
-#define CONFIG_SYS_SDRAM_SIZE           (512 << 20)
+#define CONFIG_SYS_SDRAM_SIZE           (1024 << 20)
 #endif
 #define CONFIG_SYS_MALLOC_LEN           (6 << 20)
 
@@ -63,6 +63,9 @@
 #endif
 
 /* u-boot env parameter */
+
+#undef CONFIG_ENV_SIZE
+
 #define CONFIG_SYS_MMC_ENV_DEV		0
 #if defined(CONFIG_ENV_IS_IN_NAND)
 #define CONFIG_ENV_OFFSET		(0x400000)
@@ -120,7 +123,7 @@
 //#define CONFIG_MTD_DEVICE		/* needed for mtdparts cmd */
 #define MTDIDS_DEFAULT			"nand0=sp_spinand.0"
 #if 0 // Set default mtdparts for zebu sim
-#define MTDPARTS_DEFAULT		"sp_spinand.0:128k(nand_header),256k(xboot1),1280k(uboot1),2432k(uboot2),512k(env),512k(env_redund),1m(nonos),256k(dtb),10m(kernel),16128k(rootfs)"
+#define MTDPARTS_DEFAULT		"sp_spinand.0:128k(nand_header),256k(xboot1),1280k(uboot1),2432k(uboot2),512k(env),512k(env_redund),1m(nonos),256k(dtb),25m(kernel),33536k(rootfs)"
 #else
 #define MTDPARTS_DEFAULT		"sp_spinand.0:128k(nand_header),256k(xboot1),1280k(uboot1),2432k(uboot2),512k(env),512k(env_redund),1m(nonos),256k(dtb),25m(kernel),230144k(rootfs)"
 #endif

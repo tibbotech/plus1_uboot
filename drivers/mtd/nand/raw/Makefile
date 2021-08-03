@@ -37,18 +37,11 @@ endif # not spl
 
 ifdef NORMAL_DRIVERS
 
-ifdef CONFIG_SP_SPINAND
-obj-$(CONFIG_SP_SPINAND) += sp_spinand_ids.o sp_spinand.o sp_bch.o 
-obj-$(CONFIG_SP_NAND_BBLK) += sp_bblk.o
-else
-obj-$(CONFIG_SP_SPINAND_Q645) += sp_spinand_ids.o sp_spinand_q645.o sp_bch_q645.o
-obj-$(CONFIG_SP_NAND_BBLK) += sp_bblk_q645.o
-endif
-
 obj-$(CONFIG_NAND_ECC_BCH) += nand_bch.o
 
 obj-$(CONFIG_NAND_ATMEL) += atmel_nand.o
 obj-$(CONFIG_NAND_ARASAN) += arasan_nfc.o
+obj-$(CONFIG_NAND_BRCMNAND) += brcmnand/
 obj-$(CONFIG_NAND_DAVINCI) += davinci_nand.o
 obj-$(CONFIG_NAND_DENALI) += denali.o
 obj-$(CONFIG_NAND_DENALI_DT) += denali_dt.o
@@ -65,6 +58,8 @@ obj-$(CONFIG_NAND_VF610_NFC) += vf610_nfc.o
 obj-$(CONFIG_NAND_MXC) += mxc_nand.o
 obj-$(CONFIG_NAND_MXS) += mxs_nand.o
 obj-$(CONFIG_NAND_MXS_DT) += mxs_nand_dt.o
+obj-$(CONFIG_NAND_OCTEONTX) += octeontx_nand.o
+obj-$(CONFIG_NAND_OCTEONTX_HW_ECC) += octeontx_bch.o
 obj-$(CONFIG_NAND_PXA3XX) += pxa3xx_nand.o
 obj-$(CONFIG_NAND_SPEAR) += spr_nand.o
 obj-$(CONFIG_TEGRA_NAND) += tegra_nand.o
@@ -73,6 +68,8 @@ obj-$(CONFIG_NAND_OMAP_ELM) += omap_elm.o
 obj-$(CONFIG_NAND_PLAT) += nand_plat.o
 obj-$(CONFIG_NAND_SUNXI) += sunxi_nand.o
 obj-$(CONFIG_NAND_ZYNQ) += zynq_nand.o
+obj-$(CONFIG_NAND_STM32_FMC2) += stm32_fmc2_nand.o
+obj-$(CONFIG_CORTINA_NAND) += cortina_nand.o
 
 else  # minimal SPL drivers
 

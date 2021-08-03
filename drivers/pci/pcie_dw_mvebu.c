@@ -12,9 +12,12 @@
 
 #include <common.h>
 #include <dm.h>
+#include <log.h>
 #include <pci.h>
+#include <asm/global_data.h>
 #include <asm/io.h>
 #include <asm-generic/gpio.h>
+#include <linux/delay.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -240,7 +243,7 @@ static int pcie_dw_addr_valid(pci_dev_t d, int first_busno)
  *
  * Return: 0 on success
  */
-static int pcie_dw_mvebu_read_config(struct udevice *bus, pci_dev_t bdf,
+static int pcie_dw_mvebu_read_config(const struct udevice *bus, pci_dev_t bdf,
 				     uint offset, ulong *valuep,
 				     enum pci_size_t size)
 {
@@ -476,7 +479,7 @@ static int pcie_dw_mvebu_probe(struct udevice *dev)
 	struct pcie_dw_mvebu *pcie = dev_get_priv(dev);
 	struct udevice *ctlr = pci_get_controller(dev);
 	struct pci_controller *hose = dev_get_uclass_priv(ctlr);
-#ifdef CONFIG_DM_GPIO
+#if CONFIG_IS_ENABLED(DM_GPIO)
 	struct gpio_desc reset_gpio;
 
 	gpio_request_by_name(dev, "marvell,reset-gpio", 0, &reset_gpio,
@@ -496,15 +499,15 @@ static int pcie_dw_mvebu_probe(struct udevice *dev)
 	}
 #else
 	debug("PCIE Reset on GPIO support is missing\n");
-#endif /* CONFIG_DM_GPIO */
+#endif /* DM_GPIO */
 
-	pcie->first_busno = dev->seq;
+	pcie->first_busno = dev_seq(dev);
 
 	/* Don't register host if link is down */
 	if (!pcie_dw_mvebu_pcie_link_up(pcie->ctrl_base, LINK_SPEED_GEN_3)) {
-		printf("PCIE-%d: Link down\n", dev->seq);
+		printf("PCIE-%d: Link down\n", dev_seq(dev));
 	} else {
-		printf("PCIE-%d: Link up (Gen%d-x%d, Bus%d)\n", dev->seq,
+		printf("PCIE-%d: Link up (Gen%d-x%d, Bus%d)\n", dev_seq(dev),
 		       pcie_dw_get_link_speed(pcie->ctrl_base),
 		       pcie_dw_get_link_width(pcie->ctrl_base),
 		       hose->first_busno);
@@ -533,7 +536,7 @@ static int pcie_dw_mvebu_probe(struct udevice *dev)
 }
 
 /**
- * pcie_dw_mvebu_ofdata_to_platdata() - Translate from DT to device state
+ * pcie_dw_mvebu_of_to_plat() - Translate from DT to device state
  *
  * @dev: A pointer to the device being operated on
  *
@@ -543,7 +546,7 @@ static int pcie_dw_mvebu_probe(struct udevice *dev)
  *
  * Return: 0 on success, else -EINVAL
  */
-static int pcie_dw_mvebu_ofdata_to_platdata(struct udevice *dev)
+static int pcie_dw_mvebu_of_to_plat(struct udevice *dev)
 {
 	struct pcie_dw_mvebu *pcie = dev_get_priv(dev);
 
@@ -576,7 +579,7 @@ U_BOOT_DRIVER(pcie_dw_mvebu) = {
 	.id			= UCLASS_PCI,
 	.of_match		= pcie_dw_mvebu_ids,
 	.ops			= &pcie_dw_mvebu_ops,
-	.ofdata_to_platdata	= pcie_dw_mvebu_ofdata_to_platdata,
+	.of_to_plat	= pcie_dw_mvebu_of_to_plat,
 	.probe			= pcie_dw_mvebu_probe,
-	.priv_auto_alloc_size	= sizeof(struct pcie_dw_mvebu),
+	.priv_auto	= sizeof(struct pcie_dw_mvebu),
 };

@@ -1,5 +1,8 @@
 #include <common.h>
 #include <dm.h>
+
+#include <dm/devres.h>
+
 #include "pinctrl_sunplus.h"
 #ifdef CONFIG_PINCTRL_SUNPLUS
 #include <mach/gpio_drv.h>

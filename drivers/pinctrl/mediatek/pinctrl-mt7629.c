@@ -387,6 +387,8 @@ static struct mtk_pinctrl_soc mt7629_data = {
 	.ngrps = ARRAY_SIZE(mt7629_groups),
 	.funcs = mt7629_functions,
 	.nfuncs = ARRAY_SIZE(mt7629_functions),
+	.gpio_mode = 0,
+	.rev = MTK_PINCTRL_V1,
 };
 
 static int mtk_pinctrl_mt7629_probe(struct udevice *dev)
@@ -405,5 +407,5 @@ U_BOOT_DRIVER(mt7629_pinctrl) = {
 	.of_match = mt7629_pctrl_match,
 	.ops = &mtk_pinctrl_ops,
 	.probe = mtk_pinctrl_mt7629_probe,
-	.priv_auto_alloc_size = sizeof(struct mtk_pinctrl_priv),
+	.priv_auto	= sizeof(struct mtk_pinctrl_priv),
 };

@@ -6,10 +6,16 @@
 
 #include <common.h>
 #include <clk-uclass.h>
+#include <clock_legacy.h>
+#include <command.h>
 #include <dm.h>
+#include <log.h>
+#include <vsprintf.h>
+#include <asm/global_data.h>
 #include <dm/lists.h>
 #include <dt-bindings/clk/mpc83xx-clk.h>
 #include <asm/arch/soc.h>
+#include <linux/bitops.h>
 
 #include "mpc83xx_clk.h"
 
@@ -65,7 +71,10 @@ static inline bool is_clk_valid(struct udevice *clk, int id)
 	case MPC83XX_CLK_DMAC:
 		return (type == SOC_MPC8308) || (type == SOC_MPC8309);
 	case MPC83XX_CLK_PCI:
-		return mpc83xx_has_pci(type);
+		/*
+		 * FIXME: implement proper support for this.
+		 */
+		return 0 && mpc83xx_has_pci(type);
 	case MPC83XX_CLK_CSB:
 		return true;
 	case MPC83XX_CLK_I2C2:
@@ -275,6 +284,12 @@ static ulong mpc83xx_clk_get_rate(struct clk *clk)
 	return priv->speed[clk->id];
 }
 
+static int mpc83xx_clk_enable(struct clk *clk)
+{
+	/* MPC83xx clocks are always enabled */
+	return 0;
+}
+
 int get_clocks(void)
 {
 	/* Empty implementation to keep the prototype in common.h happy */
@@ -301,6 +316,7 @@ int get_serial_clock(void)
 const struct clk_ops mpc83xx_clk_ops = {
 	.request = mpc83xx_clk_request,
 	.get_rate = mpc83xx_clk_get_rate,
+	.enable = mpc83xx_clk_enable,
 };
 
 static const struct udevice_id mpc83xx_clk_match[] = {
@@ -374,11 +390,12 @@ U_BOOT_DRIVER(mpc83xx_clk) = {
 	.of_match = mpc83xx_clk_match,
 	.ops = &mpc83xx_clk_ops,
 	.probe = mpc83xx_clk_probe,
-	.priv_auto_alloc_size	= sizeof(struct mpc83xx_clk_priv),
+	.priv_auto	= sizeof(struct mpc83xx_clk_priv),
 	.bind = mpc83xx_clk_bind,
 };
 
-static int do_clocks(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+static int do_clocks(struct cmd_tbl *cmdtp, int flag, int argc,
+		     char *const argv[])
 {
 	int i;
 	char buf[32];

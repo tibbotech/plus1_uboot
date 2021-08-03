@@ -41,7 +41,7 @@ struct sp_rtc_reg {
 };
 
 
-static int do_rtc_tst(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+static int do_rtc_tst(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[])
 {
 	int i;
 	struct sp_rtc_reg *sp_rtc_ptr = (struct sp_rtc_reg *)(0x9C000000 + (116 << 7));

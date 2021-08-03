@@ -9,10 +9,12 @@
  */
 #include <common.h>
 #include <errno.h>
+#include <init.h>
 #include <asm/io.h>
 #include <asm/arch/clock.h>
 #include <asm/arch/dram.h>
 #include <asm/arch/prcm.h>
+#include <linux/delay.h>
 
 /* PLL runs at 2x dram-clk, controller runs at PLL / 4 (dram-clk / 2) */
 #define DRAM_CLK_MUL 2
@@ -152,7 +154,7 @@ static void auto_set_timing_para(struct dram_para *para)
 	reg_val &= ~(0xff << 8);
 	reg_val &= ~(0xff << 0);
 	reg_val |= (0x33 << 8);
-	reg_val |= (0x8 << 0);
+	reg_val |= (0x10 << 0);
 	writel(reg_val, &mctl_ctl->dramtmg8);
 	/* Set phy interface time */
 	reg_val = (0x2 << 24) | (t_rdata_en << 16) | (0x1 << 8)

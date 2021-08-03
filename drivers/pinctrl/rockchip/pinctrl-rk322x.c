@@ -5,9 +5,11 @@
 
 #include <common.h>
 #include <dm.h>
+#include <log.h>
 #include <dm/pinctrl.h>
 #include <regmap.h>
 #include <syscon.h>
+#include <linux/bitops.h>
 
 #include "pinctrl-rockchip.h"
 
@@ -141,6 +143,39 @@ static struct rockchip_mux_route_data rk3228_mux_route_data[] = {
 	},
 };
 
+static int rk3228_set_mux(struct rockchip_pin_bank *bank, int pin, int mux)
+{
+	struct rockchip_pinctrl_priv *priv = bank->priv;
+	int iomux_num = (pin / 8);
+	struct regmap *regmap;
+	int reg, ret, mask, mux_type;
+	u8 bit;
+	u32 data, route_reg, route_val;
+
+	regmap = (bank->iomux[iomux_num].type & IOMUX_SOURCE_PMU)
+				? priv->regmap_pmu : priv->regmap_base;
+
+	/* get basic quadrupel of mux registers and the correct reg inside */
+	mux_type = bank->iomux[iomux_num].type;
+	reg = bank->iomux[iomux_num].offset;
+	reg += rockchip_get_mux_data(mux_type, pin, &bit, &mask);
+
+	if (bank->route_mask & BIT(pin)) {
+		if (rockchip_get_mux_route(bank, pin, mux, &route_reg,
+					   &route_val)) {
+			ret = regmap_write(regmap, route_reg, route_val);
+			if (ret)
+				return ret;
+		}
+	}
+
+	data = (mask << (bit + 16));
+	data |= (mux & mask) << bit;
+	ret = regmap_write(regmap, reg, data);
+
+	return ret;
+}
+
 #define RK3228_PULL_OFFSET		0x100
 
 static void rk3228_calc_pull_reg_and_bit(struct rockchip_pin_bank *bank,
@@ -156,6 +191,33 @@ static void rk3228_calc_pull_reg_and_bit(struct rockchip_pin_bank *bank,
 
 	*bit = (pin_num % ROCKCHIP_PULL_PINS_PER_REG);
 	*bit *= ROCKCHIP_PULL_BITS_PER_PIN;
+}
+
+static int rk3228_set_pull(struct rockchip_pin_bank *bank,
+			   int pin_num, int pull)
+{
+	struct regmap *regmap;
+	int reg, ret;
+	u8 bit, type;
+	u32 data;
+
+	if (pull == PIN_CONFIG_BIAS_PULL_PIN_DEFAULT)
+		return -ENOTSUPP;
+
+	rk3228_calc_pull_reg_and_bit(bank, pin_num, &regmap, &reg, &bit);
+	type = bank->pull_type[pin_num / 8];
+	ret = rockchip_translate_pull_value(type, pull);
+	if (ret < 0) {
+		debug("unsupported pull setting %d\n", pull);
+		return ret;
+	}
+
+	/* enable the write to the equivalent lower bits */
+	data = ((1 << ROCKCHIP_PULL_BITS_PER_PIN) - 1) << (bit + 16);
+	data |= (ret << bit);
+	ret = regmap_write(regmap, reg, data);
+
+	return ret;
 }
 
 #define RK3228_DRV_GRF_OFFSET		0x200
@@ -175,6 +237,29 @@ static void rk3228_calc_drv_reg_and_bit(struct rockchip_pin_bank *bank,
 	*bit *= ROCKCHIP_DRV_BITS_PER_PIN;
 }
 
+static int rk3228_set_drive(struct rockchip_pin_bank *bank,
+			    int pin_num, int strength)
+{
+	struct regmap *regmap;
+	int reg, ret;
+	u32 data;
+	u8 bit;
+	int type = bank->drv[pin_num / 8].drv_type;
+
+	rk3228_calc_drv_reg_and_bit(bank, pin_num, &regmap, &reg, &bit);
+	ret = rockchip_translate_drive_value(type, strength);
+	if (ret < 0) {
+		debug("unsupported driver strength %d\n", strength);
+		return ret;
+	}
+
+	/* enable the write to the equivalent lower bits */
+	data = ((1 << ROCKCHIP_DRV_BITS_PER_PIN) - 1) << (bit + 16);
+	data |= (ret << bit);
+	ret = regmap_write(regmap, reg, data);
+	return ret;
+}
+
 static struct rockchip_pin_bank rk3228_pin_banks[] = {
 	PIN_BANK(0, 32, "gpio0"),
 	PIN_BANK(1, 32, "gpio1"),
@@ -183,15 +268,14 @@ static struct rockchip_pin_bank rk3228_pin_banks[] = {
 };
 
 static struct rockchip_pin_ctrl rk3228_pin_ctrl = {
-		.pin_banks		= rk3228_pin_banks,
-		.nr_banks		= ARRAY_SIZE(rk3228_pin_banks),
-		.label			= "RK3228-GPIO",
-		.type			= RK3288,
-		.grf_mux_offset		= 0x0,
-		.iomux_routes		= rk3228_mux_route_data,
-		.niomux_routes		= ARRAY_SIZE(rk3228_mux_route_data),
-		.pull_calc_reg		= rk3228_calc_pull_reg_and_bit,
-		.drv_calc_reg		= rk3228_calc_drv_reg_and_bit,
+	.pin_banks		= rk3228_pin_banks,
+	.nr_banks		= ARRAY_SIZE(rk3228_pin_banks),
+	.grf_mux_offset		= 0x0,
+	.iomux_routes		= rk3228_mux_route_data,
+	.niomux_routes		= ARRAY_SIZE(rk3228_mux_route_data),
+	.set_mux		= rk3228_set_mux,
+	.set_pull		= rk3228_set_pull,
+	.set_drive		= rk3228_set_drive,
 };
 
 static const struct udevice_id rk3228_pinctrl_ids[] = {
@@ -206,7 +290,7 @@ U_BOOT_DRIVER(pinctrl_rk3228) = {
 	.name		= "rockchip_rk3228_pinctrl",
 	.id		= UCLASS_PINCTRL,
 	.of_match	= rk3228_pinctrl_ids,
-	.priv_auto_alloc_size = sizeof(struct rockchip_pinctrl_priv),
+	.priv_auto	= sizeof(struct rockchip_pinctrl_priv),
 	.ops		= &rockchip_pinctrl_ops,
 #if !CONFIG_IS_ENABLED(OF_PLATDATA)
 	.bind		= dm_scan_fdt_dev,

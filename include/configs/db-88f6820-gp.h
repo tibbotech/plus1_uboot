@@ -12,22 +12,12 @@
 
 #define CONFIG_SYS_TCLK		250000000	/* 250MHz */
 
-/*
- * Commands configuration
- */
-
 /* I2C */
 #define CONFIG_SYS_I2C
 #define CONFIG_SYS_I2C_MVTWSI
 #define CONFIG_I2C_MVTWSI_BASE0		MVEBU_TWSI_BASE
 #define CONFIG_SYS_I2C_SLAVE		0x0
 #define CONFIG_SYS_I2C_SPEED		100000
-
-/*
- * SPI Flash configuration for the environemnt access
- */
-
-/* SPI NOR flash default params, used by sf commands */
 
 /*
  * SDIO/MMC Card Configuration
@@ -47,9 +37,6 @@
 #define CONFIG_EHCI_IS_TDI
 
 /* Environment in SPI NOR flash */
-#define CONFIG_ENV_OFFSET		(1 << 20) /* 1MiB in */
-#define CONFIG_ENV_SIZE			(64 << 10) /* 64KiB */
-#define CONFIG_ENV_SECT_SIZE		(256 << 10) /* 256KiB sectors */
 
 #define PHY_ANEG_TIMEOUT	8000	/* PHY needs a longer aneg time */
 
@@ -77,7 +64,6 @@
 
 /* Defines for SPL */
 #define CONFIG_SPL_SIZE			(140 << 10)
-#define CONFIG_SPL_TEXT_BASE		0x40000030
 #define CONFIG_SPL_MAX_SIZE		(CONFIG_SPL_SIZE - 0x0030)
 
 #define CONFIG_SPL_BSS_START_ADDR	(0x40000000 + CONFIG_SPL_SIZE)
@@ -92,7 +78,6 @@
 
 #if CONFIG_SPL_BOOT_DEVICE == SPL_BOOT_SPI_NOR_FLASH
 /* SPL related SPI defines */
-#define CONFIG_SYS_SPI_U_BOOT_OFFS	0x24000
 #define CONFIG_SYS_U_BOOT_OFFS		CONFIG_SYS_SPI_U_BOOT_OFFS
 #endif
 

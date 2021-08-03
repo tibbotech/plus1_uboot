@@ -87,5 +87,5 @@ U_BOOT_DRIVER(sp7021_reset) = {
 	.of_match = sp7021_reset_ids,
 	.probe = sp7021_reset_probe,
 	.ops = &sp7021_reset_ops,
-	.priv_auto_alloc_size = sizeof(struct sp7021_reset_priv),
+	.priv_auto = sizeof(struct sp7021_reset_priv),
 };

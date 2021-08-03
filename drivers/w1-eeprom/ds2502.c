@@ -22,6 +22,7 @@
 
 #include <common.h>
 #include <dm.h>
+#include <dm/device_compat.h>
 #include <linux/err.h>
 #include <w1-eeprom.h>
 #include <w1.h>
@@ -221,7 +222,7 @@ static int ds2502_probe(struct udevice *dev)
 {
 	struct w1_device *w1;
 
-	w1 = dev_get_parent_platdata(dev);
+	w1 = dev_get_parent_plat(dev);
 	w1->id = 0;
 	return 0;
 }

@@ -17,7 +17,7 @@
 #include <asm/arch/soc.h>
 
 #if defined(CONFIG_ARMADA_XP) || defined(CONFIG_ARMADA_375) \
-	|| defined(CONFIG_ARMADA_38X)
+	|| defined(CONFIG_ARMADA_38X) || defined(CONFIG_ARMADA_MSYS)
 /*
  * Set this for the common xor register definitions needed in dram.c
  * for A38x as well here.
@@ -52,7 +52,6 @@
  * Ethernet Driver configuration
  */
 #ifdef CONFIG_CMD_NET
-#define CONFIG_ENV_OVERWRITE	/* ethaddr can be reprogrammed */
 #define CONFIG_ARP_TIMEOUT	200
 #define CONFIG_NET_RETRY_COUNT	50
 #endif /* CONFIG_CMD_NET */

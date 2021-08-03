@@ -14,8 +14,11 @@
 #include <clk-uclass.h>
 #include <dm.h>
 #include <errno.h>
+#include <log.h>
 #include <wait_bit.h>
+#include <asm/global_data.h>
 #include <asm/io.h>
+#include <linux/bitops.h>
 
 #include <dt-bindings/clock/renesas-cpg-mssr.h>
 
@@ -96,7 +99,7 @@ static int gen3_clk_get_parent(struct gen3_clk_priv *priv, struct clk *clk,
 		if (ret)
 			return ret;
 
-		if (core->type == CLK_TYPE_GEN3_PE) {
+		if (core->type == CLK_TYPE_GEN3_MDSEL) {
 			parent->dev = clk->dev;
 			parent->id = core->parent >> (priv->sscg ? 16 : 0);
 			parent->id &= 0xffff;
@@ -257,7 +260,7 @@ static u64 gen3_clk_get_rate64(struct clk *clk)
 		      core->parent, core->mult, core->div, rate);
 		return rate;
 
-	case CLK_TYPE_GEN3_PE:
+	case CLK_TYPE_GEN3_MDSEL:
 		div = (core->div >> (priv->sscg ? 16 : 0)) & 0xffff;
 		rate = gen3_clk_get_rate64(&parent) / div;
 		debug("%s[%i] PE clk: parent=%i div=%u => rate=%llu\n",
@@ -357,7 +360,7 @@ int gen3_clk_probe(struct udevice *dev)
 	u32 cpg_mode;
 	int ret;
 
-	priv->base = (struct gen3_base *)devfdt_get_addr(dev);
+	priv->base = dev_read_addr_ptr(dev);
 	if (!priv->base)
 		return -EINVAL;
 

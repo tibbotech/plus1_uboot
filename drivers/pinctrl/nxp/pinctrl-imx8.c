@@ -4,6 +4,7 @@
  */
 
 #include <common.h>
+#include <asm/global_data.h>
 #include <dm/device.h>
 #include <dm/pinctrl.h>
 
@@ -25,6 +26,7 @@ static int imx8_pinctrl_probe(struct udevice *dev)
 
 static const struct udevice_id imx8_pinctrl_match[] = {
 	{ .compatible = "fsl,imx8qxp-iomuxc", .data = (ulong)&imx8_pinctrl_soc_info },
+	{ .compatible = "fsl,imx8qm-iomuxc", .data = (ulong)&imx8_pinctrl_soc_info },
 	{ /* sentinel */ }
 };
 
@@ -34,7 +36,7 @@ U_BOOT_DRIVER(imx8_pinctrl) = {
 	.of_match = of_match_ptr(imx8_pinctrl_match),
 	.probe = imx8_pinctrl_probe,
 	.remove = imx_pinctrl_remove,
-	.priv_auto_alloc_size = sizeof(struct imx_pinctrl_priv),
+	.priv_auto	= sizeof(struct imx_pinctrl_priv),
 	.ops = &imx_pinctrl_ops,
 	.flags = DM_FLAG_PRE_RELOC,
 };

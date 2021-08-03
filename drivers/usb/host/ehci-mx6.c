@@ -5,10 +5,13 @@
  */
 
 #include <common.h>
+#include <log.h>
 #include <usb.h>
 #include <errno.h>
 #include <wait_bit.h>
+#include <asm/global_data.h>
 #include <linux/compiler.h>
+#include <linux/delay.h>
 #include <usb/ehci-ci.h>
 #include <asm/io.h>
 #include <asm/arch/imx-regs.h>
@@ -18,6 +21,7 @@
 #include <dm.h>
 #include <asm/mach-types.h>
 #include <power/regulator.h>
+#include <linux/usb/otg.h>
 
 #include "ehci.h"
 
@@ -63,10 +67,12 @@ DECLARE_GLOBAL_DATA_PTR;
 #define UCMD_RUN_STOP           (1 << 0) /* controller run/stop */
 #define UCMD_RESET		(1 << 1) /* controller reset */
 
-#if defined(CONFIG_MX6)
+#if defined(CONFIG_MX6) || defined(CONFIG_MX7ULP)
 static const unsigned phy_bases[] = {
 	USB_PHY0_BASE_ADDR,
+#if defined(USB_PHY1_BASE_ADDR)
 	USB_PHY1_BASE_ADDR,
+#endif
 };
 
 static void usb_internal_phy_clock_gate(int index, int on)
@@ -83,6 +89,20 @@ static void usb_internal_phy_clock_gate(int index, int on)
 
 static void usb_power_config(int index)
 {
+#if defined(CONFIG_MX7ULP)
+	struct usbphy_regs __iomem *usbphy =
+		(struct usbphy_regs __iomem *)USB_PHY0_BASE_ADDR;
+
+	if (index > 0)
+		return;
+
+	writel(ANADIG_USB2_CHRG_DETECT_EN_B |
+		   ANADIG_USB2_CHRG_DETECT_CHK_CHRG_B,
+		   &usbphy->usb1_chrg_detect);
+
+	scg_enable_usb_pll(true);
+
+#else
 	struct anatop_regs __iomem *anatop =
 		(struct anatop_regs __iomem *)ANATOP_BASE_ADDR;
 	void __iomem *chrg_detect;
@@ -122,6 +142,8 @@ static void usb_power_config(int index)
 		     ANADIG_USB2_PLL_480_CTRL_POWER |
 		     ANADIG_USB2_PLL_480_CTRL_EN_USB_CLKS,
 		     pll_480_ctrl_set);
+
+#endif
 }
 
 /* Return 0 : host node, <>0 : device mode */
@@ -184,6 +206,14 @@ int usb_phy_mode(int port)
 		return USB_INIT_HOST;
 }
 
+#if defined(CONFIG_MX7ULP)
+struct usbnc_regs {
+	u32 ctrl1;
+	u32 ctrl2;
+	u32 reserve0[2];
+	u32 hsic_ctrl;
+};
+#else
 /* Base address for this IP block is 0x02184800 */
 struct usbnc_regs {
 	u32	ctrl[4];	/* otg/host1-3 */
@@ -192,6 +222,8 @@ struct usbnc_regs {
 	u32	otg_phy_ctrl_0;
 	u32	uh1_phy_ctrl_0;
 };
+#endif
+
 #elif defined(CONFIG_MX7)
 struct usbnc_regs {
 	u32 ctrl1;
@@ -212,20 +244,12 @@ static void usb_power_config(int index)
 	struct usbnc_regs *usbnc = (struct usbnc_regs *)(USB_BASE_ADDR +
 			(0x10000 * index) + USBNC_OFFSET);
 	void __iomem *phy_cfg2 = (void __iomem *)(&usbnc->phy_cfg2);
-	void __iomem *ctrl = (void __iomem *)(&usbnc->ctrl1);
 
 	/*
 	 * Clear the ACAENB to enable usb_otg_id detection,
 	 * otherwise it is the ACA detection enabled.
 	 */
 	clrbits_le32(phy_cfg2, USBNC_PHYCFG2_ACAENB);
-
-	/* Set power polarity to high active */
-#ifdef CONFIG_MXC_USB_OTG_HACTIVE
-	setbits_le32(ctrl, UCTRL_PWR_POL);
-#else
-	clrbits_le32(ctrl, UCTRL_PWR_POL);
-#endif
 }
 
 int usb_phy_mode(int port)
@@ -250,7 +274,7 @@ static void usb_oc_config(int index)
 	struct usbnc_regs *usbnc = (struct usbnc_regs *)(USB_BASE_ADDR +
 			USB_OTHERREGS_OFFSET);
 	void __iomem *ctrl = (void __iomem *)(&usbnc->ctrl[index]);
-#elif defined(CONFIG_MX7)
+#elif defined(CONFIG_MX7) || defined(CONFIG_MX7ULP)
 	struct usbnc_regs *usbnc = (struct usbnc_regs *)(USB_BASE_ADDR +
 			(0x10000 * index) + USBNC_OFFSET);
 	void __iomem *ctrl = (void __iomem *)(&usbnc->ctrl1);
@@ -264,6 +288,13 @@ static void usb_oc_config(int index)
 #endif
 
 	setbits_le32(ctrl, UCTRL_OVER_CUR_DIS);
+
+	/* Set power polarity to high active */
+#ifdef CONFIG_MXC_USB_OTG_HACTIVE
+	setbits_le32(ctrl, UCTRL_PWR_POL);
+#else
+	clrbits_le32(ctrl, UCTRL_PWR_POL);
+#endif
 }
 
 /**
@@ -327,7 +358,7 @@ int ehci_mx6_common_init(struct usb_ehci *ehci, int index)
 	usb_power_config(index);
 	usb_oc_config(index);
 
-#if defined(CONFIG_MX6)
+#if defined(CONFIG_MX6) || defined(CONFIG_MX7ULP)
 	usb_internal_phy_clock_gate(index, 1);
 	usb_phy_enable(index, ehci);
 #endif
@@ -342,7 +373,7 @@ int ehci_hcd_init(int index, enum usb_init_type init,
 	enum usb_init_type type;
 #if defined(CONFIG_MX6)
 	u32 controller_spacing = 0x200;
-#elif defined(CONFIG_MX7)
+#elif defined(CONFIG_MX7) || defined(CONFIG_MX7ULP)
 	u32 controller_spacing = 0x10000;
 #endif
 	struct usb_ehci *ehci = (struct usb_ehci *)(USB_BASE_ADDR +
@@ -351,6 +382,14 @@ int ehci_hcd_init(int index, enum usb_init_type init,
 
 	if (index > 3)
 		return -EINVAL;
+
+	if (CONFIG_IS_ENABLED(IMX_MODULE_FUSE)) {
+		if (usb_fused((ulong)ehci)) {
+			printf("SoC fuse indicates USB@0x%lx is unavailable.\n",
+			       (ulong)ehci);
+			return	-ENODEV;
+		}
+	}
 
 	ret = ehci_mx6_common_init(ehci, index);
 	if (ret)
@@ -409,8 +448,8 @@ static int mx6_init_after_reset(struct ehci_ctrl *dev)
 		ret = regulator_set_enable(priv->vbus_supply,
 					   (type == USB_INIT_DEVICE) ?
 					   false : true);
-		if (ret) {
-			puts("Error enabling VBUS supply\n");
+		if (ret && ret != -ENOSYS) {
+			printf("Error enabling VBUS supply (ret=%i)\n", ret);
 			return ret;
 		}
 	}
@@ -434,8 +473,8 @@ static const struct ehci_ops mx6_ehci_ops = {
 
 static int ehci_usb_phy_mode(struct udevice *dev)
 {
-	struct usb_platdata *plat = dev_get_platdata(dev);
-	void *__iomem addr = (void *__iomem)devfdt_get_addr(dev);
+	struct usb_plat *plat = dev_get_plat(dev);
+	void *__iomem addr = dev_read_addr_ptr(dev);
 	void *__iomem phy_ctrl, *__iomem phy_status;
 	const void *blob = gd->fdt_blob;
 	int offset = dev_of_offset(dev), phy_off;
@@ -445,7 +484,7 @@ static int ehci_usb_phy_mode(struct udevice *dev)
 	 * About fsl,usbphy, Refer to
 	 * Documentation/devicetree/bindings/usb/ci-hdrc-usb2.txt.
 	 */
-	if (is_mx6()) {
+	if (is_mx6() || is_mx7ulp()) {
 		phy_off = fdtdec_lookup_phandle(blob,
 						offset,
 						"fsl,usbphy");
@@ -480,40 +519,91 @@ static int ehci_usb_phy_mode(struct udevice *dev)
 	return 0;
 }
 
-static int ehci_usb_ofdata_to_platdata(struct udevice *dev)
+static int ehci_usb_of_to_plat(struct udevice *dev)
 {
-	struct usb_platdata *plat = dev_get_platdata(dev);
-	const char *mode;
+	struct usb_plat *plat = dev_get_plat(dev);
+	enum usb_dr_mode dr_mode;
 
-	mode = fdt_getprop(gd->fdt_blob, dev_of_offset(dev), "dr_mode", NULL);
-	if (mode) {
-		if (strcmp(mode, "peripheral") == 0)
-			plat->init_type = USB_INIT_DEVICE;
-		else if (strcmp(mode, "host") == 0)
-			plat->init_type = USB_INIT_HOST;
-		else if (strcmp(mode, "otg") == 0)
-			return ehci_usb_phy_mode(dev);
-		else
-			return -EINVAL;
+	dr_mode = usb_get_dr_mode(dev_ofnode(dev));
 
-		return 0;
-	}
+	switch (dr_mode) {
+	case USB_DR_MODE_HOST:
+		plat->init_type = USB_INIT_HOST;
+		break;
+	case USB_DR_MODE_PERIPHERAL:
+		plat->init_type = USB_INIT_DEVICE;
+		break;
+	case USB_DR_MODE_OTG:
+	case USB_DR_MODE_UNKNOWN:
+		return ehci_usb_phy_mode(dev);
+	};
 
-	return ehci_usb_phy_mode(dev);
+	return 0;
+}
+
+static int ehci_usb_bind(struct udevice *dev)
+{
+	/*
+	 * TODO:
+	 * This driver is only partly converted to DT probing and still uses
+	 * a tremendous amount of hard-coded addresses. To make things worse,
+	 * the driver depends on specific sequential indexing of controllers,
+	 * from which it derives offsets in the PHY and ANATOP register sets.
+	 *
+	 * Here we attempt to calculate these indexes from DT information as
+	 * well as we can. The USB controllers on all existing iMX6 SoCs
+	 * are placed next to each other, at addresses incremented by 0x200,
+	 * and iMX7 their addresses are shifted by 0x10000.
+	 * Thus, the index is derived from the multiple of 0x200 (0x10000 for
+	 * iMX7) offset from the first controller address.
+	 *
+	 * However, to complete conversion of this driver to DT probing, the
+	 * following has to be done:
+	 * - DM clock framework support for iMX must be implemented
+	 * - usb_power_config() has to be converted to clock framework
+	 *   -> Thus, the ad-hoc "index" variable goes away.
+	 * - USB PHY handling has to be factored out into separate driver
+	 *   -> Thus, the ad-hoc "index" variable goes away from the PHY
+	 *      code, the PHY driver must parse it's address from DT. This
+	 *      USB driver must find the PHY driver via DT phandle.
+	 *   -> usb_power_config() shall be moved to PHY driver
+	 * With these changes in place, the ad-hoc indexing goes away and
+	 * the driver is fully converted to DT probing.
+	 */
+
+	/*
+	 * FIXME: This cannot work with the new sequence numbers.
+	 * Please complete the DM conversion.
+	 *
+	 * u32 controller_spacing = is_mx7() ? 0x10000 : 0x200;
+	 * fdt_addr_t addr = devfdt_get_addr_index(dev, 0);
+	 *
+	 * dev->req_seq = (addr - USB_BASE_ADDR) / controller_spacing;
+	 */
+
+	return 0;
 }
 
 static int ehci_usb_probe(struct udevice *dev)
 {
-	struct usb_platdata *plat = dev_get_platdata(dev);
-	struct usb_ehci *ehci = (struct usb_ehci *)devfdt_get_addr(dev);
+	struct usb_plat *plat = dev_get_plat(dev);
+	struct usb_ehci *ehci = dev_read_addr_ptr(dev);
 	struct ehci_mx6_priv_data *priv = dev_get_priv(dev);
 	enum usb_init_type type = plat->init_type;
 	struct ehci_hccr *hccr;
 	struct ehci_hcor *hcor;
 	int ret;
 
+	if (CONFIG_IS_ENABLED(IMX_MODULE_FUSE)) {
+		if (usb_fused((ulong)ehci)) {
+			printf("SoC fuse indicates USB@0x%lx is unavailable.\n",
+			       (ulong)ehci);
+			return -ENODEV;
+		}
+	}
+
 	priv->ehci = ehci;
-	priv->portnr = dev->seq;
+	priv->portnr = dev_seq(dev);
 	priv->init_type = type;
 
 #if CONFIG_IS_ENABLED(DM_REGULATOR)
@@ -531,8 +621,8 @@ static int ehci_usb_probe(struct udevice *dev)
 		ret = regulator_set_enable(priv->vbus_supply,
 					   (type == USB_INIT_DEVICE) ?
 					   false : true);
-		if (ret) {
-			puts("Error enabling VBUS supply\n");
+		if (ret && ret != -ENOSYS) {
+			printf("Error enabling VBUS supply (ret=%i)\n", ret);
 			return ret;
 		}
 	}
@@ -562,12 +652,13 @@ U_BOOT_DRIVER(usb_mx6) = {
 	.name	= "ehci_mx6",
 	.id	= UCLASS_USB,
 	.of_match = mx6_usb_ids,
-	.ofdata_to_platdata = ehci_usb_ofdata_to_platdata,
+	.of_to_plat = ehci_usb_of_to_plat,
+	.bind	= ehci_usb_bind,
 	.probe	= ehci_usb_probe,
 	.remove = ehci_deregister,
 	.ops	= &ehci_usb_ops,
-	.platdata_auto_alloc_size = sizeof(struct usb_platdata),
-	.priv_auto_alloc_size = sizeof(struct ehci_mx6_priv_data),
+	.plat_auto	= sizeof(struct usb_plat),
+	.priv_auto	= sizeof(struct ehci_mx6_priv_data),
 	.flags	= DM_FLAG_ALLOC_PRIV_DMA,
 };
 #endif

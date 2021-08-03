@@ -72,6 +72,8 @@
 #endif
 
 /* u-boot env parameter */
+#undef CONFIG_ENV_SIZE	
+
 #define CONFIG_SYS_MMC_ENV_DEV		0
 #if defined(CONFIG_ENV_IS_IN_NAND)
 #define CONFIG_ENV_OFFSET		(0x400000)

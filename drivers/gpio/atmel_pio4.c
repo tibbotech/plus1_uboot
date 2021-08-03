@@ -9,8 +9,11 @@
 #include <clk.h>
 #include <dm.h>
 #include <fdtdec.h>
+#include <malloc.h>
 #include <asm/arch/hardware.h>
+#include <asm/global_data.h>
 #include <asm/gpio.h>
+#include <linux/bitops.h>
 #include <mach/gpio.h>
 #include <mach/atmel_pio4.h>
 
@@ -168,20 +171,20 @@ int atmel_pio4_get_pio_input(u32 port, u32 pin)
 	return (readl(&port_base->pdsr) & mask) ? 1 : 0;
 }
 
-#ifdef CONFIG_DM_GPIO
+#if CONFIG_IS_ENABLED(DM_GPIO)
 
 struct atmel_pioctrl_data {
 	u32 nbanks;
 };
 
-struct atmel_pio4_platdata {
+struct atmel_pio4_plat {
 	struct atmel_pio4_port *reg_base;
 };
 
 static struct atmel_pio4_port *atmel_pio4_bank_base(struct udevice *dev,
 						    u32 bank)
 {
-	struct atmel_pio4_platdata *plat = dev_get_platdata(dev);
+	struct atmel_pio4_plat *plat = dev_get_plat(dev);
 	struct atmel_pio4_port *port_base =
 			(struct atmel_pio4_port *)((u32)plat->reg_base +
 			ATMEL_PIO_BANK_OFFSET * bank);
@@ -279,7 +282,7 @@ static int atmel_pio4_bind(struct udevice *dev)
 
 static int atmel_pio4_probe(struct udevice *dev)
 {
-	struct atmel_pio4_platdata *plat = dev_get_platdata(dev);
+	struct atmel_pio4_plat *plat = dev_get_plat(dev);
 	struct gpio_dev_priv *uc_priv = dev_get_uclass_priv(dev);
 	struct atmel_pioctrl_data *pioctrl_data;
 	struct clk clk;
@@ -297,7 +300,7 @@ static int atmel_pio4_probe(struct udevice *dev)
 
 	clk_free(&clk);
 
-	addr_base = devfdt_get_addr(dev);
+	addr_base = dev_read_addr(dev);
 	if (addr_base == FDT_ADDR_T_NONE)
 		return -EINVAL;
 
@@ -336,7 +339,7 @@ U_BOOT_DRIVER(gpio_atmel_pio4) = {
 	.probe	= atmel_pio4_probe,
 	.bind	= atmel_pio4_bind,
 	.of_match = atmel_pio4_ids,
-	.platdata_auto_alloc_size = sizeof(struct atmel_pio4_platdata),
+	.plat_auto	= sizeof(struct atmel_pio4_plat),
 };
 
 #endif

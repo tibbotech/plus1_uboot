@@ -34,6 +34,7 @@ enum cpu_target {
 	CPU_TARGET_PCIE02 = 0x4,
 	CPU_TARGET_ETH01 = 0x7,
 	CPU_TARGET_PCIE13 = 0x8,
+	CPU_TARGET_DFX = 0x8,
 	CPU_TARGET_SASRAM = 0x9,
 	CPU_TARGET_SATA01 = 0xa, /* A38X */
 	CPU_TARGET_NAND = 0xd,
@@ -79,6 +80,8 @@ enum {
 #define MBUS_PCI_IO_SIZE	(64 << 10)
 #define MBUS_SPI_BASE		0xF4000000
 #define MBUS_SPI_SIZE		(8 << 20)
+#define MBUS_DFX_BASE		0xF6000000
+#define MBUS_DFX_SIZE		(1 << 20)
 #define MBUS_BOOTROM_BASE	0xF8000000
 #define MBUS_BOOTROM_SIZE	(8 << 20)
 
@@ -141,7 +144,9 @@ u32 mvebu_get_nand_clock(void);
 
 void return_to_bootrom(void);
 
+#ifndef CONFIG_DM_MMC
 int mv_sdh_init(unsigned long regbase, u32 max_clk, u32 min_clk, u32 quirks);
+#endif
 
 void get_sar_freq(struct sar_freq_modes *sar_freq);
 
@@ -157,6 +162,26 @@ int serdes_phy_config(void);
  * drivers/ddr/marvell
  */
 int ddr3_init(void);
+
+/* Auto Voltage Scaling */
+#if defined(CONFIG_ARMADA_38X)
+void mv_avs_init(void);
+void mv_rtc_config(void);
+#else
+static inline void mv_avs_init(void) {}
+static inline void mv_rtc_config(void) {}
+#endif
+
+/* A8K dram functions */
+u64 a8k_dram_scan_ap_sz(void);
+int a8k_dram_init_banksize(void);
+
+/* A3700 dram functions */
+int a3700_dram_init(void);
+int a3700_dram_init_banksize(void);
+
+/* A3700 PCIe regions fixer for device tree */
+int a3700_fdt_fix_pcie_regions(void *blob);
 
 /*
  * get_ref_clk

@@ -17,11 +17,17 @@
 
 #include <common.h>
 #include <clk.h>
+#include <cpu_func.h>
 #include <dm.h>
 #include <dma-uclass.h>
+#include <log.h>
+#include <malloc.h>
 #include <memalign.h>
+#include <net.h>
 #include <reset.h>
 #include <asm/io.h>
+#include <linux/bitops.h>
+#include <linux/delay.h>
 
 #define DMA_RX_DESC	6
 #define DMA_TX_DESC	1
@@ -307,10 +313,10 @@ static int bcm6348_iudma_request(struct dma *dma)
 	ch_priv->desc_id = 0;
 	if (bcm6348_iudma_chan_is_rx(dma->id)) {
 		ch_priv->desc_cnt = 0;
-		ch_priv->busy_desc = calloc(ch_priv->desc_cnt, sizeof(bool));
+		ch_priv->busy_desc = NULL;
 	} else {
 		ch_priv->desc_cnt = ch_priv->dma_ring_size;
-		ch_priv->busy_desc = NULL;
+		ch_priv->busy_desc = calloc(ch_priv->desc_cnt, sizeof(bool));
 	}
 
 	return 0;
@@ -323,6 +329,9 @@ static int bcm6348_iudma_receive(struct dma *dma, void **dst, void *metadata)
 	struct bcm6348_chan_priv *ch_priv = priv->ch_priv[dma->id];
 	struct bcm6348_dma_desc *dma_desc = dma_desc = ch_priv->dma_ring;
 	int ret;
+
+	if (!ch_priv->running)
+		return -EINVAL;
 
 	/* get dma ring descriptor address */
 	dma_desc += ch_priv->desc_id;
@@ -368,6 +377,9 @@ static int bcm6348_iudma_send(struct dma *dma, void *src, size_t len,
 	struct bcm6348_chan_priv *ch_priv = priv->ch_priv[dma->id];
 	struct bcm6348_dma_desc *dma_desc;
 	uint16_t status;
+
+	if (!ch_priv->running)
+                return -EINVAL;
 
 	/* flush cache */
 	bcm6348_iudma_fdc(src, len);
@@ -637,6 +649,6 @@ U_BOOT_DRIVER(bcm6348_iudma) = {
 	.id = UCLASS_DMA,
 	.of_match = bcm6348_iudma_ids,
 	.ops = &bcm6348_iudma_ops,
-	.priv_auto_alloc_size = sizeof(struct bcm6348_iudma_priv),
+	.priv_auto	= sizeof(struct bcm6348_iudma_priv),
 	.probe = bcm6348_iudma_probe,
 };

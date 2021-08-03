@@ -60,7 +60,7 @@ static void load_otp_pub_key(u8 in_pub[])
 }
 
 // verify_kernel_signature
-int do_verify(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+int do_verify(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[])
 {
 	int sig_size = 64;
 	int sig_flag_size = 8;

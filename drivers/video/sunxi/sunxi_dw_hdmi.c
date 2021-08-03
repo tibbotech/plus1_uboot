@@ -10,9 +10,13 @@
 #include <dm.h>
 #include <dw_hdmi.h>
 #include <edid.h>
+#include <log.h>
+#include <time.h>
 #include <asm/io.h>
 #include <asm/arch/clock.h>
 #include <asm/arch/lcdc.h>
+#include <linux/bitops.h>
+#include <linux/delay.h>
 
 struct sunxi_dw_hdmi_priv {
 	struct dw_hdmi hdmi;
@@ -254,7 +258,7 @@ static void sunxi_dw_hdmi_lcdc_init(int mux, const struct display_timing *edid,
 {
 	struct sunxi_ccm_reg * const ccm =
 		(struct sunxi_ccm_reg *)SUNXI_CCM_BASE;
-	int div = clock_get_pll3() / edid->pixelclock.typ;
+	int div = DIV_ROUND_UP(clock_get_pll3(), edid->pixelclock.typ);
 	struct sunxi_lcdc_reg *lcdc;
 
 	if (mux == 0) {
@@ -336,7 +340,7 @@ static int sunxi_dw_hdmi_enable(struct udevice *dev, int panel_bpp,
 
 static int sunxi_dw_hdmi_probe(struct udevice *dev)
 {
-	struct display_plat *uc_plat = dev_get_uclass_platdata(dev);
+	struct display_plat *uc_plat = dev_get_uclass_plat(dev);
 	struct sunxi_dw_hdmi_priv *priv = dev_get_priv(dev);
 	struct sunxi_ccm_reg * const ccm =
 		(struct sunxi_ccm_reg *)SUNXI_CCM_BASE;
@@ -373,6 +377,9 @@ static int sunxi_dw_hdmi_probe(struct udevice *dev)
 	priv->hdmi.phy_set = sunxi_dw_hdmi_phy_cfg;
 	priv->mux = uc_plat->source_id;
 
+	uclass_get_device_by_phandle(UCLASS_I2C, dev, "ddc-i2c-bus",
+				     &priv->hdmi.ddc_bus);
+
 	dw_hdmi_init(&priv->hdmi);
 
 	return 0;
@@ -388,9 +395,9 @@ U_BOOT_DRIVER(sunxi_dw_hdmi) = {
 	.id	= UCLASS_DISPLAY,
 	.ops	= &sunxi_dw_hdmi_ops,
 	.probe	= sunxi_dw_hdmi_probe,
-	.priv_auto_alloc_size = sizeof(struct sunxi_dw_hdmi_priv),
+	.priv_auto	= sizeof(struct sunxi_dw_hdmi_priv),
 };
 
-U_BOOT_DEVICE(sunxi_dw_hdmi) = {
+U_BOOT_DRVINFO(sunxi_dw_hdmi) = {
 	.name = "sunxi_dw_hdmi"
 };

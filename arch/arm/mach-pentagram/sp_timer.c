@@ -6,6 +6,7 @@
  */
 #include <common.h>
 #include <asm/io.h>
+#include <asm/global_data.h>
 
 struct stc_regs {
         unsigned int stc_15_0;       // 12.0

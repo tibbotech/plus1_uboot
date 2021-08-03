@@ -13,6 +13,8 @@
 #include <errno.h>
 #include <memalign.h>
 #include <asm/io.h>
+#include <cpu_func.h>
+#include <asm/global_data.h>
 #include "sp_spi_nor.h"
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -648,7 +650,7 @@ static int spi_flash_xfer_write(UINT8 *cmd, size_t cmd_len, const void *data, si
 
 static int sp_spi_nor_ofdata_to_platdata(struct udevice *bus)
 {
-	struct sp_spi_nor_platdata *plat = bus->platdata;
+	struct sp_spi_nor_platdata *plat = dev_get_plat(bus);;
 	const void *blob = gd->fdt_blob;
 	int node = dev_of_offset(bus);
 
@@ -664,7 +666,7 @@ static int sp_spi_nor_ofdata_to_platdata(struct udevice *bus)
 
 static int sp_spi_nor_probe(struct udevice *bus)
 {
-	struct sp_spi_nor_platdata *plat = dev_get_platdata(bus);
+	struct sp_spi_nor_platdata *plat = dev_get_plat(bus);
 	struct sp_spi_nor_priv *priv = dev_get_priv(bus);
 #if (SP_SPINOR_DMA)
 	struct spinorbufdesc *wdesc = &priv->wchain;
@@ -712,7 +714,7 @@ static int sp_spi_nor_remove(struct udevice *dev)
 static int sp_spi_nor_claim_bus(struct udevice *dev)
 {
 	struct udevice *bus = dev->parent;
-	struct sp_spi_nor_platdata *plat =  bus->platdata;
+	struct sp_spi_nor_platdata *plat =  dev_get_plat(bus);;
 	int value = 0;
 
 	diag_printf("%s\n",__FUNCTION__);
@@ -848,7 +850,7 @@ out:
 
 static int sp_spi_nor_set_speed(struct udevice *bus, uint speed)
 {
-	struct sp_spi_nor_platdata *plat = bus->platdata;
+	struct sp_spi_nor_platdata *plat = dev_get_plat(bus);;
 	struct sp_spi_nor_priv *priv = dev_get_priv(bus);
 
 	diag_printf("%s %d\n",__FUNCTION__, speed);
@@ -896,11 +898,11 @@ U_BOOT_DRIVER(sp_spi_nor) = {
 	.id             = UCLASS_SPI,
 	.of_match       = sp_spi_nor_ids,
 	.ops            = &sp_spi_nor_ops,
-	.ofdata_to_platdata = sp_spi_nor_ofdata_to_platdata,
+	.of_to_plat = sp_spi_nor_ofdata_to_platdata,
 	.probe          = sp_spi_nor_probe,
 	.remove         = sp_spi_nor_remove,
-	.platdata_auto_alloc_size = sizeof(struct sp_spi_nor_platdata),
-	.priv_auto_alloc_size     = sizeof(struct sp_spi_nor_priv),
+	.plat_auto = sizeof(struct sp_spi_nor_platdata),
+	.plat_auto     = sizeof(struct sp_spi_nor_priv),
 #if (SP_SPINOR_DMA)
 	.flags          = DM_FLAG_ALLOC_PRIV_DMA,
 #endif

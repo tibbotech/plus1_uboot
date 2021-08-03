@@ -1,8 +1,10 @@
 #include <common.h>
+#include <cpu_func.h>
 #include <fdtdec.h>
 #ifdef CONFIG_TARGET_PENTAGRAM_Q645
 #include <asm/armv8/mmu.h>
 #endif
+#include <asm/global_data.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 

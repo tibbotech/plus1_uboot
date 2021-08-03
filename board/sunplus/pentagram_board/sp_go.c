@@ -3,6 +3,7 @@
 #include <image.h>
 #include <mapmem.h>
 #include <malloc.h>
+#include <cpu_func.h>
 
 
 static uint32_t sum32(uint32_t sum, uint8_t *data, uint32_t len)
@@ -116,7 +117,7 @@ unsigned long do_sp_go_exec(ulong (*entry)(int, char * const [], unsigned int), 
 	return entry (0, 0, (dtb_addr + 0x40));
 }
 
-static int do_sp_go(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+static int do_sp_go(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[])
 {
 	ulong   addr, rc;
 	int     rcode = 0;
@@ -153,7 +154,7 @@ U_BOOT_CMD(
 	"\t<dtb addr>    : [qk uImage header][dtb header][dtb]\n"
 );
 
-static int do_sp_nonos_go(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+static int do_sp_nonos_go(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[])
 {
 	int     rcode = 0;
 	image_header_t *hdr=NULL;
@@ -357,7 +358,7 @@ void SPI_nor_speed_up_clk(void)
 
 #ifdef RASPBIAN_CMD
 
-static int do_raspbian(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+static int do_raspbian(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[])
 {
 	ulong   addr;
 	int     size;

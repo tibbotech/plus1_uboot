@@ -1,5 +1,7 @@
 #include <common.h>
 #include <asm/io.h>
+#include <command.h>
+#include <linux/delay.h>
 #include "sp_otp.h"
 
 //#define SUPPORT_WRITE_OTP
@@ -71,7 +73,7 @@ int write_otp_data(volatile struct hb_gp_regs *otp_data, volatile struct otprx_r
 }
 #endif
 
-static int do_read_otp(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+static int do_read_otp(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[])
 {
 	volatile struct hb_gp_regs *otp_data;
 	unsigned int addr, data, efuse, otp_size;
@@ -179,7 +181,7 @@ static int do_read_otp(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]
 }
 
 #ifdef SUPPORT_WRITE_OTP
-static int do_write_otp(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+static int do_write_otp(struct cmd_tbl  *cmdtp, int flag, int argc, char * const argv[])
 {
 	unsigned int addr;
 	unsigned int data;
@@ -268,8 +270,7 @@ U_BOOT_CMD(
 	"[OTP address (0, 1, 2,.., n byte)] [data (0~255)] [eFuse (0:sunplus, 1:security, 2:customer)]"
 );
 	#endif
-#elif (defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)) || \
-	(defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C))
+#elif defined(CONFIG_ARCH_PENTAGRAM)
 U_BOOT_CMD(
 	rotp, 2, 1, do_read_otp,
 	"read 1 byte data or all data of OTP",

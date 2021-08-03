@@ -122,8 +122,8 @@ U_BOOT_DRIVER(serial_sunplus) = {
 	.name	= "serial_sunplus",
 	.id	= UCLASS_SERIAL,
 	.of_match = sunplus_serial_ids,
-	.ofdata_to_platdata = sunplus_serial_ofdata_to_platdata,
-	.priv_auto_alloc_size = sizeof(struct sunplus_uart_priv),
+	.of_to_plat = sunplus_serial_ofdata_to_platdata,
+	.plat_auto = sizeof(struct sunplus_uart_priv),
 #if defined(DEBUG)
 	.bind = sunplus_serial_bind,
 #endif

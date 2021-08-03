@@ -3,6 +3,7 @@
  */
 #include <common.h>
 #include <asm/arch/sp7021_common.h>
+#include <asm/global_data.h>
 
 #ifdef CONFIG_SP_SPINAND
 extern void board_spinand_init(void);
@@ -62,7 +63,7 @@ int board_init(void)
 	return 0;
 }
 
-int board_eth_init(bd_t *bis)
+int board_eth_init(struct bd_info *bis)
 {
 	return 0;
 }

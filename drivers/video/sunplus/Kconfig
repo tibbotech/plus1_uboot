@@ -1,8 +1,0 @@
-#
-# Sunplus Video configuration
-#
-
-source "drivers/video/sunplus/sp7021/disp/Kconfig"
-#source "drivers/video/sunplus/sp7021/mipi/Kconfig"
-source "drivers/video/sunplus/i143/disp/Kconfig"
-source "drivers/video/sunplus/i143/mipi/Kconfig"

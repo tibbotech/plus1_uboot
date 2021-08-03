@@ -10,11 +10,9 @@
 #include <asm/arch/handoff_s10.h>
 #include <asm/arch/system_manager.h>
 
-static const struct socfpga_system_manager *sysmgr_regs =
-	(struct socfpga_system_manager *)SOCFPGA_SYSMGR_ADDRESS;
-
 const struct cm_config * const cm_get_default_config(void)
 {
+#ifdef CONFIG_SPL_BUILD
 	struct cm_config *cm_handoff_cfg = (struct cm_config *)
 		(S10_HANDOFF_CLOCK + S10_HANDOFF_OFFSET_DATA);
 	u32 *conversion = (u32 *)cm_handoff_cfg;
@@ -29,18 +27,21 @@ const struct cm_config * const cm_get_default_config(void)
 	} else if (handoff_clk == S10_HANDOFF_MAGIC_CLOCK) {
 		return cm_handoff_cfg;
 	}
-
+#endif
 	return NULL;
 }
 
 const unsigned int cm_get_osc_clk_hz(void)
 {
 #ifdef CONFIG_SPL_BUILD
-	u32 clock = readl(S10_HANDOFF_CLOCK_OSC);
 
-	writel(clock, &sysmgr_regs->boot_scratch_cold1);
+	u32 clock = readl(HANDOFF_CLOCK_OSC);
+
+	writel(clock,
+	       socfpga_get_sysmgr_addr() + SYSMGR_SOC64_BOOT_SCRATCH_COLD1);
 #endif
-	return readl(&sysmgr_regs->boot_scratch_cold1);
+	return readl(socfpga_get_sysmgr_addr() +
+		     SYSMGR_SOC64_BOOT_SCRATCH_COLD1);
 }
 
 const unsigned int cm_get_intosc_clk_hz(void)
@@ -51,9 +52,11 @@ const unsigned int cm_get_intosc_clk_hz(void)
 const unsigned int cm_get_fpga_clk_hz(void)
 {
 #ifdef CONFIG_SPL_BUILD
-	u32 clock = readl(S10_HANDOFF_CLOCK_FPGA);
+	u32 clock = readl(HANDOFF_CLOCK_FPGA);
 
-	writel(clock, &sysmgr_regs->boot_scratch_cold2);
+	writel(clock,
+	       socfpga_get_sysmgr_addr() + SYSMGR_SOC64_BOOT_SCRATCH_COLD2);
 #endif
-	return readl(&sysmgr_regs->boot_scratch_cold2);
+	return readl(socfpga_get_sysmgr_addr() +
+		     SYSMGR_SOC64_BOOT_SCRATCH_COLD2);
 }

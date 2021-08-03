@@ -62,7 +62,7 @@ void write_regs(unsigned int regGroupNum, unsigned int regIndex,
  * Syntax:
  *	lreg {group}
  */
-static int do_reg_lreg(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+static int do_reg_lreg(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[])
 {
 	int	regGroupNum = 0;
 	unsigned int rgst_offset = 0;
@@ -92,7 +92,7 @@ static int do_reg_lreg(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]
  * Syntax:
  *	wreg {group} {register index in group} {value}
  */
-static int do_reg_wreg(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+static int do_reg_wreg(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[])
 {
 	if (argc == 5) {
 		unsigned int regGroupNum = 0, offset = 0, value = 0;

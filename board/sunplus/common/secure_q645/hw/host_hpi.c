@@ -1,4 +1,5 @@
 #include <common.h>
+#include <cpu_func.h>
 #include "host_hpi.h"
 #include "../hpi_cmd.h"
 #include "../secure_config.h"

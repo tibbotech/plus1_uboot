@@ -7,14 +7,18 @@
  */
 
 #include <common.h>
+#include <bootstage.h>
 #include <command.h>
 #include <dm.h>
+#include <fdt_support.h>
+#include <hang.h>
+#include <log.h>
+#include <asm/global_data.h>
 #include <dm/root.h>
 #include <image.h>
 #include <asm/byteorder.h>
 #include <asm/csr.h>
 #include <asm/smp.h>
-#include <asm/sbi.h>
 #include <dm/device.h>
 #include <dm/root.h>
 #include <u-boot/zlib.h>
@@ -23,11 +27,6 @@ DECLARE_GLOBAL_DATA_PTR;
 
 __weak void board_quiesce_devices(void)
 {
-}
-
-int arch_fixup_fdt(void *blob)
-{
-	return 0;
 }
 
 /**
@@ -95,12 +94,12 @@ static void boot_jump_linux(bootm_headers_t *images, int flag)
 	      (ulong)kernel);
 
 	announce_and_cleanup(fake);
-	sbi_ext_base_run_hart0(); // start hart0 to run freetros
+
 	if (!fake) {
 		if (IMAGE_ENABLE_OF_LIBFDT && images->ft_len) {
 #ifdef CONFIG_SMP
 			ret = smp_call_function(images->ep,
-						(ulong)images->ft_addr, 0);
+						(ulong)images->ft_addr, 0, 0);
 			if (ret)
 				hang();
 #endif
@@ -109,7 +108,7 @@ static void boot_jump_linux(bootm_headers_t *images, int flag)
 	}
 }
 
-int do_bootm_linux(int flag, int argc, char * const argv[],
+int do_bootm_linux(int flag, int argc, char *const argv[],
 		   bootm_headers_t *images)
 {
 	/* No need for those on RISC-V */
@@ -131,7 +130,7 @@ int do_bootm_linux(int flag, int argc, char * const argv[],
 	return 0;
 }
 
-int do_bootm_vxworks(int flag, int argc, char * const argv[],
+int do_bootm_vxworks(int flag, int argc, char *const argv[],
 		     bootm_headers_t *images)
 {
 	return do_bootm_linux(flag, argc, argv, images);

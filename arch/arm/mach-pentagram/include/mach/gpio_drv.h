@@ -2,7 +2,6 @@
 #define _SP_GPIO_DRV_H_
 
 #include <common.h>
-#include <dm.h>
 
 
 extern int gpio_pin_mux_set(u32 func, u32 pin);

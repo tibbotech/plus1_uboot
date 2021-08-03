@@ -5,6 +5,9 @@
  */
 
 #include <common.h>
+#include <hang.h>
+#include <init.h>
+#include <log.h>
 #include <asm/io.h>
 #include <asm/arch/at91_common.h>
 #include <asm/arch/at91_pit.h>
@@ -44,7 +47,15 @@ static void switch_to_main_crystal_osc(void)
 #endif
 
 	tmp = readl(&pmc->mor);
+/*
+ * some boards have an external oscillator with driving.
+ * in this case we need to disable the internal SoC driving (bypass mode)
+ */
+#if defined(CONFIG_SPL_AT91_MCK_BYPASS)
+	tmp |= AT91_PMC_MOR_OSCBYPASS;
+#else
 	tmp &= ~AT91_PMC_MOR_OSCBYPASS;
+#endif
 	tmp &= ~AT91_PMC_MOR_KEY(0xff);
 	tmp |= AT91_PMC_MOR_KEY(0x37);
 	writel(tmp, &pmc->mor);
@@ -92,6 +103,13 @@ void board_init_f(ulong dummy)
 {
 	int ret;
 
+	if (IS_ENABLED(CONFIG_OF_CONTROL)) {
+		ret = spl_early_init();
+		if (ret) {
+			debug("spl_early_init() failed: %d\n", ret);
+			hang();
+		}
+	}
 	switch_to_main_crystal_osc();
 
 #ifdef CONFIG_SAMA5D2

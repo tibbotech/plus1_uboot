@@ -3,22 +3,27 @@
  * Copyright (c) 2011 The Chromium OS Authors.
  */
 
+#define _GNU_SOURCE
+
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <getopt.h>
 #include <setjmp.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <termios.h>
 #include <time.h>
+#include <ucontext.h>
 #include <unistd.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/types.h>
+#include <linux/compiler_attributes.h>
 #include <linux/types.h>
 
 #include <asm/getopt.h>
@@ -26,6 +31,9 @@
 #include <asm/state.h>
 #include <os.h>
 #include <rtc_def.h>
+
+/* Environment variable for time offset */
+#define ENV_TIME_OFFSET "UBOOT_SB_TIME_OFFSET"
 
 /* Operating System Interface */
 
@@ -79,13 +87,21 @@ int os_open(const char *pathname, int os_flags)
 		flags |= O_CREAT;
 	if (os_flags & OS_O_TRUNC)
 		flags |= O_TRUNC;
+	/*
+	 * During a cold reset execv() is used to relaunch the U-Boot binary.
+	 * We must ensure that all files are closed in this case.
+	 */
+	flags |= O_CLOEXEC;
 
 	return open(pathname, flags, 0777);
 }
 
 int os_close(int fd)
 {
-	return close(fd);
+	/* Do not close the console input */
+	if (fd)
+		return close(fd);
+	return -1;
 }
 
 int os_unlink(const char *pathname)
@@ -137,7 +153,7 @@ int os_read_file(const char *fname, void **bufp, int *sizep)
 		printf("Cannot seek to start of file '%s'\n", fname);
 		goto err;
 	}
-	*bufp = os_malloc(size);
+	*bufp = malloc(size);
 	if (!*bufp) {
 		printf("Not enough memory to read file '%s'\n", fname);
 		ret = -ENOMEM;
@@ -175,6 +191,49 @@ void os_fd_restore(void)
 	}
 }
 
+static void os_sigint_handler(int sig)
+{
+	os_fd_restore();
+	signal(SIGINT, SIG_DFL);
+	raise(SIGINT);
+}
+
+static void os_signal_handler(int sig, siginfo_t *info, void *con)
+{
+	ucontext_t __maybe_unused *context = con;
+	unsigned long pc;
+
+#if defined(__x86_64__)
+	pc = context->uc_mcontext.gregs[REG_RIP];
+#elif defined(__aarch64__)
+	pc = context->uc_mcontext.pc;
+#elif defined(__riscv)
+	pc = context->uc_mcontext.__gregs[REG_PC];
+#else
+	const char msg[] =
+		"\nUnsupported architecture, cannot read program counter\n";
+
+	os_write(1, msg, sizeof(msg));
+	pc = 0;
+#endif
+
+	os_signal_action(sig, pc);
+}
+
+int os_setup_signal_handlers(void)
+{
+	struct sigaction act;
+
+	act.sa_sigaction = os_signal_handler;
+	sigemptyset(&act.sa_mask);
+	act.sa_flags = SA_SIGINFO | SA_NODEFER;
+	if (sigaction(SIGILL, &act, NULL) ||
+	    sigaction(SIGBUS, &act, NULL) ||
+	    sigaction(SIGSEGV, &act, NULL))
+		return -1;
+	return 0;
+}
+
 /* Put tty into raw mode so <tab> and <ctrl+c> work */
 void os_tty_raw(int fd, bool allow_sigs)
 {
@@ -205,12 +264,13 @@ void os_tty_raw(int fd, bool allow_sigs)
 
 	term_setup = true;
 	atexit(os_fd_restore);
+	signal(SIGINT, os_sigint_handler);
 }
 
 void *os_malloc(size_t length)
 {
-	struct os_mem_hdr *hdr;
 	int page_size = getpagesize();
+	struct os_mem_hdr *hdr;
 
 	/*
 	 * Use an address that is hopefully available to us so that pointers
@@ -229,32 +289,13 @@ void *os_malloc(size_t length)
 
 void os_free(void *ptr)
 {
-	struct os_mem_hdr *hdr = ptr;
+	int page_size = getpagesize();
+	struct os_mem_hdr *hdr;
 
-	hdr--;
-	if (ptr)
-		munmap(hdr, hdr->length + sizeof(*hdr));
-}
-
-void *os_realloc(void *ptr, size_t length)
-{
-	struct os_mem_hdr *hdr = ptr;
-	void *buf = NULL;
-
-	hdr--;
-	if (length != 0) {
-		buf = os_malloc(length);
-		if (!buf)
-			return buf;
-		if (ptr) {
-			if (length > hdr->length)
-				length = hdr->length;
-			memcpy(buf, ptr, length);
-		}
+	if (ptr) {
+		hdr = ptr - page_size;
+		munmap(hdr, hdr->length + page_size);
 	}
-	os_free(ptr);
-
-	return buf;
 }
 
 void os_usleep(unsigned long usec)
@@ -302,8 +343,8 @@ int os_parse_args(struct sandbox_state *state, int argc, char *argv[])
 	state->argv = argv;
 
 	/* dynamically construct the arguments to the system getopt_long */
-	short_opts = os_malloc(sizeof(*short_opts) * num_options * 2 + 1);
-	long_opts = os_malloc(sizeof(*long_opts) * num_options);
+	short_opts = malloc(sizeof(*short_opts) * num_options * 2 + 1);
+	long_opts = malloc(sizeof(*long_opts) * (num_options + 1));
 	if (!short_opts || !long_opts)
 		return 1;
 
@@ -333,6 +374,7 @@ int os_parse_args(struct sandbox_state *state, int argc, char *argv[])
 	/* we need to handle output ourselves since u-boot provides printf */
 	opterr = 0;
 
+	memset(&long_opts[num_options], '\0', sizeof(*long_opts));
 	/*
 	 * walk all of the options the user gave us on the command line,
 	 * figure out what u-boot option structure they belong to (via
@@ -381,7 +423,7 @@ void os_dirent_free(struct os_dirent_node *node)
 
 	while (node) {
 		next = node->next;
-		os_free(node);
+		free(node);
 		node = next;
 	}
 }
@@ -406,7 +448,7 @@ int os_dirent_ls(const char *dirname, struct os_dirent_node **headp)
 	/* Create a buffer upfront, with typically sufficient size */
 	dirlen = strlen(dirname) + 2;
 	len = dirlen + 256;
-	fname = os_malloc(len);
+	fname = malloc(len);
 	if (!fname) {
 		ret = -ENOMEM;
 		goto done;
@@ -419,7 +461,7 @@ int os_dirent_ls(const char *dirname, struct os_dirent_node **headp)
 			ret = errno;
 			break;
 		}
-		next = os_malloc(sizeof(*node) + strlen(entry->d_name) + 1);
+		next = malloc(sizeof(*node) + strlen(entry->d_name) + 1);
 		if (!next) {
 			os_dirent_free(head);
 			ret = -ENOMEM;
@@ -428,10 +470,10 @@ int os_dirent_ls(const char *dirname, struct os_dirent_node **headp)
 		if (dirlen + strlen(entry->d_name) > len) {
 			len = dirlen + strlen(entry->d_name);
 			old_fname = fname;
-			fname = os_realloc(fname, len);
+			fname = realloc(fname, len);
 			if (!fname) {
-				os_free(old_fname);
-				os_free(next);
+				free(old_fname);
+				free(next);
 				os_dirent_free(head);
 				ret = -ENOMEM;
 				goto done;
@@ -465,7 +507,7 @@ int os_dirent_ls(const char *dirname, struct os_dirent_node **headp)
 
 done:
 	closedir(dir);
-	os_free(fname);
+	free(fname);
 	return ret;
 }
 
@@ -582,7 +624,7 @@ static int add_args(char ***argvp, char *add_args[], int count)
 	for (argc = 0; (*argvp)[argc]; argc++)
 		;
 
-	argv = os_malloc((argc + count + 1) * sizeof(char *));
+	argv = malloc((argc + count + 1) * sizeof(char *));
 	if (!argv) {
 		printf("Out of memory for %d argv\n", count);
 		return -ENOMEM;
@@ -665,7 +707,7 @@ static int os_jump_to_file(const char *fname)
 		os_exit(2);
 
 	err = execv(fname, argv);
-	os_free(argv);
+	free(argv);
 	if (err) {
 		perror("Unable to run image");
 		printf("Image filename '%s'\n", fname);
@@ -751,7 +793,34 @@ int os_find_u_boot(char *fname, int maxlen)
 
 int os_spl_to_uboot(const char *fname)
 {
+	struct sandbox_state *state = state_get_current();
+
+	printf("%s\n", __func__);
+	/* U-Boot will delete ram buffer after read: "--rm_memory"*/
+	state->ram_buf_rm = true;
 	return os_jump_to_file(fname);
+}
+
+long os_get_time_offset(void)
+{
+	const char *offset;
+
+	offset = getenv(ENV_TIME_OFFSET);
+	if (offset)
+		return strtol(offset, NULL, 0);
+	return 0;
+}
+
+void os_set_time_offset(long offset)
+{
+	char buf[21];
+	int ret;
+
+	snprintf(buf, sizeof(buf), "%ld", offset);
+	ret = setenv(ENV_TIME_OFFSET, buf, true);
+	if (ret)
+		printf("Could not set environment variable %s\n",
+		       ENV_TIME_OFFSET);
 }
 
 void os_localtime(struct rtc_time *rt)
@@ -785,4 +854,47 @@ int os_mprotect_allow(void *start, size_t len)
 	len = (len + page_size * 2) & ~(page_size - 1);
 
 	return mprotect(start, len, PROT_READ | PROT_WRITE);
+}
+
+void *os_find_text_base(void)
+{
+	char line[500];
+	void *base = NULL;
+	int len;
+	int fd;
+
+	/*
+	 * This code assumes that the first line of /proc/self/maps holds
+	 * information about the text, for example:
+	 *
+	 * 5622d9907000-5622d9a55000 r-xp 00000000 08:01 15067168   u-boot
+	 *
+	 * The first hex value is assumed to be the address.
+	 *
+	 * This is tested in Linux 4.15.
+	 */
+	fd = open("/proc/self/maps", O_RDONLY);
+	if (fd == -1)
+		return NULL;
+	len = read(fd, line, sizeof(line));
+	if (len > 0) {
+		char *end = memchr(line, '-', len);
+
+		if (end) {
+			uintptr_t addr;
+
+			*end = '\0';
+			if (sscanf(line, "%zx", &addr) == 1)
+				base = (void *)addr;
+		}
+	}
+	close(fd);
+
+	return base;
+}
+
+void os_relaunch(char *argv[])
+{
+	execv(argv[0], argv);
+	os_exit(1);
 }

@@ -6,18 +6,25 @@
 
 #include <common.h>
 #include <dm.h>
+#include <init.h>
 #include <lcd.h>
+#include <log.h>
+#include <miiphy.h>
+#include <phy_interface.h>
 #include <ram.h>
+#include <serial.h>
 #include <spl.h>
 #include <splash.h>
 #include <st_logo_data.h>
 #include <video.h>
+#include <asm/global_data.h>
 #include <asm/io.h>
 #include <asm/armv7m.h>
 #include <asm/arch/stm32.h>
 #include <asm/arch/gpio.h>
 #include <asm/arch/syscfg.h>
 #include <asm/gpio.h>
+#include <linux/delay.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -39,11 +46,6 @@ int dram_init(void)
 int dram_init_banksize(void)
 {
 	return fdtdec_setup_memory_banksize();
-}
-
-int board_early_init_f(void)
-{
-	return 0;
 }
 
 #ifdef CONFIG_SPL_BUILD
@@ -123,8 +125,25 @@ int board_init(void)
 	gd->bd->bi_boot_params = gd->bd->bi_dram[0].start + 0x100;
 
 #ifdef CONFIG_ETH_DESIGNWARE
-	/* Set >RMII mode */
-	STM32_SYSCFG->pmc |= SYSCFG_PMC_MII_RMII_SEL;
+	const char *phy_mode;
+	int node;
+
+	node = fdt_node_offset_by_compatible(gd->fdt_blob, 0, "st,stm32-dwmac");
+	if (node < 0)
+		return -1;
+
+	phy_mode = fdt_getprop(gd->fdt_blob, node, "phy-mode", NULL);
+
+	switch (phy_get_interface_by_name(phy_mode)) {
+	case PHY_INTERFACE_MODE_RMII:
+		STM32_SYSCFG->pmc |= SYSCFG_PMC_MII_RMII_SEL;
+		break;
+	case PHY_INTERFACE_MODE_MII:
+		STM32_SYSCFG->pmc &= ~SYSCFG_PMC_MII_RMII_SEL;
+		break;
+	default:
+		printf("PHY interface %s not supported !\n", phy_mode);
+	}
 #endif
 
 #if defined(CONFIG_CMD_BMP)

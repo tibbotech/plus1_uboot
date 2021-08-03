@@ -108,7 +108,7 @@ U_BOOT_DRIVER(sunplus_clk) = {
 	.name					= "sunplus_clk",
 	.id						= UCLASS_CLK,
 	.of_match				= sunplus_clk_ids,
-	.priv_auto_alloc_size	= sizeof(struct sunplus_clk),
+	.priv_auto				= sizeof(struct sunplus_clk),
 	.ops					= &sunplus_clk_ops,
 	.probe					= sunplus_clk_probe,
 };

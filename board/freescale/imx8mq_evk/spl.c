@@ -6,6 +6,11 @@
  */
 
 #include <common.h>
+#include <hang.h>
+#include <image.h>
+#include <init.h>
+#include <log.h>
+#include <asm/global_data.h>
 #include <asm/io.h>
 #include <errno.h>
 #include <asm/io.h>
@@ -16,8 +21,9 @@
 #include <asm/mach-imx/iomux-v3.h>
 #include <asm/mach-imx/gpio.h>
 #include <asm/mach-imx/mxc_i2c.h>
-#include <fsl_esdhc.h>
+#include <fsl_esdhc_imx.h>
 #include <mmc.h>
+#include <linux/delay.h>
 #include <power/pmic.h>
 #include <power/pfuze100_pmic.h>
 #include <spl.h>
@@ -27,7 +33,7 @@ DECLARE_GLOBAL_DATA_PTR;
 
 extern struct dram_timing_info dram_timing_b0;
 
-void spl_dram_init(void)
+static void spl_dram_init(void)
 {
 	/* ddr init */
 	if ((get_cpu_rev() & 0xfff) == CHIP_REV_2_1)
@@ -38,7 +44,7 @@ void spl_dram_init(void)
 
 #define I2C_PAD_CTRL	(PAD_CTL_DSE6 | PAD_CTL_HYS | PAD_CTL_PUE)
 #define PC MUX_PAD_CTRL(I2C_PAD_CTRL)
-struct i2c_pads_info i2c_pad_info1 = {
+static struct i2c_pads_info i2c_pad_info1 = {
 	.scl = {
 		.i2c_mode = IMX8MQ_PAD_I2C1_SCL__I2C1_SCL | PC,
 		.gpio_mode = IMX8MQ_PAD_I2C1_SCL__GPIO5_IO14 | PC,
@@ -106,7 +112,7 @@ static struct fsl_esdhc_cfg usdhc_cfg[2] = {
 	{USDHC2_BASE_ADDR, 0, 4},
 };
 
-int board_mmc_init(bd_t *bis)
+int board_mmc_init(struct bd_info *bis)
 {
 	int i, ret;
 	/*
@@ -234,7 +240,6 @@ void board_init_f(ulong dummy)
 
 	enable_tzc380();
 
-	/* Adjust pmic voltage to 1.0V for 800M */
 	setup_i2c(0, CONFIG_SYS_I2C_SPEED, 0x7f, &i2c_pad_info1);
 
 	power_init_board();

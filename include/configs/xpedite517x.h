@@ -17,7 +17,6 @@
 #define CONFIG_SYS_FORM_3U_VPX	1
 #define CONFIG_LINUX_RESET_VEC	0x100	/* Reset vector used by Linux */
 #define CONFIG_BAT_RW		1	/* Use common BAT rw code */
-#define CONFIG_HIGH_BATS	1	/* High BATs supported and enabled */
 #define CONFIG_ALTIVEC		1
 
 #define CONFIG_PCI_SCAN_SHOW	1	/* show pci devices on startup */
@@ -52,6 +51,7 @@
 #define CONFIG_SYS_SCRATCH_VA	0xe0000000
 
 #ifndef __ASSEMBLY__
+#include <linux/stringify.h>
 extern unsigned long get_board_sys_clk(unsigned long dummy);
 #endif
 
@@ -77,8 +77,6 @@ extern unsigned long get_board_sys_clk(unsigned long dummy);
 /*
  * Diagnostics
  */
-#define CONFIG_SYS_MEMTEST_START	0x10000000
-#define CONFIG_SYS_MEMTEST_END		0x20000000
 #define CONFIG_POST			(CONFIG_SYS_POST_MEMORY |\
 					 CONFIG_SYS_POST_I2C)
 /* The XPedite5170 can host an XMC which has an EEPROM at address 0x50 */
@@ -473,7 +471,6 @@ extern unsigned long get_board_sys_clk(unsigned long dummy);
  */
 #define CONFIG_SYS_LOAD_ADDR	0x2000000	/* default load address */
 #define CONFIG_LOADADDR		0x1000000	/* default location for tftp and bootm */
-#define CONFIG_PREBOOT				/* enable preboot variable */
 #define CONFIG_INTEGRITY			/* support booting INTEGRITY OS */
 
 /*
@@ -487,9 +484,6 @@ extern unsigned long get_board_sys_clk(unsigned long dummy);
 /*
  * Environment Configuration
  */
-#define CONFIG_ENV_SECT_SIZE	0x20000		/* 128k (one sector) for env */
-#define CONFIG_ENV_SIZE		0x8000
-#define CONFIG_ENV_ADDR		(CONFIG_SYS_MONITOR_BASE + CONFIG_SYS_MONITOR_LEN)
 
 /*
  * Flash memory map:
