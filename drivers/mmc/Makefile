@@ -76,3 +76,9 @@ obj-$(CONFIG_MMC_UNIPHIER)		+= tmio-common.o uniphier-sd.o
 obj-$(CONFIG_RENESAS_SDHI)		+= tmio-common.o renesas-sdhi.o
 obj-$(CONFIG_MMC_BCM2835)		+= bcm2835_sdhost.o
 obj-$(CONFIG_MMC_MTK)			+= mtk-sd.o
+
+ifneq ($(findstring $(CONFIG_MMC_SP_EMMC)$(CONFIG_MMC_SP_7021_SD), yy),)
+obj-y += sp_mmc.o
+endif
+
+obj-$(CONFIG_MMC_SP_SD) += sp_sd.o
