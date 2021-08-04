@@ -41,7 +41,7 @@ int read_otp_data(volatile struct hb_gp_regs *otp_data, volatile struct otprx_re
 }
 
 #ifdef SUPPORT_WRITE_OTP
-int write_otp_data(volatile struct hb_gp_regs *otp_data, volatile struct otprx_regs *regs, int addr, char value)
+int write_otp_data(volatile struct hb_gp_regs *otp_data, volatile struct otprx_regs *regs, int addr, char *value)
 {
 	unsigned int data;
 	u32 timeout = OTP_WAIT_MICRO_SECONDS;
@@ -50,7 +50,7 @@ int write_otp_data(volatile struct hb_gp_regs *otp_data, volatile struct otprx_r
 	writel(addr, &regs->otp_prog_addr);
 	writel(0x03, &regs->otp_prog_ctl);
 
-	data = value;
+	data = *value;
 	data = (data << 8) + 0x12;
 	writel(data, &regs->otp_prog_reg25);
 
