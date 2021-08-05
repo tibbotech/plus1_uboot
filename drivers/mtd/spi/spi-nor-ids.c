@@ -337,5 +337,39 @@ const struct flash_info spi_nor_ids[] = {
 	{ INFO("XM25QH64A", 0x207017, 0, 64 * 1024, 128, SECT_4K | SPI_NOR_DUAL_READ | SPI_NOR_QUAD_READ) },
 	{ INFO("XM25QH128A", 0x207018, 0, 64 * 1024, 256, SECT_4K | SPI_NOR_DUAL_READ | SPI_NOR_QUAD_READ) },
 #endif
+#ifdef CONFIG_SPI_FLASH_SUNPLUS
+	/* MACRONIX */
+	{INFO("MX25V512F",		0xc22310, 0x0,	64 * 1024,    1,	0)},
+	{INFO("MX25V1035F",		0xc22311, 0x0,	64 * 1024,    2,	0)},
+	{INFO("MX25L3205D",		0xc22016, 0x0,	64 * 1024,    64,	0)},
+	/* GIGADEVICE */
+	{INFO("GD25D05BT",		0xc84010, 0x0,	64 * 1024,    1,	0)},
+	{INFO("GD25D10BT",		0xc84011, 0x0,	64 * 1024,    2,	0)},
+	/* WINBOND */
+	{INFO("W25X05CL",		0xef3010, 0x0,	64 * 1024,    1,	0)},
+	{INFO("W25X10CL",		0xef3011, 0x0,	64 * 1024,    2,	0)},
+	{INFO("W25Q32BV",		0xef4016, 0x0,	64 * 1024,   64,  SECT_4K | SPI_NOR_DUAL_READ | SPI_NOR_QUAD_READ) },
+	{INFO("W25Q128BV",		0xef4018, 0x0,	64 * 1024,   256, SPI_NOR_DUAL_READ | SPI_NOR_QUAD_READ) },
+	/* EON */
+	{INFO("EN25F05A",		0x1c3110, 0x0,	64 * 1024,    1,	0)},
+	{INFO("EN25F10A",		0x1c3111, 0x0,	64 * 1024,    2,	0)},
+	{INFO("EN25F20A",		0x1c3112, 0x0,	64 * 1024,    4,	0)},
+	{INFO("EN25T80",		0x1c5114, 0x0,	64 * 1024,    16,	0)},
+	{INFO("EN25T16",		0x1c5115, 0x0,	64 * 1024,    32,	0)},
+	{INFO("EN25QH16",		0x1c7015, 0x0,	64 * 1024,    32,	0)},
+	{INFO("EN25Q32A|B",		0x1c3016, 0x0,	64 * 1024,    64,	0)},
+	{INFO("EN25QH32B",		0x1c7016, 0x0,	64 * 1024,    64,	0)},
+	{INFO("EN25F32",		0x1c3116, 0x0,	64 * 1024,    64,	0)},
+	{INFO("EN25Q64",		0x1c3017, 0x0,	64 * 1024,   128,	SECT_4K)},
+	{INFO("EN25QH64A",		0x1c7017, 0x0,	64 * 1024,   128,	0)},
+	/* ESMT */
+	{INFO("F25L08QA(2S)",		0x8c4014, 0x0,	64 * 1024,    16,	0)},
+	{INFO("F25L08PA(2G)",		0x8c3014, 0x0,	64 * 1024,    16,	0)},
+	{INFO("F25L16PA(2S)",		0x8c2115, 0x0,	64 * 1024,    32,	0)},
+	{INFO("F25L32PA",		0x8c2016, 0x0,	64 * 1024,    64,	0)},
+	{INFO("F25L32QA",		0x8c4016, 0x0,	64 * 1024,    64,	0)},
+	{INFO("F25L64PA",		0x8c2117, 0x0,	64 * 1024,    128,	0)},
+	{INFO("F25L64QA",	 	0x8c4117, 0x0,	64 * 1024,    128,	0)},
+#endif
 	{ },
 };

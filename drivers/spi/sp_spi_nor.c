@@ -901,8 +901,8 @@ U_BOOT_DRIVER(sp_spi_nor) = {
 	.of_to_plat = sp_spi_nor_ofdata_to_platdata,
 	.probe          = sp_spi_nor_probe,
 	.remove         = sp_spi_nor_remove,
-	.plat_auto = sizeof(struct sp_spi_nor_platdata),
-	.plat_auto     = sizeof(struct sp_spi_nor_priv),
+	.plat_auto      = sizeof(struct sp_spi_nor_platdata),
+	.priv_auto      = sizeof(struct sp_spi_nor_priv),
 #if (SP_SPINOR_DMA)
 	.flags          = DM_FLAG_ALLOC_PRIV_DMA,
 #endif
