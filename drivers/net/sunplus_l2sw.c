@@ -403,7 +403,7 @@ static int l2sw_emac_eth_start(struct udevice *dev)
 
 	//eth_info("[%s] IN\n", __func__);
 
-	dcache_disable();
+	//dcache_disable();
 
 	// Enable cpu port 0 (6) & port 0 crc padding (8)
 	reg = HWREG_R(cpu_cntl);
@@ -619,7 +619,7 @@ static void l2sw_emac_eth_stop(struct udevice *dev)
 	// Stop receiving and tranferring.
 	l2sw_soc_stop();
 
-	dcache_enable();
+	//dcache_enable();
 #ifndef ZEBU_XTOR
 	phy_shutdown(priv->phy_dev0);
 #endif
