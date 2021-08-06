@@ -16,6 +16,7 @@
 #include <config.h>
 #include <errno.h>
 #include <time.h>
+#include <linux/delay.h>
 #include <linux/types.h>
 #include <linux/printk.h>
 #include <linux/string.h>
@@ -24,6 +25,8 @@
 #include <linux/kernel.h>
 #include <asm/u-boot.h> /* boot information for Linux kernel */
 #include <display_options.h>
+void	flush_dcache_range(unsigned long start, unsigned long stop);
+void	invalidate_dcache_range(unsigned long start, unsigned long stop);
 #include <vsprintf.h>
 #endif	/* __ASSEMBLY__ */
 

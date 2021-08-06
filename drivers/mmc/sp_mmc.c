@@ -13,18 +13,18 @@
 #include <dm.h>
 #include <malloc.h>
 #include "sp_mmc.h"
+#include <asm/cache.h>
 
 #define MAX_SDDEVICES   2
 
-
-#if defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)
+#if defined(CONFIG_TARGET_PENTAGRAM_Q645)
+#define SPMMC_CLK_SRC CLOCK_222M    /* Host controller's clk source */
+#elif defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)
 #define SPMMC_CLK_SRC CLOCK_202M    /* Host controller's clk source */
 #elif defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C)
 #define SPMMC_CLK_SRC CLOCK_222M    /* Host controller's clk source */
 #endif
-#if defined(CONFIG_TARGET_PENTAGRAM_Q645)
-#define SPMMC_CLK_SRC CLOCK_222M    /* Host controller's clk source */
-#endif
+
 
 #define SPMMC_MAX_CLK CLOCK_25M     /* Max supported SD Card frequency */
 #define SPEMMC_MAX_CLK CLOCK_45M     /* Max supported emmc Card frequency */
@@ -215,7 +215,7 @@ do { \
  */
 static void sp_mmc_get_rsp_136(struct sp_mmc_host *host, struct mmc_cmd *cmd)
 {
-	unchar *rspBuf = (unchar *)cmd->response;
+	uchar *rspBuf = (uchar *)cmd->response;
 	uint val[2];
 	uint i;
 	SD_WAIT_REPONSE_BUFFER_FULL(host);
@@ -376,14 +376,15 @@ static void sp_mmc_check_sdstatus_errors(struct sp_mmc_host *host, struct mmc_da
  */
 static void sp_mmc_prep_data_info(struct sp_mmc_host *host, struct mmc_cmd *cmd, struct mmc_data *data)
 {
-	unsigned int hw_address = 0, hw_len = 0;
+	ulong hw_address = 0;
+	unsigned int hw_len = 0;
 	sp_mmc_hw_ops *ops = host->ops;
 
 	/* retreive physical memory address & size of the fragmented memory blocks */
 	if (data->flags & MMC_DATA_WRITE)
-		hw_address = (unsigned int) data->src;
+		hw_address = (ulong) data->src;
 	else
-		hw_address = (unsigned int) data->dest;
+		hw_address = (ulong) data->dest;
 
 	hw_len = data->blocksize * data->blocks;
 	DPRINTK("block size = %d, blks = %d, hw_len %u\n", data->blocksize, data->blocks, hw_len);
@@ -592,7 +593,7 @@ static int sp_mmc_ofdata_to_platdata(struct udevice *dev)
 static int sp_mmc_bind(struct udevice *dev)
 {
 	sp_sd_trace();
-	struct sp_mmc_plat *plat = dev_get_platdata(dev);
+	struct sp_mmc_plat *plat = dev_get_plat(dev);
 
 	return mmc_bind(dev, &plat->mmc, &plat->cfg);
 }
@@ -735,7 +736,7 @@ int sp_sd_hw_get_reseponse (sp_mmc_host *host, struct mmc_cmd *cmd)
 
 int sp_sd_hw_set_data_info (sp_mmc_host *host, struct mmc_cmd *cmd, struct mmc_data *data)
 {
-	unsigned int hw_address;
+	ulong hw_address;
 	/* Reset */
 	Reset_Controller(host);
 	/* Configure Group SD Registers */
@@ -781,11 +782,11 @@ int sp_sd_hw_set_data_info (sp_mmc_host *host, struct mmc_cmd *cmd, struct mmc_d
 	if (data->flags & MMC_DATA_WRITE) {
 		host->base->dmadst = 0x2;
 		host->base->dmasrc = 0x1;
-		hw_address = (unsigned int) data->src;
+		hw_address = (ulong) data->src;
 	} else {
 		host->base->dmadst = 0x1;
 		host->base->dmasrc = 0x2;
-		hw_address = (unsigned int) data->dest;
+		hw_address = (ulong) data->dest;
 	}
 	DMASIZE_SET(host->base, data->blocksize);
 	/* printf("hw_address 0x%x\n", hw_address); */
@@ -1046,7 +1047,7 @@ int sp_emmc_hw_set_cmd (sp_mmc_host *host, struct mmc_cmd *cmd)
 int sp_emmc_hw_get_reseponse (sp_mmc_host *host, struct mmc_cmd *cmd)
 {
 	sp_sd_trace();
-	unchar *rspBuf = (unchar *)cmd->response;
+	uchar *rspBuf = (uchar *)cmd->response;
 	int i;
 
 	while (1) {
@@ -1157,7 +1158,7 @@ static int sp_mmc_read_data_pio (sp_mmc_host *host,  struct mmc_data *data)
 int sp_emmc_hw_set_data_info (sp_mmc_host *host, struct mmc_cmd *cmd, struct mmc_data *data)
 {
 	sp_sd_trace();
-	unsigned int hw_address;
+	ulong hw_address;
 	/* Reset */
 	Reset_Controller(host);
 	Sd_Bus_Reset_Channel(host);
@@ -1224,14 +1225,14 @@ int sp_emmc_hw_set_data_info (sp_mmc_host *host, struct mmc_cmd *cmd, struct mmc
 			host->ebase->dmadst = 0x2;
 			host->ebase->dmasrc = 0x1;
 #endif
-			hw_address = (unsigned int) data->src;
+			hw_address = (ulong) data->src;
 		} else {
 			host->ebase->medatype_dma_src_dst |= SP_MMC_DMA_FROM_DEVICE;
 #if 0
 			host->ebase->dmadst = 0x1;
 			host->ebase->dmasrc = 0x2;
 #endif
-			hw_address = (unsigned int) data->dest;
+			hw_address = (ulong) data->dest;
 		}
 		host->ebase->dma_base_addr = hw_address;
 		SP_MMC_SECTOR_NUM_SET(host->ebase->sdram_sector_0_size, data->blocks);
@@ -1404,7 +1405,7 @@ static int sp_mmc_probe(struct udevice *dev)
 {
 	sp_sd_trace();
 	struct mmc_uclass_priv *upriv = dev_get_uclass_priv(dev);
-	struct sp_mmc_plat *plat = dev_get_platdata(dev);
+	struct sp_mmc_plat *plat = dev_get_plat(dev);
 	struct mmc_config *cfg = &plat->cfg;
 	struct sp_mmc_host *host = dev_get_priv(dev);
 	sp_mmc_hw_ops *ops;
@@ -1553,9 +1554,9 @@ U_BOOT_DRIVER(sd_sunplus) ={
 	.name						= "mmc_sunplus",
 	.id							= UCLASS_MMC,
 	.of_match					= sunplus_mmc_ids,
-	.ofdata_to_platdata			= sp_mmc_ofdata_to_platdata,
-	.platdata_auto_alloc_size	= sizeof(struct sp_mmc_plat),
-	.priv_auto_alloc_size		= sizeof(struct sp_mmc_host),
+	.of_to_plat					= sp_mmc_ofdata_to_platdata,
+	.plat_auto					= sizeof(struct sp_mmc_plat),
+	.priv_auto					= sizeof(struct sp_mmc_host),
 	.bind						= sp_mmc_bind,
 	.probe						= sp_mmc_probe,
 	.ops						= &sp_mmc_ops,

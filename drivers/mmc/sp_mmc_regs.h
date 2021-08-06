@@ -3,7 +3,7 @@
 #include <linux/types.h>
 
 typedef volatile uint dev_reg32;
-typedef volatile unchar dev_reg8;
+typedef volatile uchar dev_reg8;
 
 #define SP_SD_HW_DMA_ERROR				BIT(6)
 #define SP_SD_HW_DMA_DONE				BIT(7)
