@@ -968,6 +968,7 @@ struct nand_chip {
 	struct nand_bbt_descr *badblock_pattern;
 
 	void *priv;
+	unsigned int drv_options;
 };
 
 static inline void nand_set_flash_node(struct nand_chip *chip,
@@ -1099,6 +1100,7 @@ struct nand_flash_dev {
 		uint16_t step_ds;
 	} ecc;
 	int onfi_timing_mode_default;
+	unsigned int drv_options;
 };
 
 /**
