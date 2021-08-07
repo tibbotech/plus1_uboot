@@ -4382,6 +4382,9 @@ static bool find_full_id_nand(struct mtd_info *mtd, struct nand_chip *chip,
 		chip->ecc_step_ds = NAND_ECC_STEP(type);
 		chip->onfi_timing_mode_default =
 					type->onfi_timing_mode_default;
+#if defined(CONFIG_SP_SPINAND) || defined(CONFIG_SP_SPINAND_Q645)
+		chip->drv_options = type->drv_options;
+#endif
 
 		*busw = type->options & NAND_BUSWIDTH_16;
 

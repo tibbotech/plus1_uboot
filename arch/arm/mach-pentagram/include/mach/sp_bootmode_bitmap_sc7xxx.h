@@ -26,6 +26,8 @@
 #define SDCARD_ISP              0x07
 #define UART_ISP                0x0F
 #define USB_ISP                 0x17
+#define USB_BOOT                0xfd
+#define SDCARD_BOOT             0xfe
 #define NAND_LARGE_BOOT         0xff /* Q628: no PARA_NAND */
 #endif
 /* where to get boot info */
