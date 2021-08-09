@@ -13,6 +13,8 @@
 #include <dm.h>
 #include <malloc.h>
 #include "sp_sd.h"
+#include <asm/cache.h>
+
 
 #define MAX_SDDEVICES   2
 
@@ -601,7 +603,7 @@ static int sp_mmc_ofdata_to_platdata(struct udevice *dev)
 static int sp_mmc_bind(struct udevice *dev)
 {
 	sp_sd_trace();
-	struct sp_mmc_plat *plat = dev_get_platdata(dev);
+	struct sp_mmc_plat *plat = dev_get_plat(dev);
 
 	return mmc_bind(dev, &plat->mmc, &plat->cfg);
 }
@@ -748,7 +750,7 @@ int sp_drv_sd_hw_get_reseponse (sp_mmc_host *host, struct mmc_cmd *cmd)
 {
 
 	sp_sd_trace();
-	unchar *rspBuf = (unchar *)cmd->response;
+	uchar *rspBuf = (uchar *)cmd->response;
 	int i;
 
 	while (1) {
@@ -1171,7 +1173,7 @@ int sp_drv_emmc_hw_set_cmd (sp_mmc_host *host, struct mmc_cmd *cmd)
 int sp_drv_emmc_hw_get_reseponse (sp_mmc_host *host, struct mmc_cmd *cmd)
 {
 	sp_sd_trace();
-	unchar *rspBuf = (unchar *)cmd->response;
+	uchar *rspBuf = (uchar *)cmd->response;
 	int i;
 
 	while (1) {
@@ -1530,7 +1532,7 @@ static int sp_mmc_probe(struct udevice *dev)
 {
 	sp_sd_trace();
 	struct mmc_uclass_priv *upriv = dev_get_uclass_priv(dev);
-	struct sp_mmc_plat *plat = dev_get_platdata(dev);
+	struct sp_mmc_plat *plat = dev_get_plat(dev);
 	struct mmc_config *cfg = &plat->cfg;
 	struct sp_mmc_host *host = dev_get_priv(dev);
 	sp_mmc_hw_ops *ops;
@@ -1658,9 +1660,9 @@ U_BOOT_DRIVER(sdcard_sunplus) ={
 	.name						= "sd_sunplus",
 	.id							= UCLASS_MMC,
 	.of_match					= sunplus_mmc_ids,
-	.ofdata_to_platdata			= sp_mmc_ofdata_to_platdata,
-	.platdata_auto_alloc_size	= sizeof(struct sp_mmc_plat),
-	.priv_auto_alloc_size		= sizeof(struct sp_mmc_host),
+	.of_to_plat		            = sp_mmc_ofdata_to_platdata,
+	.plat_auto              	= sizeof(struct sp_mmc_plat),
+	.priv_auto	            	= sizeof(struct sp_mmc_host),
 	.bind						= sp_mmc_bind,
 	.probe						= sp_mmc_probe,
 	.ops						= &sp_drv_mmc_ops,
