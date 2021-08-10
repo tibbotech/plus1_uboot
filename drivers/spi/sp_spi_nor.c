@@ -819,12 +819,6 @@ static int sp_spi_nor_xfer(struct udevice *dev, unsigned int bitlen,
 #endif
 	} else if ((!din) | (flags & SPI_XFER_END)) {
 		// write
-		if (cmd_buf[0] == 0xD8) { // 64kB sector erase
-			memcpy(cmd_buf+1, dout, 3);
-			cmd_len += 3;
-			flc = 1;
-		}
-
 #if (SP_SPINOR_DMA)
 		if (cmd_buf[0] == 0x06)
 			goto out;
