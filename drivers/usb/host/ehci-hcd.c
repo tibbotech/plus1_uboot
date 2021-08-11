@@ -631,17 +631,15 @@ ehci_submit_async(struct usb_device *dev, unsigned long pipe, void *buffer,
 		WATCHDOG_RESET();
 	} while (get_timer(ts) < timeout);
 
-#ifndef CONFIG_ARCH_PENTAGRAM
-	qhtoken = hc32_to_cpu(qh->qh_overlay.qt_token);
+#ifdef CONFIG_ARCH_PENTAGRAM
+	udelay(1);
 #endif
+
+	qhtoken = hc32_to_cpu(qh->qh_overlay.qt_token);
 
 	ctrl->qh_list.qh_link = cpu_to_hc32(virt_to_phys(&ctrl->qh_list) | QH_LINK_TYPE_QH);
 	flush_dcache_range((unsigned long)&ctrl->qh_list,
 		ALIGN_END_ADDR(struct QH, &ctrl->qh_list, 1));
-
-#ifdef CONFIG_ARCH_PENTAGRAM
-	qhtoken = hc32_to_cpu(qh->qh_overlay.qt_token);
-#endif
 
 	/*
 	 * Invalidate the memory area occupied by buffer
