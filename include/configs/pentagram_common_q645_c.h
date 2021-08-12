@@ -63,23 +63,8 @@
 #endif
 
 /* u-boot env parameter */
-
-#undef CONFIG_ENV_SIZE
-
 #define CONFIG_SYS_MMC_ENV_DEV		0
-#if defined(CONFIG_ENV_IS_IN_NAND)
-#define CONFIG_ENV_SIZE			(0x80000)
-#elif defined(CONFIG_ENV_IS_IN_MMC)
-#define CONFIG_ENV_OFFSET		(0x1022 << 9)
-#define CONFIG_ENV_SIZE			(0x0400 << 9)
-#elif defined(CONFIG_ENV_IS_IN_FAT)
-#define CONFIG_ENV_FAT_INTERFACE        "mmc"
-#define CONFIG_ENV_FAT_DEVICE_AND_PART  1
-#define CONFIG_ENV_FAT_FILE             "uboot.env"
-#define CONFIG_ENV_SIZE                 (0x80000)
-#else
-#define CONFIG_ENV_SIZE                 (0x80000)
-#endif
+
 
 #define B_START_POS			(0x9e809ff8)
 

@@ -31,9 +31,9 @@
 #if defined(CONFIG_SYS_ENV_ZEBU)
 #define CONFIG_SYS_SDRAM_SIZE           (64 << 20)
 #else /* normal SP7021 evb environment can have larger DRAM size */
-#define CONFIG_SYS_SDRAM_SIZE          (512 << 20)
+#define CONFIG_SYS_SDRAM_SIZE           (512 << 20)
 #endif
-#define CONFIG_SYS_MALLOC_LEN          (6 << 20)
+#define CONFIG_SYS_MALLOC_LEN           (6 << 20)
 
 #ifndef CONFIG_SYS_TEXT_BASE		/* where U-Boot is loaded by xBoot */
 /* It is defined in arch/arm/mach-pentagram/Kconfig */
@@ -72,15 +72,8 @@
 #endif
 
 /* u-boot env parameter */
-#undef CONFIG_ENV_SIZE	
-
 #define CONFIG_SYS_MMC_ENV_DEV		0
-#if defined(CONFIG_ENV_IS_IN_NAND)
-#define CONFIG_ENV_SIZE			(0x80000)
-#else
-#define CONFIG_ENV_OFFSET		(0x1022 << 9)
-#define CONFIG_ENV_SIZE			(0x0400 << 9)
-#endif
+
 
 #define B_START_POS			(0x9e809ff8)
 
