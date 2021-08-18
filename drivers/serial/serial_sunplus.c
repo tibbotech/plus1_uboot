@@ -68,7 +68,7 @@ static int sunplus_serial_bind(struct udevice *dev)
 
 static int sunplus_serial_getc(struct udevice *dev)
 {
-	struct sunplus_uart_priv *priv = dev_get_priv(dev);
+	struct sunplus_uart_priv *priv = dev_get_plat(dev);
 	struct uart_sunplus *regs = priv->regs;
 
 	if (!(readl(&regs->uart_lsr) & SP_UART_LSR_RX))
@@ -79,14 +79,14 @@ static int sunplus_serial_getc(struct udevice *dev)
 
 static int sunplus_serial_putc(struct udevice *dev, const char ch)
 {
-	struct sunplus_uart_priv *priv = dev_get_priv(dev);
+	struct sunplus_uart_priv *priv = dev_get_plat(dev);
 
 	return _uart_sunplus_serial_putc(priv->regs, ch);
 }
 
 static int sunplus_serial_pending(struct udevice *dev, bool input)
 {
-	struct sunplus_uart_priv *priv = dev_get_priv(dev);
+	struct sunplus_uart_priv *priv = dev_get_plat(dev);
 	struct uart_sunplus *regs = priv->regs;
 
 	if (input)
@@ -97,9 +97,9 @@ static int sunplus_serial_pending(struct udevice *dev, bool input)
 
 static int sunplus_serial_ofdata_to_platdata(struct udevice *dev)
 {
-        struct sunplus_uart_priv *priv = dev_get_priv(dev);
+        struct sunplus_uart_priv *priv = dev_get_plat(dev);
 
-        priv->regs = (struct uart_sunplus *)devfdt_get_addr(dev);
+        priv->regs = (struct uart_sunplus *)dev_read_addr(dev);
 
         return 0;
 }
@@ -122,7 +122,7 @@ U_BOOT_DRIVER(serial_sunplus) = {
 	.name	= "serial_sunplus",
 	.id	= UCLASS_SERIAL,
 	.of_match = sunplus_serial_ids,
-	.of_to_plat = sunplus_serial_ofdata_to_platdata,
+	.of_to_plat = of_match_ptr(sunplus_serial_ofdata_to_platdata),
 	.plat_auto = sizeof(struct sunplus_uart_priv),
 #if defined(DEBUG)
 	.bind = sunplus_serial_bind,
