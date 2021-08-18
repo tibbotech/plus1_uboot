@@ -75,3 +75,4 @@ obj-$(CONFIG_VIDEO_SEPS525) += seps525.o
 
 obj-y += bridge/
 obj-y += sunxi/
+obj-y += sunplus/

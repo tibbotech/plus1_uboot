@@ -120,6 +120,9 @@ int do_bdinfo(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 #if defined(CONFIG_LCD) || defined(CONFIG_VIDEO)
 	bdinfo_print_num_l("FB base  ", gd->fb_base);
 #endif
+#if defined(CONFIG_DM_VIDEO)
+	bdinfo_print_num_l("logo addr   ", gd->bmp_logo_addr);
+#endif
 #if CONFIG_IS_ENABLED(MULTI_DTB_FIT)
 	bdinfo_print_num_l("multi_dtb_fit", (ulong)gd->multi_dtb_fit);
 #endif

@@ -352,6 +352,10 @@ struct global_data {
 	 * @video_bottom: bottom of video frame buffer area
 	 */
 	ulong video_bottom;
+	/**
+	 * @bmp_logo_addr: address of bmp logo data
+	 */
+	ulong bmp_logo_addr;
 #endif
 #ifdef CONFIG_BOOTSTAGE
 	/**

@@ -185,7 +185,7 @@ config CONSOLE_TRUETYPE_SIZE
 
 config SYS_WHITE_ON_BLACK
 	bool "Display console as white on a black background"
-	default y if ARCH_AT91 || ARCH_EXYNOS || ARCH_ROCKCHIP || ARCH_TEGRA || X86 || ARCH_SUNXI
+	default y if ARCH_AT91 || ARCH_EXYNOS || ARCH_ROCKCHIP || ARCH_TEGRA || X86 || ARCH_SUNXI || ARCH_PENTAGRAM
 	help
 	 Normally the display is black on a white background, Enable this
 	 option to invert this, i.e. white on a black background. This can be
@@ -637,6 +637,8 @@ config VIDEO_SANDBOX_SDL
 	  a normal bitmap display and can display images as well as text.
 
 source "drivers/video/stm32/Kconfig"
+
+source "drivers/video/sunplus/Kconfig"
 
 config VIDEO_TEGRA20
 	bool "Enable LCD support on Tegra20"

@@ -46,7 +46,7 @@ int sp7021_video_show_board_info(void)
 	int i;
 	u32 len = 0;
 	char buf[255];
-	char *corp = "2020 Sunplus Technology Inc.\n";
+	char *corp = "2021 Sunplus Technology Inc.\n";
 	struct udevice *dev, *con;
 #ifdef CONFIG_DM_VIDEO
 #if defined(CONFIG_CMD_BMP)

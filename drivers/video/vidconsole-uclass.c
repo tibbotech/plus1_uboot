@@ -153,9 +153,15 @@ u32 vid_console_color(struct video_priv *priv, unsigned int idx)
 		break;
 	case VIDEO_BPP32:
 		if (CONFIG_IS_ENABLED(VIDEO_BPP32)) {
+#if defined(CONFIG_VIDEO_SP7021)
+			return (colors[idx].r << 24) |
+			       (colors[idx].g << 16) |
+			       (colors[idx].b <<  8) | 0xff;				
+#else
 			return (colors[idx].r << 16) |
 			       (colors[idx].g <<  8) |
 			       (colors[idx].b <<  0);
+#endif
 		}
 		break;
 	default:
