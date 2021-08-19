@@ -141,6 +141,7 @@ config CONSOLE_NORMAL
 config CONSOLE_ROTATION
 	bool "Support rotated displays"
 	depends on DM_VIDEO
+	default y if DM_VIDEO
 	help
 	  Sometimes, for example if the display is mounted in portrait
 	  mode or even if it's mounted landscape but rotated by 180degree,
