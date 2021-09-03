@@ -80,6 +80,7 @@
 #define CLOCK_256M      256500000
 #define CLOCK_263M      263250000
 #define CLOCK_270M      270000000
+#define CLOCK_360M      360000000
 #endif
 
 typedef struct sp_mmc_dev_info {
