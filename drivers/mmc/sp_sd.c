@@ -18,7 +18,7 @@
 
 #define MAX_SDDEVICES   2
 
-#define SPMMC_CLK_SRC CLOCK_222M    /* Host controller's clk source */
+#define SPMMC_CLK_SRC CLOCK_360M    /* Host controller's clk source */
 #define SPMMC_ZEBU_CLK_SRC CLOCK_202M    /* Host controller's clk source */
 
 #define SPMMC_MAX_CLK CLOCK_25M     /* Max supported SD Card frequency */

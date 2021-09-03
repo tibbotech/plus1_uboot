@@ -47,6 +47,11 @@
 #define CLOCK_222M  222750000
 #define CLOCK_240M  240000000
 #define CLOCK_270M  270000000
+#define CLOCK_300M  300000000
+#define CLOCK_330M  330000000
+#define CLOCK_360M  360000000
+
+
 
 typedef struct sp_mmc_dev_info {
 	uint	id;
