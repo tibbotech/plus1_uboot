@@ -157,7 +157,12 @@ int do_verify(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[])
 		printf("not Secure image\n");
 		return 0;
 	}
-
+	
+	// Set NIC_S01=0xffffff00, CA55 override secure
+	*(volatile u32 *)(0xf80029dc) = *(volatile u32 *)(0xf80029dc) | 0xffff0300;
+	*(volatile u32 *)(0xf80029dc) = ((*(volatile u32 *)(0xf80029dc) & 0xffffff00)|0xffff0000);
+	//printf("NIC_S01=%x \n",*(volatile u32 *)(0xf80029dc));
+	
 	hdr = (image_header_t  *)(u64)kernel_addr;
 	printf("\nkernel_hdr addr = %x\n",kernel_addr);
 	if(hdr == NULL)
@@ -170,6 +175,10 @@ int do_verify(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[])
 	
 	if (!IS_IC_SECURE_ENABLE()) {
 		printf("Error: non-secure IC can't boot Secure image\n");
+	// Set NIC_S01=0xfffffc03, CA55 bypass
+	*(volatile u32 *)(0xf80029dc) = *(volatile u32 *)(0xf80029dc) | 0xffff0003;
+	*(volatile u32 *)(0xf80029dc) = ((*(volatile u32 *)(0xf80029dc) & 0xfffffcff)|0xffff0000);
+	//printf("NIC_S01=%x \n",*(volatile u32 *)(0xf80029dc));
 		return -1;
 	}
 	/* Secure boot flow requirement:
@@ -202,9 +211,20 @@ int do_verify(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[])
 		goto out;
 	}
 	printf("Verified signature OK\n");
+	
+	// Set NIC_S01=0xfffffc03, CA55 bypass
+	*(volatile u32 *)(0xf80029dc) = *(volatile u32 *)(0xf80029dc) | 0xffff0003;
+	*(volatile u32 *)(0xf80029dc) = ((*(volatile u32 *)(0xf80029dc) & 0xfffffcff)|0xffff0000);
+	//printf("NIC_S01=%x \n",*(volatile u32 *)(0xf80029dc));
+
 	return 0;
 
 out:
+	// Set NIC_S01=0xfffffc03, CA55 bypass
+	*(volatile u32 *)(0xf80029dc) = *(volatile u32 *)(0xf80029dc) | 0xffff0003;
+	*(volatile u32 *)(0xf80029dc) = ((*(volatile u32 *)(0xf80029dc) & 0xfffffcff)|0xffff0000);
+	//printf("NIC_S01=%x \n",*(volatile u32 *)(0xf80029dc));
+
 	if(ret)
 	{
 		printf("veify kernel fail !!");
