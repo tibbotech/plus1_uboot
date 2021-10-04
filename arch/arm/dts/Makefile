@@ -1032,6 +1032,10 @@ dtb-$(CONFIG_TARGET_DURIAN) += phytium-durian.dtb
 
 dtb-$(CONFIG_TARGET_PRESIDIO_ASIC) += ca-presidio-engboard.dtb
 
+dtb-$(CONFIG_TARGET_PENTAGRAM_COMMON) += sp7021-dsx.dtb
+dtb-$(CONFIG_TARGET_PENTAGRAM_COMMON) += sp7021-ltpp3g2revD.dtb
+dtb-$(CONFIG_TARGET_PENTAGRAM_COMMON) += sp7021-ltpp3g2revD-uart1.dtb
+
 targets += $(dtb-y)
 
 # Add any required device tree compiler flags here
