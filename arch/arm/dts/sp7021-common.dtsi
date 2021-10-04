@@ -103,7 +103,7 @@
 
 		clkc: clkc@0 {
 			#clock-cells = <1>;
-			compatible = "sunplus,sp-clkc";
+			compatible = "sunplus,sp-clkc", "sunplus,sp7021-clkc";
 		};
 	};
 
@@ -118,7 +118,7 @@
 		/* B modules */
 #if 0
 		intc: interrupt-controller@G15 {
-			compatible = "sunplus,sp-intc";
+			compatible = "sunplus,sp-intc", "sunplus,sp7021-intc";
 			interrupt-controller;
 			#interrupt-cells = <2>;
 			reg = <0x9c000780 0x80>, /* G15 */
@@ -485,7 +485,7 @@
 #endif
 
 		rstc: reset@0x9c000054 {
-			compatible = "sunplus,sp-reset";
+			compatible = "sunplus,sp-reset", "sunplus,sp7021-reset";
 			#reset-cells = <1>;
 			reg = <0x9c000054 0x28>;
 			reg-names = "reset";
