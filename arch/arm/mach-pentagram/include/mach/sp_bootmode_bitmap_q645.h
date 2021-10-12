@@ -20,6 +20,6 @@
 
 /* where to get boot info */
 #define SP_SRAM_BASE        0xfa200000
-#define SP_BOOTINFO_BASE    0x470008
+#define SP_BOOTINFO_BASE    0x3efdc8
 
 #endif /* __SP_BOOTMODE_BITMAP_Q645_H */
