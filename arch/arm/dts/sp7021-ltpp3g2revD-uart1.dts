@@ -18,7 +18,7 @@
 &pctl {
 /* 01 (UART) on s1 */
  pins_uart1: pins_uart1 {
- sppctl,pins = <
+ pins = <
       SPPCTL_IOPAD(8,SPPCTL_PCTL_G_PMUX,MUXF_UA1_TX,0)
       SPPCTL_IOPAD(9,SPPCTL_PCTL_G_PMUX,MUXF_UA1_RX,0)
     >;

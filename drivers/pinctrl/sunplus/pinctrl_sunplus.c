@@ -169,11 +169,11 @@ static int sunplus_pinctrl_pins(struct udevice *dev)
 	u32 pin_mux[MAX_PINS];
 	int len, i;
 
-	// Get property: "sppctl,pins"
+	// Get property: "pins"
 	len = fdtdec_get_int_array_count(gd->fdt_blob, offset,
-					"sppctl,pins", pin_mux,
+					"pins", pin_mux,
 					ARRAY_SIZE(pin_mux));
-	pctl_info("Number of entries of 'sppctl,pins' = %d\n", len);
+	pctl_info("Number of entries of 'pins' = %d\n", len);
 
 	// Register all pins.
 	for (i = 0; i < len; i++) {
@@ -194,7 +194,7 @@ static int sunplus_pinctrl_pins(struct udevice *dev)
 		int func = (pins >> 8) & 0xff;
 #endif
 		int flag = pins & 0xff;
-		pctl_info("sppctl,pins = 0x%08x\n", pins);
+		pctl_info("pins = 0x%08x\n", pins);
 
 #ifdef SUPPORT_PINMUX
 		if (type == SPPCTL_PCTL_G_PMUX) {
@@ -249,16 +249,16 @@ static int sunplus_pinctrl_zero(struct udevice *dev)
 	u32 pin_mux[MAX_PINS];
 	int len, i, mask;
 
-	// Get property: "sppctl,zero_func"
+	// Get property: "zero_func"
 	len = fdtdec_get_int_array_count(gd->fdt_blob, offset,
-					"sppctl,zero_func", pin_mux,
+					"zero_func", pin_mux,
 					ARRAY_SIZE(pin_mux));
-	pctl_info("Number of entries of 'sppctl,zero_func' = %d\n", len);
+	pctl_info("Number of entries of 'zero_func' = %d\n", len);
 
 	// All pins were registered successfully, set up all pins.
 	for (i = 0; i < len; i++) {
 		int func = pin_mux[i];
-		pctl_info("sppctl,zero_func = 0x%08x\n", func);
+		pctl_info("zero_func = 0x%08x\n", func);
 
 		// Set it to no use.
 		if ( func >= list_funcsSZ) {
@@ -293,9 +293,9 @@ static int sunplus_pinctrl_function(struct udevice *dev)
 	const char *pin_group;
 	int len, i;
 
-	// Get property: 'sppctl,function'
-	pin_func = fdt_getprop(gd->fdt_blob, offset, "sppctl,function", &len);
-	pctl_info("sppctl,function = %s (%d)\n", pin_func, len);
+	// Get property: 'function'
+	pin_func = fdt_getprop(gd->fdt_blob, offset, "function", &len);
+	pctl_info("function = %s (%d)\n", pin_func, len);
 	if (len > 1) {
 		// Find 'pin_func' string in list: only groups
 		for (i = 0; i < list_funcsSZ; i++) {
@@ -304,15 +304,15 @@ static int sunplus_pinctrl_function(struct udevice *dev)
 			if ( strcmp( pin_func, list_funcs[i].name) == 0) break;
 		}
 		if (i == list_funcsSZ) {
-			pctl_err("Error: Invalid 'sppctl,function' in node %s! "
+			pctl_err("Error: Invalid 'function' in node %s! "
 				"Cannot find \"%s\"!\n", dev->name, pin_func);
 			return -1;
 		}
 
 		// 'pin_func' is found! Next, find its group.
-		// Get property: 'sppctl,groups'
-		pin_group = fdt_getprop(gd->fdt_blob, offset, "sppctl,groups", &len);
-		pctl_info("sppctl,groups = %s (%d)\n", pin_group, len);
+		// Get property: 'groups'
+		pin_group = fdt_getprop(gd->fdt_blob, offset, "groups", &len);
+		pctl_info("groups = %s (%d)\n", pin_group, len);
 		if (len > 1) {
 			func_t *func = &list_funcs[i];
 
@@ -321,7 +321,7 @@ static int sunplus_pinctrl_function(struct udevice *dev)
 				if (strcmp (pin_group, func->grps[i].name) == 0) break;
 			}
 			if (i == func->gnum) {
-				pctl_err("Error: Invalid 'sppctl,groups' in node %s! "
+				pctl_err("Error: Invalid 'groups' in node %s! "
 					"Cannot find \"%s\"!\n", dev->name, pin_group);
 				return -1;
 			}
@@ -348,11 +348,11 @@ static int sunplus_pinctrl_function(struct udevice *dev)
 				return -1;
 			}
 		} else if (len <= 1) {
-			pctl_err("Error: Invalid 'sppctl,groups' in node %s!\n", dev->name);
+			pctl_err("Error: Invalid 'groups' in node %s!\n", dev->name);
 			return -1;
 		}
 	} else if (len == 1) {
-		pctl_err("Error: Invalid 'sppctl,function' in node %s!\n", dev->name);
+		pctl_err("Error: Invalid 'function' in node %s!\n", dev->name);
 		return -1;
 	}
 
