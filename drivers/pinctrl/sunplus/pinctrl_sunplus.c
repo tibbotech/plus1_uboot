@@ -242,7 +242,6 @@ static int sunplus_pinctrl_pins(struct udevice *dev)
 	return 0;
 }
 
-#ifdef SUPPORT_PINMUX
 static int sunplus_pinctrl_zero(struct udevice *dev)
 {
 	int offset = dev_of_offset(dev);
@@ -267,10 +266,12 @@ static int sunplus_pinctrl_zero(struct udevice *dev)
 		}
 		func_t *f = &list_funcs[ func];
 		switch ( f->freg) {
+#ifdef SUPPORT_PINMUX
 			case fOFF_M:
 				gpio_pin_mux_set( func, 0);
 				pctl_info( "pinmux get = 0x%02x\n", gpio_pin_mux_get( func));
 				break;
+#endif
 			case fOFF_G:
 				mask = ( 1 << f->blen) - 1;
 				GPIO_PINGRP( f->roff) = ( mask << ( f->boff+16)) | ( 0 << f->boff);
@@ -284,7 +285,6 @@ static int sunplus_pinctrl_zero(struct udevice *dev)
 
 	return 0;
 }
-#endif
 
 static int sunplus_pinctrl_function(struct udevice *dev)
 {
@@ -367,9 +367,7 @@ static int sunplus_pinctrl_set_state(struct udevice *dev, struct udevice *config
 	ret = sunplus_pinctrl_pins(config);
 	if (ret != 0) return ret;
 
-#ifdef SUPPORT_PINMUX
 	sunplus_pinctrl_zero(config);
-#endif
 
 	ret = sunplus_pinctrl_function(config);
 	if (ret != 0) return ret;
