@@ -289,9 +289,16 @@
 	"setexpr sz_dtb ${tmpval} + 0x28; " \
 	"setexpr sz_dtb ${sz_dtb} + 0x200; setexpr sz_dtb ${sz_dtb} / 0x200; " \
 	"mmc read ${addr_dst_dtb} ${addr_src_dtb} ${sz_dtb}; "
+#define DTS_LOAD_NAND \
+	"nand read ${addr_tmp_header} dtb 0x40; " \
+	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x4; run be2le; " \
+	"setexpr sz_dtb ${tmpval} + 0x28; " \
+	"setexpr sz_dtb ${sz_dtb} + 0x200; setexpr sz_dtb ${sz_dtb} / 0x200; " \
+	"nand read ${addr_dst_dtb} dtb ${sz_dtb}; "
 #else
 #define DTS_LOAD_ADDR "${fdtcontroladdr}"
 #define DTS_LOAD_EMMC
+#define DTS_LOAD_NAND
 #endif
 
 #define CONFIG_EXTRA_ENV_SETTINGS \
@@ -396,6 +403,7 @@
 	"nand read ${addr_dst_nonos} nonos ${sz_nonos}; " \
 	dbg_scr("echo nonosize ${sz_nonos}  addr_dst_nonos ${addr_dst_nonos};")\
 	"sp_nonos_go ${addr_dst_nonos}; "\
+	DTS_LOAD_NAND \
 	"nand read ${addr_tmp_header} kernel 0x40; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
 	dbg_scr("md ${addr_tmp_header} 0x10; printenv tmpval; ") \
