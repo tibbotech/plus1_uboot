@@ -156,6 +156,10 @@ U_BOOT_CMD(
 
 static int do_sp_nonos_go(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[])
 {
+#if (BOOT_NONOS_FROM_OPENAMP == 1)
+	printf("[u-boot] skip nonos_B boot \n");
+	return 0;
+#else
 	int     rcode = 0;
 	image_header_t *hdr=NULL;
 	u32 nonos_addr; /* these two addr will include headers. */
@@ -184,6 +188,7 @@ static int do_sp_nonos_go(struct cmd_tbl *cmdtp, int flag, int argc, char * cons
 	*(volatile unsigned int *)B_START_POS = nonos_addr;
 
 	return rcode;
+#endif
 }
 
 
