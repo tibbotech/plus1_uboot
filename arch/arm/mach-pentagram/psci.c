@@ -11,9 +11,10 @@
 #include <asm/io.h>
 #include <asm/psci.h>
 #include <asm/secure.h>
+#include <asm/system.h>
 #include <linux/bitops.h>
 
-int __secure psci_cpu_on(u32 __always_unused unused, u32 mpidr, u32 pc,
+s32 __secure psci_cpu_on(u32 __always_unused unused, u32 mpidr, u32 pc,
 			 u32 context_id)
 {
 	u32 cpu = (mpidr & 0x3) ;
@@ -28,7 +29,7 @@ int __secure psci_cpu_on(u32 __always_unused unused, u32 mpidr, u32 pc,
 	return ARM_PSCI_RET_SUCCESS;
 }
 
-void __secure psci_cpu_off(void)
+s32 __secure psci_cpu_off(void)
 {
 	u32 cpu = psci_get_cpu_id();
 	volatile u32 *ca7_sw_rst = (void *)0x9ec00008;
