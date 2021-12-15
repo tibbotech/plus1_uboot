@@ -367,6 +367,7 @@
 	"setexpr sz_kernel ${tmpval} + 0x40; " \
 	"setexpr sz_kernel ${sz_kernel} + 0x48; " \
 	"echo loading kernel ...; "\
+	"sp_wdt_set;" \
 	NOR_LOAD_KERNEL \
 	dbg_scr("echo bootm ${addr_dst_kernel} - ${fdtcontroladdr}; ") \
 	"run boot_kernel \0" \
@@ -386,6 +387,7 @@
 	dbg_scr("echo nonosize ${sz_nonos}  addr_dst_nonos ${addr_dst_nonos};")\
 	"mmc read ${addr_dst_nonos} ${addr_src_nonos} ${sz_nonos}; " \
 	"sp_nonos_go ${addr_dst_nonos}; "\
+	"sp_wdt_set;" \
 	DTS_LOAD_EMMC \
 	"mmc read ${addr_tmp_header} ${addr_src_kernel} 0x1; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
@@ -407,6 +409,7 @@
 	"nand read ${addr_dst_nonos} nonos ${sz_nonos}; " \
 	dbg_scr("echo nonosize ${sz_nonos}  addr_dst_nonos ${addr_dst_nonos};")\
 	"sp_nonos_go ${addr_dst_nonos}; "\
+	"sp_wdt_set;" \
 	DTS_LOAD_NAND \
 	"nand read ${addr_tmp_header} kernel 0x40; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
@@ -444,6 +447,7 @@
 		"cp.l $addr_dst_kernel $addr_dst_nonos $tmpval; " \
 		"echo \"## Booting A926 from image at ${addr_dst_nonos}\"; " \
 		"sp_nonos_go ${addr_dst_nonos}; " \
+		"sp_wdt_set;" \
 	"fi; " \
 	"dhcp ${addr_dst_dtb} ${serverip}:dtb" __stringify(USER_NAME) " && " \
 	"dhcp ${addr_dst_kernel} ${serverip}:uImage" __stringify(USER_NAME) "; " \
