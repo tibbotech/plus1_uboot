@@ -26,13 +26,13 @@
 #define GPIO_O_INV(x)   gpioxt_regs[x+32+28]
 #define GPIO_OD(x)      gpioxt_regs[x+64+9]
 #else
-#define GPIO_MASTER(x)  group6_regs[x]
-#define GPIO_OE(x)      group6_regs[x+8]
-#define GPIO_OUT(x)     group6_regs[x+16]
-#define GPIO_IN(x)      group6_regs[x+24]
-#define GPIO_I_INV(x)   group7_regs[x]
-#define GPIO_O_INV(x)   group7_regs[x+8]
-#define GPIO_OD(x)      group7_regs[x+16]
+#define GPIO_MASTER(x)  gpioxt_regs[x]
+#define GPIO_OE(x)      gpioxt_regs[x+8]
+#define GPIO_OUT(x)     gpioxt_regs[x+16]
+#define GPIO_IN(x)      gpioxt_regs[x+24]
+#define GPIO_I_INV(x)   gpioxt2_regs[x]
+#define GPIO_O_INV(x)   gpioxt2_regs[x+8]
+#define GPIO_OD(x)      gpioxt2_regs[x+16]
 #endif
 #define GPIO_FIRST(x)   first_regs[x]
 
@@ -105,8 +105,8 @@ extern volatile u32 *moon2_regs;
 #ifdef CONFIG_PINCTRL_SUNPLUS_Q645
 extern volatile u32 *gpioxt_regs;
 #else
-extern volatile u32 *group6_regs;
-extern volatile u32 *group7_regs;
+extern volatile u32 *gpioxt_regs;
+extern volatile u32 *gpioxt2_regs;
 #endif
 extern volatile u32 *first_regs;
 

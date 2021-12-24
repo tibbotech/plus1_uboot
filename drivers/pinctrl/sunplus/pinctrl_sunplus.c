@@ -22,11 +22,9 @@ DECLARE_GLOBAL_DATA_PTR;
 
 volatile u32 *moon1_regs = NULL;
 volatile u32 *moon2_regs = NULL;
-#ifdef CONFIG_PINCTRL_SUNPLUS_Q645
 volatile u32 *gpioxt_regs = NULL;
-#else
-volatile u32 *group6_regs = NULL;
-volatile u32 *group7_regs = NULL;
+#ifndef CONFIG_PINCTRL_SUNPLUS_Q645
+volatile u32 *gpioxt2_regs = NULL;
 #endif
 volatile u32 *first_regs = NULL;
 void* pin_registered_by_udev[MAX_PINS];
@@ -433,71 +431,47 @@ static int sunplus_pinctrl_probe(struct udevice *dev)
 {
 	int i;
 
-	// Get the 1st address of property 'reg' from dtb.
-	moon2_regs = (void*)devfdt_get_addr_index(dev, 0);
+	// Get address of MOON2 registers.
+	moon2_regs = (void*)devfdt_get_addr_name(dev, "moon2");
 	pctl_info("moon2_regs = %px\n", moon2_regs);
 	if (moon2_regs == (void*)-1) {
 		pctl_err("Failed to get base address of MOON2!\n");
 		return -EINVAL;
 	}
 
-#ifdef CONFIG_PINCTRL_SUNPLUS_Q645
-	// Get the 2nd address of property 'reg' from dtb.
-	gpioxt_regs = (void*)devfdt_get_addr_index(dev, 1);
+	// Get address of GPIOXT registers.
+	gpioxt_regs = (void*)devfdt_get_addr_name(dev, "gpioxt");
 	pctl_info("gpioxt_regs = %px\n", gpioxt_regs);
 	if (gpioxt_regs == (void*)-1) {
 		pctl_err("Failed to get base address of GPIOXT!\n");
 		return -EINVAL;
 	}
 
-	// Get the 3rd address of property 'reg' from dtb.
-	first_regs = (void*)devfdt_get_addr_index(dev, 2);
-	pctl_info("first_regs = %px\n", first_regs);
-	if (first_regs == (void*)-1) {
-		pctl_err("Failed to get base address of FIRST!\n");
-		return -EINVAL;
-	}
-
-	// Get the 4th address of property 'reg' from dtb.
-	moon1_regs = (void*)devfdt_get_addr_index(dev, 3);
-	pctl_info("moon1_regs = %px\n", moon1_regs);
-	if (moon1_regs == (void*)-1) {
-		pctl_err("Failed to get base address of MOON1!\n");
-		return -EINVAL;
-	}
-#else
-	// Get the 2nd address of property 'reg' from dtb.
-	group6_regs = (void*)devfdt_get_addr_index(dev, 1);
-	pctl_info("group6_regs = %px\n", group6_regs);
-	if (group6_regs == (void*)-1) {
-		pctl_err("Failed to get base address of GROUP6!\n");
-		return -EINVAL;
-	}
-
-	// Get the 3rd address of property 'reg' from dtb.
-	group7_regs = (void*)devfdt_get_addr_index(dev, 2);
-	pctl_info("group7_regs = %px\n", group7_regs);
-	if (group7_regs == (void*)-1) {
-		pctl_err("Failed to get base address of GROUP7!\n");
-		return -EINVAL;
-	}
-
-	// Get the 4th address of property 'reg' from dtb.
-	first_regs = (void*)devfdt_get_addr_index(dev, 3);
-	pctl_info("first_regs = %px\n", first_regs);
-	if (first_regs == (void*)-1) {
-		pctl_err("Failed to get base address of FIRST!\n");
-		return -EINVAL;
-	}
-
-	// Get the 5th address of property 'reg' from dtb.
-	moon1_regs = (void*)devfdt_get_addr_index(dev, 4);
-	pctl_info("moon1_regs = %px\n", moon1_regs);
-	if (moon1_regs == (void*)-1) {
-		pctl_err("Failed to get base address of MOON1!\n");
+#ifndef CONFIG_PINCTRL_SUNPLUS_Q645
+	// Get address of GPIOXT2 registers.
+	gpioxt2_regs = (void*)devfdt_get_addr_name(dev, "gpioxt2");
+	pctl_info("gpioxt2_regs = %px\n", gpioxt2_regs);
+	if (gpioxt2_regs == (void*)-1) {
+		pctl_err("Failed to get base address of GPIOXT2!\n");
 		return -EINVAL;
 	}
 #endif
+
+	// Get address of FIRST registers.
+	first_regs = (void*)devfdt_get_addr_name(dev, "first");
+	pctl_info("first_regs = %px\n", first_regs);
+	if (first_regs == (void*)-1) {
+		pctl_err("Failed to get base address of FIRST!\n");
+		return -EINVAL;
+	}
+
+	// Get address of MOON1 registers.
+	moon1_regs = (void*)devfdt_get_addr_name(dev, "moon1");
+	pctl_info("moon1_regs = %px\n", moon1_regs);
+	if (moon1_regs == (void*)-1) {
+		pctl_err("Failed to get base address of MOON1!\n");
+		return -EINVAL;
+	}
 
 	// Unregister all pins.
 	for (i = 0; i < MAX_PINS; i++) {
