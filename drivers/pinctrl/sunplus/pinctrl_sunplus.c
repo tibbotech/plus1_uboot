@@ -169,10 +169,25 @@ static int sunplus_pinctrl_pins(struct udevice *dev)
 	u32 pin_mux[MAX_PINS];
 	int len, i;
 
+	// Get property: "sunplus,pins"
+	len = fdtdec_get_int_array_count(gd->fdt_blob, offset, "sunplus,pins",
+					 pin_mux, ARRAY_SIZE(pin_mux));
+	if (len > 0)
+		goto found_pins;
+
+	// Get property: "sppctl,pins"
+	len = fdtdec_get_int_array_count(gd->fdt_blob, offset, "sppctl,pins",
+					 pin_mux, ARRAY_SIZE(pin_mux));
+	if (len > 0)
+		goto found_pins;
+
 	// Get property: "pins"
-	len = fdtdec_get_int_array_count(gd->fdt_blob, offset,
-					"pins", pin_mux,
-					ARRAY_SIZE(pin_mux));
+	len = fdtdec_get_int_array_count(gd->fdt_blob, offset, "pins",
+					 pin_mux, ARRAY_SIZE(pin_mux));
+	if (len <= 0)
+		return 0;
+
+found_pins:
 	pctl_info("Number of entries of 'pins' = %d\n", len);
 
 	// Register all pins.
@@ -248,10 +263,25 @@ static int sunplus_pinctrl_zero(struct udevice *dev)
 	u32 pin_mux[MAX_PINS];
 	int len, i, mask;
 
+	// Get property: "sunplus,zero_func"
+	len = fdtdec_get_int_array_count(gd->fdt_blob, offset, "sunplus,zero_func",
+					 pin_mux, ARRAY_SIZE(pin_mux));
+	if (len > 0)
+		goto found_zero_func;
+
+	// Get property: "sppctl,zero_func"
+	len = fdtdec_get_int_array_count(gd->fdt_blob, offset, "sppctl,zero_func",
+					 pin_mux, ARRAY_SIZE(pin_mux));
+	if (len > 0)
+		goto found_zero_func;
+
 	// Get property: "zero_func"
-	len = fdtdec_get_int_array_count(gd->fdt_blob, offset,
-					"zero_func", pin_mux,
-					ARRAY_SIZE(pin_mux));
+	len = fdtdec_get_int_array_count(gd->fdt_blob, offset, "zero_func",
+					 pin_mux, ARRAY_SIZE(pin_mux));
+	if (len <= 0)
+		return 0;
+
+found_zero_func:
 	pctl_info("Number of entries of 'zero_func' = %d\n", len);
 
 	// All pins were registered successfully, set up all pins.
@@ -293,11 +323,20 @@ static int sunplus_pinctrl_function(struct udevice *dev)
 	const char *pin_group;
 	int len, i;
 
+	// Get property: 'sppctl,function'
+	pin_func = fdt_getprop(gd->fdt_blob, offset, "sppctl,function", &len);
+	if (pin_func)
+		goto found_function;
+
 	// Get property: 'function'
 	pin_func = fdt_getprop(gd->fdt_blob, offset, "function", &len);
+	if (!pin_func)
+		return 0;
+
+found_function:
 	pctl_info("function = %s (%d)\n", pin_func, len);
 	if (len > 1) {
-		// Find 'pin_func' string in list: only groups
+		// Find 'function' string in list: only groups
 		for (i = 0; i < list_funcsSZ; i++) {
 			if ( list_funcs[ i].gnum == 0) continue;
 			if ( list_funcs[ i].freg != fOFF_G) continue;
@@ -309,9 +348,16 @@ static int sunplus_pinctrl_function(struct udevice *dev)
 			return -1;
 		}
 
-		// 'pin_func' is found! Next, find its group.
+		// 'function' is found! Next, find its 'groups'.
+		// Get property: 'sppctl,groups'
+		pin_group = fdt_getprop(gd->fdt_blob, offset, "sppctl,groups", &len);
+		if (pin_group)
+			goto found_groups;
+
 		// Get property: 'groups'
 		pin_group = fdt_getprop(gd->fdt_blob, offset, "groups", &len);
+
+found_groups:
 		pctl_info("groups = %s (%d)\n", pin_group, len);
 		if (len > 1) {
 			func_t *func = &list_funcs[i];
