@@ -261,8 +261,8 @@ static int sunplus_pinctrl_zero(struct udevice *dev)
 	u32 pin_mux[MAX_PINS];
 	int len, i, mask;
 
-	// Get property: "sunplus,zero_func"
-	len = fdtdec_get_int_array_count(gd->fdt_blob, offset, "sunplus,zero_func",
+	// Get property: "sunplus,zerofunc"
+	len = fdtdec_get_int_array_count(gd->fdt_blob, offset, "sunplus,zerofunc",
 					 pin_mux, ARRAY_SIZE(pin_mux));
 	if (len > 0)
 		goto found_zero_func;
