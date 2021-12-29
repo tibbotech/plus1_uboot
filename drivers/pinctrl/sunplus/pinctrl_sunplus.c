@@ -23,7 +23,7 @@ DECLARE_GLOBAL_DATA_PTR;
 volatile u32 *moon1_regs = NULL;
 volatile u32 *moon2_regs = NULL;
 volatile u32 *gpioxt_regs = NULL;
-#ifndef CONFIG_PINCTRL_SUNPLUS_Q645
+#ifdef CONFIG_PINCTRL_SUNPLUS
 volatile u32 *gpioxt2_regs = NULL;
 #endif
 volatile u32 *first_regs = NULL;
@@ -447,13 +447,12 @@ static int sunplus_pinctrl_probe(struct udevice *dev)
 		return -EINVAL;
 	}
 
-#ifndef CONFIG_PINCTRL_SUNPLUS_Q645
+#ifdef CONFIG_PINCTRL_SUNPLUS
 	// Get address of GPIOXT2 registers.
 	gpioxt2_regs = (void*)devfdt_get_addr_name(dev, "gpioxt2");
 	pctl_info("gpioxt2_regs = %px\n", gpioxt2_regs);
 	if (gpioxt2_regs == (void*)-1) {
-		pctl_err("Failed to get base address of GPIOXT2!\n");
-		return -EINVAL;
+		gpioxt2_regs = gpioxt_regs + 0x80;
 	}
 #endif
 
