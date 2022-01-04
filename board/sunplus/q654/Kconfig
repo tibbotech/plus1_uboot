@@ -1,13 +1,13 @@
-if TARGET_PENTAGRAM_Q645
+if TARGET_PENTAGRAM_Q654
 
 config SYS_CONFIG_NAME
-	default "pentagram_common_q645_c"
+	default "pentagram_common_q654"
 
 config SYS_SOC
 	default "pentagram"
 
 config SYS_BOARD
-	default "q645"
+	default "q654"
 
 config SYS_VENDOR
 	default "sunplus"
@@ -75,6 +75,5 @@ config SP_JTAG
 	help
 	  Setup JTAG setting
 	  For Cortex-M4, setup JTAG config and pinmux.
-	  For 8051, setup JTAG config and pinmux.
 
 endif

@@ -841,7 +841,7 @@ int sp_drv_sd_hw_set_data_info (sp_mmc_host *host, struct mmc_cmd *cmd, struct m
 	host->base->sd_cmdbuf3 = (u8)((cmd->cmdarg >>  8) & 0xff);
 	host->base->sd_cmdbuf4 = (u8)((cmd->cmdarg >>  0) & 0xff);
 
-	//SD_PAGE_NUM_SET(host->base, data->blocks);   
+	//SD_PAGE_NUM_SET(host->base, data->blocks);
 	if (cmd->resp_type & MMC_RSP_CRC && !(cmd->resp_type & MMC_RSP_136))
 		host->base->sdrspchk_en = 0x1;
 	else
@@ -871,7 +871,7 @@ int sp_drv_sd_hw_set_data_info (sp_mmc_host *host, struct mmc_cmd *cmd, struct m
 	else
 		host->base->sdrsptype = 0x0;
 
-        SD_PAGE_NUM_SET(host->ebase, data->blocks); 
+        SD_PAGE_NUM_SET(host->ebase, data->blocks);
 	SDDATALEN_SET(host->base, data->blocksize);
 
 	if(SP_MMC_PIO_MODE == host->dmapio_mode) {
@@ -1638,7 +1638,12 @@ static sp_mmc_dev_info sp_dev_info[] = {
 		.id = 1,
 		.type = SPMMC_DEVICE_TYPE_SD,
 		.version = SP_MMC_VER_Q645,
-	},	
+	},
+	{
+		.id = 1,
+		.type = SPMMC_DEVICE_TYPE_SD,
+		.version = SP_MMC_VER_Q654,
+	},
 };
 
 
@@ -1652,18 +1657,22 @@ static const struct udevice_id sunplus_mmc_ids[] = {
 		.data		= (ulong)&sp_dev_info[2],
 	},
 	{
+		.compatible	= "sunplus,q654-card",
+		.data		= (ulong)&sp_dev_info[2],
+	},
+	{
 	}
 };
 
 
 U_BOOT_DRIVER(sdcard_sunplus) ={
-	.name						= "sd_sunplus",
-	.id							= UCLASS_MMC,
-	.of_match					= sunplus_mmc_ids,
-	.of_to_plat		            = sp_mmc_ofdata_to_platdata,
-	.plat_auto              	= sizeof(struct sp_mmc_plat),
-	.priv_auto	            	= sizeof(struct sp_mmc_host),
-	.bind						= sp_mmc_bind,
-	.probe						= sp_mmc_probe,
-	.ops						= &sp_drv_mmc_ops,
+	.name		= "sd_sunplus",
+	.id		= UCLASS_MMC,
+	.of_match	= sunplus_mmc_ids,
+	.of_to_plat	= sp_mmc_ofdata_to_platdata,
+	.plat_auto	= sizeof(struct sp_mmc_plat),
+	.priv_auto	= sizeof(struct sp_mmc_host),
+	.bind		= sp_mmc_bind,
+	.probe		= sp_mmc_probe,
+	.ops		= &sp_drv_mmc_ops,
 };

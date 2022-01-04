@@ -9,11 +9,11 @@
 extern void board_spinand_init(void);
 #endif
 
-#define Q645_REG_BASE			(0xf8000000)
-#define Q645_RF_GRP(_grp, _reg)		((((_grp)*32+(_reg))*4)+Q645_REG_BASE)
-#define Q645_RF_MASK_V_CLR(_mask)	(((_mask)<<16)| 0)
+#define Q654_REG_BASE			(0xf8000000)
+#define Q654_RF_GRP(_grp, _reg)		((((_grp)*32+(_reg))*4)+Q654_REG_BASE)
+#define Q654_RF_MASK_V_CLR(_mask)	(((_mask)<<16)| 0)
 
-struct Q645_moon0_regs {
+struct Q654_moon0_regs {
 	unsigned int stamp;             // 0.0
 	unsigned int clken[5];          // 0.1 - 0.5
 	unsigned int rsvd_1[5]; 	// 0.6 - 0.10
@@ -23,14 +23,14 @@ struct Q645_moon0_regs {
 	unsigned int rsvd_3[5];         // 0.26 - 030
 	unsigned int hw_cfg;            // 0.31
 };
-#define Q645_MOON0_REG ((volatile struct Q645_moon0_regs *)Q645_RF_GRP(0,0))
+#define Q654_MOON0_REG ((volatile struct Q654_moon0_regs *)Q654_RF_GRP(0,0))
 
-struct Q645_moon1_regs{
+struct Q654_moon1_regs{
 	unsigned int sft_cfg[32];
 };
-#define Q645_MOON1_REG ((volatile struct Q645_moon1_regs *)Q645_RF_GRP(1,0))
+#define Q654_MOON1_REG ((volatile struct Q654_moon1_regs *)Q654_RF_GRP(1,0))
 
-#define Q645_MOON4_REG ((volatile struct Q645_moon1_regs *)Q645_RF_GRP(4,0))
+#define Q654_MOON4_REG ((volatile struct Q654_moon1_regs *)Q654_RF_GRP(4,0))
 
 enum Device_table{
 	DEVICE_SPI_NAND = 0,
@@ -61,11 +61,11 @@ void SetBootDev(unsigned int bootdev, unsigned int pin_x)
 #ifdef CONFIG_SP_SPINAND_Q645
 		case DEVICE_SPI_NAND:
 			/* module release reset pin */
-			Q645_MOON0_REG->reset[2] = Q645_RF_MASK_V_CLR(3<<11);   // spi nand & bch
+			Q654_MOON0_REG->reset[2] = Q654_RF_MASK_V_CLR(3<<11);   // spi nand & bch
 			/* nand pll level set */
-			//Q645_MOON4_REG->sft_cfg[27] |= (0x00040004);
+			//Q654_MOON4_REG->sft_cfg[27] |= (0x00040004);
 			break;
-#endif			
+#endif
 		default:
 			printf("unknowm \n");
 			break;

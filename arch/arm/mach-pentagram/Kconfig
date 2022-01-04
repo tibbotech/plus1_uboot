@@ -4,7 +4,7 @@ choice
 	prompt "Board select"
 
 config TARGET_PENTAGRAM_COMMON
-	bool "pentagram common board"
+	bool "SP7021 Board (C-chip)"
 	select CPU_V7A
     #select CPU_V7_HAS_NONSEC
     #select CPU_V7_HAS_VIRT
@@ -12,18 +12,19 @@ config TARGET_PENTAGRAM_COMMON
 	select SYS_THUMB_BUILD
 
 config TARGET_PENTAGRAM_B_BOOT
-	bool "pentagram common board (B boot)"
+	bool "SP7021 Board (P-chip)"
 	select CPU_ARM926EJS
 
-config TARGET_PENTAGRAM_I143_C
-	bool "pentagram common board (I143 C-chip)"
-	select CPU_V7A
-	select SYS_THUMB_BUILD
-	
 config TARGET_PENTAGRAM_Q645
-	bool "pentagram common board (Q645 C-chip)"
+	bool "Q645 Board (Q645 C-chip)"
 	select ARM64
 	select ENABLE_ARM_SOC_BOOT0_HOOK
+
+config TARGET_PENTAGRAM_Q654
+	bool "Q654 Board (Q654 C-chip)"
+	select ARM64
+	select ENABLE_ARM_SOC_BOOT0_HOOK
+
 endchoice
 
 choice
@@ -37,6 +38,9 @@ config SYS_ENV_SP7021_EVB
 
 config SYS_ENV_Q645_EVB
 	bool "Q645 EVB"
+
+config SYS_ENV_Q654_EVB
+	bool "Q654 EVB"
 
 endchoice
 
@@ -64,8 +68,7 @@ config SP_TIMER
 	  Support Sunplus STC timer
 
 source "board/sunplus/q645/Kconfig"
-
+source "board/sunplus/q654/Kconfig"
 source "board/sunplus/pentagram_board/Kconfig"
 
 endif
-

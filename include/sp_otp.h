@@ -2,7 +2,7 @@
 #define __SP_OTP_H
 #include <common.h>
 
-	#ifdef CONFIG_TARGET_PENTAGRAM_Q645
+	#if defined(CONFIG_TARGET_PENTAGRAM_Q645) || defined(CONFIG_TARGET_PENTAGRAM_Q654)
 #define REG_BASE           0xF8000000
 	#elif (defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)) || \
 		(defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C))

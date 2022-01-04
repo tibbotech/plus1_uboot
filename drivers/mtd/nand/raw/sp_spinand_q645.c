@@ -1602,7 +1602,11 @@ static int sp_spinand_probe(struct udevice *dev)
 	SPINAND_LOGI("sp_spinand: regs@0x%p\n", info->regs);
 
 	/* get bch reg */
+#if defined(CONFIG_TARGET_PENTAGRAM_Q645)
 	node = fdt_node_offset_by_compatible(blob, 0, "sunplus,q645-bch");
+#else
+	node = fdt_node_offset_by_compatible(blob, 0, "sunplus,q654-bch");
+#endif
 	info->bch_regs = (void __iomem *)fdtdec_get_addr_size_auto_parent(blob,
 		dev_of_offset(dev->parent), node, "reg", 0, NULL, false);
 
@@ -1617,6 +1621,7 @@ static int sp_spinand_probe(struct udevice *dev)
 
 static const struct udevice_id sunplus_spinand[] = {
 	{ .compatible = "sunplus,q645-spi-nand"},
+	{ .compatible = "sunplus,q654-spi-nand"},
 	{}
 };
 

@@ -17,7 +17,7 @@
 
 #define MAX_SDDEVICES   2
 
-#if defined(CONFIG_TARGET_PENTAGRAM_Q645)
+#if defined(CONFIG_TARGET_PENTAGRAM_Q645) || defined(CONFIG_TARGET_PENTAGRAM_Q654)
 #define SPMMC_CLK_SRC CLOCK_360M    /* Host controller's clk source */
 #elif defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)
 #define SPMMC_CLK_SRC CLOCK_202M    /* Host controller's clk source */
@@ -1479,7 +1479,7 @@ int sp_mmc_set_dmapio(struct mmc *mmc, uint val)
 }
 
 static sp_mmc_dev_info q628_dev_info[] = {
-#if defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)
+#if defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C) && !defined(CONFIG_TARGET_PENTAGRAM_Q645) && !defined(CONFIG_TARGET_PENTAGRAM_Q654)
 	{
 		.id = 0,
 		.type = SPMMC_DEVICE_TYPE_EMMC,
@@ -1497,19 +1497,24 @@ static sp_mmc_dev_info q628_dev_info[] = {
 		.type = SPMMC_DEVICE_TYPE_EMMC,
 		.version = SP_MMC_VER_I143,
 	},
-#endif
-#if defined(CONFIG_TARGET_PENTAGRAM_Q645)
+#elif defined(CONFIG_TARGET_PENTAGRAM_Q645)
 	{
 		.id = 0,
 		.type = SPMMC_DEVICE_TYPE_EMMC,
 		.version = SP_MMC_VER_Q645,
+	},
+#elif defined(CONFIG_TARGET_PENTAGRAM_Q654)
+	{
+		.id = 0,
+		.type = SPMMC_DEVICE_TYPE_EMMC,
+		.version = SP_MMC_VER_Q654,
 	},
 #endif
 };
 
 
 static const struct udevice_id sunplus_mmc_ids[] = {
-#if defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)
+#if defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C) && !defined(CONFIG_TARGET_PENTAGRAM_Q645) && !defined(CONFIG_TARGET_PENTAGRAM_Q654)
 
 	#if defined(CONFIG_MMC_SP_7021_SD)
 		{
@@ -1538,10 +1543,14 @@ static const struct udevice_id sunplus_mmc_ids[] = {
 		.compatible	= "sunplus,i143-emmc",
 		.data		= (ulong)&q628_dev_info[0],
 	},
-#endif
-#if defined(CONFIG_TARGET_PENTAGRAM_Q645)
+#elif defined(CONFIG_TARGET_PENTAGRAM_Q645)
 	{
 		.compatible = "sunplus,q645-emmc",
+		.data		= (ulong)&q628_dev_info[0],
+	},
+#elif defined(CONFIG_TARGET_PENTAGRAM_Q654)
+	{
+		.compatible = "sunplus,q654-emmc",
 		.data		= (ulong)&q628_dev_info[0],
 	},
 #endif
@@ -1551,13 +1560,13 @@ static const struct udevice_id sunplus_mmc_ids[] = {
 
 
 U_BOOT_DRIVER(sd_sunplus) ={
-	.name						= "mmc_sunplus",
-	.id							= UCLASS_MMC,
-	.of_match					= sunplus_mmc_ids,
-	.of_to_plat					= sp_mmc_ofdata_to_platdata,
-	.plat_auto					= sizeof(struct sp_mmc_plat),
-	.priv_auto					= sizeof(struct sp_mmc_host),
-	.bind						= sp_mmc_bind,
-	.probe						= sp_mmc_probe,
-	.ops						= &sp_mmc_ops,
+	.name		= "mmc_sunplus",
+	.id		= UCLASS_MMC,
+	.of_match	= sunplus_mmc_ids,
+	.of_to_plat	= sp_mmc_ofdata_to_platdata,
+	.plat_auto	= sizeof(struct sp_mmc_plat),
+	.priv_auto	= sizeof(struct sp_mmc_host),
+	.bind		= sp_mmc_bind,
+	.probe		= sp_mmc_probe,
+	.ops		= &sp_mmc_ops,
 };

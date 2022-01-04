@@ -17,7 +17,7 @@
 #define GPIO_PINMUX(x)  moon2_regs[x]
 #endif
 
-#ifdef CONFIG_PINCTRL_SUNPLUS_Q645
+#if defined(CONFIG_PINCTRL_SUNPLUS_Q645) || defined(CONFIG_PINCTRL_SUNPLUS_Q654)
 #define GPIO_MASTER(x)  gpioxt_regs[x]
 #define GPIO_OE(x)      gpioxt_regs[x+13]
 #define GPIO_OUT(x)     gpioxt_regs[x+26]
@@ -40,6 +40,8 @@
 #ifdef CONFIG_PINCTRL_SUNPLUS
 #define MAX_PINS        99
 #elif defined (CONFIG_PINCTRL_SUNPLUS_Q645)
+#define MAX_PINS        108
+#elif defined (CONFIG_PINCTRL_SUNPLUS_Q654)
 #define MAX_PINS        108
 #else
 #define MAX_PINS        108
@@ -102,10 +104,8 @@ extern const int list_funcsSZ;
 
 extern volatile u32 *moon1_regs;
 extern volatile u32 *moon2_regs;
-#ifdef CONFIG_PINCTRL_SUNPLUS_Q645
 extern volatile u32 *gpioxt_regs;
-#else
-extern volatile u32 *gpioxt_regs;
+#if defined(CONFIG_PINCTRL_SUNPLUS)
 extern volatile u32 *gpioxt2_regs;
 #endif
 extern volatile u32 *first_regs;

@@ -63,7 +63,7 @@
 #define CLOCK_270M      270000000
 #endif
 
-#if defined(CONFIG_TARGET_PENTAGRAM_Q645)
+#if defined(CONFIG_TARGET_PENTAGRAM_Q645) || defined(CONFIG_TARGET_PENTAGRAM_Q654)
 #define CLOCK_168M      168750000
 #define CLOCK_175M      175500000
 #define CLOCK_182M      182250000
@@ -87,12 +87,10 @@ typedef struct sp_mmc_dev_info {
 	uint	id;
 	uint	type;
 	uint	version;
-#define SP_MMC_VER_Q610	 1
-#define SP_MMC_VER_Q628	 2
-#define SP_MMC_VER_I143	 3
-#if defined(CONFIG_TARGET_PENTAGRAM_Q645)
-#define SP_MMC_VER_Q645	 4
-#endif
+#define SP_MMC_VER_Q628	 1
+#define SP_MMC_VER_I143	 2
+#define SP_MMC_VER_Q645	 3
+#define SP_MMC_VER_Q654	 4
 	int (*set_clock)(struct sp_mmc_dev_info *dev);
 } sp_mmc_dev_info;
 

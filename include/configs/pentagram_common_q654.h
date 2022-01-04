@@ -10,18 +10,7 @@
 #ifndef __CONFIG_PENTAGRAM_H
 #define __CONFIG_PENTAGRAM_H
 
-/* define board-specific options/flags here, e.g. memory size, ... */
-#if   defined(CONFIG_TARGET_PENTAGRAM_COMMON)
-#define CONFIG_SMP_PEN_ADDR	(0x9ea7fff4)
-#define A_SYS_COUNTER		(0x9ed0a000)
-/* ... */
-#elif defined(CONFIG_TARGET_PENTAGRAM_B_BOOT)
-/* ... */
-#else
-#error "No board configuration is defined"
-#endif
-
-#define CONFIG_CLOCKS
+//#define CONFIG_CLOCKS
 
 /* Disable some options which is enabled by default: */
 #undef CONFIG_CMD_IMLS
@@ -29,9 +18,11 @@
 //#define CONFIG_NR_DRAM_BANKS		1
 #define CONFIG_SYS_SDRAM_BASE		0
 #if defined(CONFIG_SYS_ENV_ZEBU)
-#define CONFIG_SYS_SDRAM_SIZE           (64 << 20)
+#define CONFIG_SYS_SDRAM_SIZE           (1024 << 20)
+#elif defined(CONFIG_SYS_ENV_Q654_EVB)
+#define CONFIG_SYS_SDRAM_SIZE           (1024 << 20)
 #else /* normal SP7021 evb environment can have larger DRAM size */
-#define CONFIG_SYS_SDRAM_SIZE           (512 << 20)
+#define CONFIG_SYS_SDRAM_SIZE           (1024 << 20)
 #endif
 #define CONFIG_SYS_MALLOC_LEN           (6 << 20)
 
@@ -53,15 +44,15 @@
 #define CONFIG_SYS_LOAD_ADDR		(4 << 20)	/* kernel loaded address */
 
 #ifndef CONFIG_BAUDRATE
-#define CONFIG_BAUDRATE			115200		/* the value doesn't matter, it's not change in U-Boot */
+#define CONFIG_BAUDRATE			921600 //115200		/* the value doesn't matter, it's not change in U-Boot */
 #endif
-#define CONFIG_SYS_BAUDRATE_TABLE	{ 57600, 115200 }
+#define CONFIG_SYS_BAUDRATE_TABLE	{ 115200, 921600 }
 /* #define CONFIG_SUNPLUS_SERIAL */
 
 /* Main storage selection */
 #if (SPINOR == 1) || (NOR_JFFS2 == 1)
 #define SP_MAIN_STORAGE			"nor"
-#elif defined(CONFIG_SP_SPINAND)
+#elif defined(CONFIG_SP_SPINAND_Q645)
 #define SP_MAIN_STORAGE			"nand"
 #elif defined(CONFIG_MMC_SP_EMMC)
 #define SP_MAIN_STORAGE			"emmc"
@@ -77,6 +68,9 @@
 
 #define B_START_POS			(0x9e809ff8)
 
+
+#define COUNTER_FREQUENCY (27*1000*1000)
+
 //#define CONFIG_CMDLINE_EDITING
 //#define CONFIG_AUTO_COMPLETE
 //#define CONFIG_SYS_LONGHELP
@@ -88,7 +82,7 @@
 #define CONFIG_ARCH_MISC_INIT
 #define CONFIG_SYS_HZ			1000
 
-#include <asm/arch/sp_bootmode_bitmap_sc7xxx.h>
+#include <asm/arch/sp_bootmode_bitmap_q654.h>
 
 #undef DBG_SCR
 #ifdef DBG_SCR
@@ -98,14 +92,24 @@
 #endif
 
 
-#ifdef CONFIG_SP_SPINAND
+#if (COMPILE_WITH_SECURE == 1)
+#ifdef	CONFIG_SYS_ZMEM_SKIP_RELOC
+#undef CONFIG_SYS_ZMEM_SKIP_RELOC
+#endif
+#endif
+
+#ifdef CONFIG_SP_SPINAND_Q645
 //#define CONFIG_MTD_PARTITIONS
 #define CONFIG_SYS_MAX_NAND_DEVICE	1
 #define CONFIG_SYS_NAND_SELF_INIT
-#define CONFIG_SYS_NAND_BASE		0x9c002b80
+#define CONFIG_SYS_NAND_BASE		0xf8002b80
 //#define CONFIG_MTD_DEVICE		/* needed for mtdparts cmd */
 #define MTDIDS_DEFAULT			"nand0=sp_spinand.0"
-#define MTDPARTS_DEFAULT		"mtdparts=sp_spinand.0:-(whole_nand)"
+#if 0 // Set default mtdparts for zebu sim
+#define MTDPARTS_DEFAULT		"sp_spinand.0:128k(nand_header),256k(xboot1),1408k(uboot1),2304k(uboot2),512k(env),512k(env_redund),1m(nonos),256k(dtb),25m(kernel),33536k(rootfs)"
+#else
+#define MTDPARTS_DEFAULT		"sp_spinand.0:128k(nand_header),256k(xboot1),1408k(uboot1),2304k(uboot2),512k(env),512k(env_redund),1m(nonos),256k(dtb),25m(kernel),230144k(rootfs)"
+#endif
 #endif
 
 /* TFTP server IP and board MAC address settings for TFTP ISP.
@@ -127,31 +131,31 @@
  * In the beginning, bootcmd will check bootmode in SRAM and the flag
  * if_zebu to choose different boot flow :
  * romter_boot
- *      kernel is in SPI nor offset 6M, and dtb is in offset 128K.
- *      kernel will be loaded to 0x307FC0 and dtb will be loaded to 0x2FFFC0.
- *      Then bootm 0x307FC0 - 0x2FFFC0.
+ *      kernel is in SPI nor offset 2M+128K, and dtb is in offset 256K.
+ *      kernel will be loaded to 0x47FFC0 and dtb will be loaded to 0x3FFFC0.
+ *      Then booti 0x47FFC0 - 0x3FFFC0.
  * qk_romter_boot
- *      kernel is in SPI nor offset 6M, and dtb is in offset 128K(0x20000).
- *      kernel will be loaded to 0x307FC0 and dtb will be loaded to 0x2FFFC0.
- *      Then sp_go 0x307FC0 0x2FFFC0.
+ *      kernel is in SPI nor offset 2M+128K, and dtb is in offset 256K.
+ *      kernel will be loaded to 0x47FFC0 and dtb will be loaded to 0x3FFFC0.
+ *      Then sp_go 0x47FFC0 0x3FFFC0.
  * emmc_boot
  *      kernel is stored in emmc LBA CONFIG_SRCADDR_KERNEL and dtb is
  *      stored in emmc LBA CONFIG_SRCADDR_DTB.
- *      kernel will be loaded to 0x307FC0 and dtb will be loaded to 0x2FFFC0.
- *      Then bootm 0x307FC0 - 0x2FFFC0.
+ *      kernel will be loaded to 0x47FFC0 and dtb will be loaded to 0x3FFFC0.
+ *      Then booti 0x47FFC0 - 0x3FFFC0.
  * qk_emmc_boot
  *      kernel is stored in emmc LBA CONFIG_SRCADDR_KERNEL and dtb is
  *      stored in emmc LBA CONFIG_SRCADDR_DTB.
- *      kernel will be loaded to 0x307FC0 and dtb will be loaded to 0x2FFFC0.
- *      Then sp_go 0x307FC0 - 0x2FFFC0.
+ *      kernel will be loaded to 0x47FFC0 and dtb will be loaded to 0x3FFFC0.
+ *      Then sp_go 0x47FFC0 - 0x3FFFC0.
  * zmem_boot / qk_zmem_boot
- *      kernel is preloaded to 0x307FC0 and dtb is preloaded to 0x2FFFC0.
- *      Then sp_go 0x307FC0 0x2FFFC0.
+ *      kernel is preloaded to 0x47FFC0 and dtb is preloaded to 0x3FFFC0.
+ *      Then sp_go 0x47FFC0 0x3FFFC0.
  * zebu_emmc_boot
  *      kernel is stored in emmc LBA CONFIG_SRCADDR_KERNEL and dtb is
  *      stored in emmc LBA CONFIG_SRCADDR_DTB.
- *      kernel will be loaded to 0x307FC0 and dtb will be loaded to 0x2FFFC0.
- *      Then sp_go 0x307FC0 0x2FFFC0.
+ *      kernel will be loaded to 0x47FFC0 and dtb will be loaded to 0x3FFFC0.
+ *      Then sp_go 0x47FFC0 0x3FFFC0.
  *
  * About "sp_go"
  * Earlier, sp_go do not handle header so you should pass addr w/o header.
@@ -201,20 +205,25 @@
 "elif itest.l *${bootinfo_base} == " __stringify(USB_ISP) "; then " \
 	"echo [scr] ISP from USB storage; " \
 	"run isp_usb; " \
+"elif itest.l *${bootinfo_base} == " __stringify(USB_BOOT) "; then " \
+	"echo [scr] Boot from USB storage; " \
+	"run usb_boot; " \
 "elif itest.l *${bootinfo_base} == " __stringify(SDCARD_ISP) "; then " \
 	"echo [scr] ISP from SD Card; " \
 	"run isp_sdcard; " \
+"elif itest.l *${bootinfo_base} == " __stringify(SDCARD_BOOT) "; then " \
+	"echo [scr] Boot from SD Card; " \
+	"run sdcard_boot; " \
 "else " \
 	"echo Stop; " \
 "fi"
 
-#define DSTADDR_KERNEL		0x307FC0 /* if stext is on 0x308000 */
-#define DSTADDR_DTB		0x2FFFC0
+#define TMPADDR_KERNEL		0x3FFFFC0
 #define TMPADDR_HEADER		0x800000
-#define DSTADDR_ROOTFS		0x13FFFC0
+#define DSTADDR_KERNEL		0x3FFFC0 /* if stext is on 0x400000 */
+#define DSTADDR_DTB		0x3EFFC0
 #define DSTADDR_NONOS		0x10000
 
-#define XBOOT_SIZE		0x10000	/* for sdcard .ISPBOOOT.BIN size is equal to xboot.img size, do boot.otherwise do ISP*/
 
 //#define SUPPROT_NFS_ROOTFS
 #ifdef SUPPROT_NFS_ROOTFS
@@ -265,72 +274,53 @@
 
 #if (NOR_JFFS2 == 1)
 #define NOR_LOAD_KERNEL \
-	dbg_scr("echo kernel from ${addr_src_kernel} to ${addr_dst_kernel} sz ${sz_kernel}; ") \
-	"setexpr kernel_off ${addr_src_kernel} - 0x98000000; " \
+	dbg_scr("echo kernel from ${addr_src_kernel} to ${addr_temp_kernel} sz ${sz_kernel}; ") \
+	"setexpr kernel_off ${addr_src_kernel} - 0xf0000000; " \
+	"echo sf probe 0 50000000; " \
 	"sf probe 0 50000000; " \
-	"sf read ${addr_dst_kernel} ${kernel_off} ${sz_kernel}; " \
+	"echo sf read ${addr_temp_kernel} ${kernel_off} ${sz_kernel}; " \
+	"sf read ${addr_temp_kernel} ${kernel_off} ${sz_kernel}; " \
 	"setexpr sz_kernel ${sz_kernel} + 0xffff; " \
 	"setexpr sz_kernel ${sz_kernel} / 0x10000; " \
 	"setexpr sz_kernel ${sz_kernel} * 0x10000; " \
 	"setenv bootargs ${b_c} root=/dev/mtdblock6 rw rootfstype=jffs2 user_debug=255 rootwait " \
-	"mtdparts=9c000b00.spinor:64k@0(iboot)ro,64k(xboot)ro,128k(dtb),768k(uboot),1m(nonos),0x${sz_kernel}(kernel),-(rootfs); "
+	"mtdparts=f8000b00.spinor:96k@0(iboot)ro,160k(xboot)ro,128k(dtb),768k(uboot),1m(nonos),0x${sz_kernel}(kernel),-(rootfs); "
 #else
 #define NOR_LOAD_KERNEL \
 	"setexpr sz_kernel ${sz_kernel} + 3; setexpr sz_kernel ${sz_kernel} / 4; " \
-	dbg_scr("echo kernel from ${addr_src_kernel} to ${addr_dst_kernel} sz ${sz_kernel}; ") \
-	"cp.l ${addr_src_kernel} ${addr_dst_kernel} ${sz_kernel}; "
-#endif
-
-#ifdef CONFIG_PENTAGRAM_SEPDTS
-#define DTS_LOAD_ADDR "${addr_dst_dtb}"
-#define DTS_LOAD_EMMC \
-	"mmc read ${addr_tmp_header} ${addr_src_dtb} 0x1; " \
-	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x4; run be2le; " \
-	"setexpr sz_dtb ${tmpval} + 0x28; " \
-	"setexpr sz_dtb ${sz_dtb} + 0x200; setexpr sz_dtb ${sz_dtb} / 0x200; " \
-	"mmc read ${addr_dst_dtb} ${addr_src_dtb} ${sz_dtb}; "
-#if 0
-#define DTS_LOAD_NAND \
-	"nand read ${addr_tmp_header} dtb 0x40; " \
-	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x4; run be2le; " \
-	"setexpr sz_dtb ${tmpval} + 0x28; " \
-	"setexpr sz_dtb ${sz_dtb} + 0x200; setexpr sz_dtb ${sz_dtb} / 0x200; " \
-	"nand read ${addr_dst_dtb} dtb ${sz_dtb}; "
-#else
-#define DTS_LOAD_NAND "nand read ${addr_dst_dtb} dtb; "
-#endif
-#else
-#define DTS_LOAD_ADDR "${fdtcontroladdr}"
-#define DTS_LOAD_EMMC
-#define DTS_LOAD_NAND
+	dbg_scr("echo kernel from ${addr_src_kernel} to ${addr_temp_kernel} sz ${sz_kernel}; ") \
+	"echo cp.l ${addr_src_kernel} ${addr_temp_kernel} ${sz_kernel}; " \
+	"cp.l ${addr_src_kernel} ${addr_temp_kernel} ${sz_kernel}; "
 #endif
 
 #define CONFIG_EXTRA_ENV_SETTINGS \
-"b_c=console=tty1 console=ttyS0,115200 earlyprintk\0" \
+"b_c=console=ttyS0,921600 earlycon\0" \
 "emmc_root=root=/dev/mmcblk0p8 rw rootwait\0" \
 "stdin=" STDIN_CFG "\0" \
 "stdout=" STDOUT_CFG "\0" \
 "stderr=" STDOUT_CFG "\0" \
-"bootinfo_base="		__stringify(SP_BOOTINFO_BASE) "\0" \
-"addr_src_kernel="		__stringify(CONFIG_SRCADDR_KERNEL) "\0" \
-"addr_src_nonos="		__stringify(CONFIG_SRCADDR_NONOS) "\0" \
-"addr_src_dtb="			__stringify(CONFIG_SRCADDR_DTB) "\0" \
-"addr_dst_nonos="		__stringify(DSTADDR_NONOS) "\0" \
-"addr_dst_kernel="		__stringify(DSTADDR_KERNEL) "\0" \
-"addr_dst_dtb="			__stringify(DSTADDR_DTB) "\0" \
-"addr_tmp_header="		__stringify(TMPADDR_HEADER) "\0" \
-"nfs_gatewayip="		__stringify(NFS_ROOTFS_GATEWAY_IP) "\0" \
-"nfs_netmask="			__stringify(NFS_ROOTFS_NETMASK) "\0" \
-"nfs_clintip=" 			__stringify(NFS_ROOTFS_CLINT_IP) "\0" \
-"nfs_serverip="			__stringify(NFS_ROOTFS_SERVER_IP) "\0" \
-"nfs_rootfs_dir="		__stringify(NFS_ROOTFS_DIR) "\0" \
-"if_use_nfs_rootfs="		__stringify(USE_NFS_ROOTFS) "\0" \
-"if_zebu="			__stringify(CONFIG_SYS_ENV_ZEBU) "\0" \
-"if_qkboot="			__stringify(CONFIG_SYS_USE_QKBOOT_HEADER) "\0" \
-"sp_main_storage="		SP_MAIN_STORAGE "\0" \
-"serverip=" 			__stringify(TFTP_SERVER_IP) "\0" \
-"macaddr="			__stringify(BOARD_MAC_ADDR) "\0" \
-"sdcard_devid="			__stringify(SDCARD_DEVICE_ID) "\0" \
+"bootinfo_base="                __stringify(SP_BOOTINFO_BASE) "\0" \
+"addr_src_kernel="              __stringify(CONFIG_SRCADDR_KERNEL) "\0" \
+"addr_src_nonos="               __stringify(CONFIG_SRCADDR_NONOS) "\0" \
+"addr_src_dtb="                 __stringify(CONFIG_SRCADDR_DTB) "\0" \
+"addr_dst_nonos="               __stringify(DSTADDR_NONOS) "\0" \
+"addr_dst_kernel="              __stringify(DSTADDR_KERNEL) "\0" \
+"addr_dst_dtb="                 __stringify(DSTADDR_DTB) "\0" \
+"addr_tmp_header="              __stringify(TMPADDR_HEADER) "\0" \
+"addr_temp_kernel="             __stringify(TMPADDR_KERNEL) "\0" \
+"nfs_gatewayip="                __stringify(NFS_ROOTFS_GATEWAY_IP) "\0" \
+"nfs_netmask="                  __stringify(NFS_ROOTFS_NETMASK) "\0" \
+"nfs_clintip="                  __stringify(NFS_ROOTFS_CLINT_IP) "\0" \
+"nfs_serverip="                 __stringify(NFS_ROOTFS_SERVER_IP) "\0" \
+"nfs_rootfs_dir="               __stringify(NFS_ROOTFS_DIR) "\0" \
+"if_use_nfs_rootfs="            __stringify(USE_NFS_ROOTFS) "\0" \
+"if_zebu="                      __stringify(CONFIG_SYS_ENV_ZEBU) "\0" \
+"if_qkboot="                    __stringify(CONFIG_SYS_USE_QKBOOT_HEADER) "\0" \
+"sp_main_storage="              SP_MAIN_STORAGE "\0" \
+"serverip="                     __stringify(TFTP_SERVER_IP) "\0" \
+"macaddr="                      __stringify(BOARD_MAC_ADDR) "\0" \
+"sdcard_devid="                 __stringify(SDCARD_DEVICE_ID) "\0" \
+"do_secure="                    __stringify(COMPILE_WITH_SECURE) "\0" \
 "loadbootscr=fatload ${isp_if} ${isp_dev}:1 ${scriptaddr} /${bootscr} || " \
 	"fatload ${isp_if} ${isp_dev}:1 ${scriptaddr} /boot/${bootscr} || " \
 	"fatload ${isp_if} ${isp_dev}:1 ${scriptaddr} /sunplus/sp7021/${bootscr}; " \
@@ -358,18 +348,18 @@
 	dbg_scr("md ${addr_tmp_header} 0x10; printenv tmpval; ") \
 	"setexpr sz_nonos ${tmpval} + 0x40; " \
 	"setexpr sz_nonos ${sz_nonos} + 3; setexpr sz_nonos ${sz_nonos} / 4; " \
-	dbg_scr("echo nonosize ${sz_nonos}  addr_dst_nonos ${addr_dst_nonos};") \
+	dbg_scr("echo sz_nonos ${sz_nonos}  addr_dst_nonos ${addr_dst_nonos};") \
+	"echo cp.l ${addr_src_nonos} ${addr_dst_nonos} ${sz_nonos}; " \
 	"cp.l ${addr_src_nonos} ${addr_dst_nonos} ${sz_nonos}; " \
-	"sp_nonos_go ${addr_dst_nonos}; "\
+	"echo Booting M4 at ${addr_dst_nonos}; " \
+	"sp_nonos_go ${addr_dst_nonos}; " \
 	"cp.b ${addr_src_kernel} ${addr_tmp_header} 0x40; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
 	dbg_scr("md ${addr_tmp_header} 0x10; printenv tmpval; ") \
 	"setexpr sz_kernel ${tmpval} + 0x40; " \
 	"setexpr sz_kernel ${sz_kernel} + 0x48; " \
-	"echo loading kernel ...; "\
-	"sp_wdt_set;" \
 	NOR_LOAD_KERNEL \
-	dbg_scr("echo bootm ${addr_dst_kernel} - ${fdtcontroladdr}; ") \
+	dbg_scr("echo booti ${addr_dst_kernel} - ${fdtcontroladdr}; ") \
 	"run boot_kernel \0" \
 "qk_romter_boot=cp.b ${addr_src_kernel} ${addr_tmp_header} 0x40; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
@@ -384,16 +374,16 @@
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
 	"setexpr sz_nonos ${tmpval} + 0x40; " \
 	"setexpr sz_nonos ${sz_nonos} + 0x200; setexpr sz_nonos ${sz_nonos} / 0x200; " \
-	dbg_scr("echo nonosize ${sz_nonos}  addr_dst_nonos ${addr_dst_nonos};")\
+	dbg_scr("echo sz_nonos ${sz_nonos}  addr_dst_nonos ${addr_dst_nonos};") \
 	"mmc read ${addr_dst_nonos} ${addr_src_nonos} ${sz_nonos}; " \
-	"sp_nonos_go ${addr_dst_nonos}; "\
-	"sp_wdt_set;" \
-	DTS_LOAD_EMMC \
+	"echo Booting M4 at ${addr_dst_nonos}; " \
+	"sp_nonos_go ${addr_dst_nonos}; " \
 	"mmc read ${addr_tmp_header} ${addr_src_kernel} 0x1; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
 	"setexpr sz_kernel ${tmpval} + 0x40; " \
 	"setexpr sz_kernel ${sz_kernel} + 0x48; " \
 	"setexpr sz_kernel ${sz_kernel} + 0x200; setexpr sz_kernel ${sz_kernel} / 0x200; " \
+	"echo mmc read addr ${addr_src_kernel} ${addr_dst_kernel} ${sz_kernel}; " \
 	"mmc read ${addr_dst_kernel} ${addr_src_kernel} ${sz_kernel}; " \
 	"setenv bootargs ${b_c} ${emmc_root} ${args_emmc} ${args_kern}; " \
 	"run boot_kernel \0" \
@@ -407,10 +397,9 @@
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
 	"setexpr sz_nonos ${tmpval} + 0x40; " \
 	"nand read ${addr_dst_nonos} nonos ${sz_nonos}; " \
-	dbg_scr("echo nonosize ${sz_nonos}  addr_dst_nonos ${addr_dst_nonos};")\
-	"sp_nonos_go ${addr_dst_nonos}; "\
-	"sp_wdt_set;" \
-	DTS_LOAD_NAND \
+	dbg_scr("echo sz_nonos ${sz_nonos}  addr_dst_nonos ${addr_dst_nonos};") \
+	"echo Booting M4 at ${addr_dst_nonos}; " \
+	"sp_nonos_go ${addr_dst_nonos}; " \
 	"nand read ${addr_tmp_header} kernel 0x40; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
 	dbg_scr("md ${addr_tmp_header} 0x10; printenv tmpval; ") \
@@ -424,11 +413,23 @@
 	"if itest ${if_use_nfs_rootfs} == 1; then " \
 		"setenv bootargs ${b_c} root=/dev/nfs nfsroot=${nfs_serverip}:${nfs_rootfs_dir} ip=${nfs_clintip}:${nfs_serverip}:${nfs_gatewayip}:${nfs_netmask}::eth0:off rdinit=/linuxrc noinitrd rw; "\
 	"fi; " \
-	"verify ${addr_dst_kernel}; " \
-	"bootm ${addr_dst_kernel} - " DTS_LOAD_ADDR "; " \
-	"\0" \
+	"if itest.l *${bootinfo_base} == " __stringify(SPI_NOR_BOOT) "; then " \
+		"verify ${addr_temp_kernel} ${do_secure}; "\
+		"setexpr addr_temp_kernel ${addr_temp_kernel} + 0x40; " \
+	  "setexpr addr_dst_kernel ${addr_dst_kernel} + 0x40; " \
+		"echo unzip ${addr_temp_kernel} ${addr_dst_kernel}; " \
+		"unzip ${addr_temp_kernel} ${addr_dst_kernel}; " \
+	"else " \
+		"verify ${addr_dst_kernel} ${do_secure}; "\
+	  "setexpr addr_dst_kernel ${addr_dst_kernel} + 0x40; " \
+	"fi; " \
+	dbg_scr("echo booti ${addr_dst_kernel} - ${fdtcontroladdr}; ") \
+	"echo booti ${addr_dst_kernel} - ${fdtcontroladdr}; " \
+	"booti ${addr_dst_kernel} - ${fdtcontroladdr}\0" \
 "qk_zmem_boot=sp_go ${addr_dst_kernel} ${fdtcontroladdr}\0" \
-"zmem_boot=bootm ${addr_dst_kernel} - ${fdtcontroladdr}\0" \
+"zmem_boot=setenv verify 0; " \
+	"verify ${addr_dst_kernel} ${do_secure}; " \
+	"bootm ${addr_dst_kernel} - ${fdtcontroladdr}\0" \
 "zebu_emmc_boot=mmc rescan; mmc part; " \
 	"mmc read ${addr_tmp_header} ${addr_src_kernel} 0x1; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
@@ -445,34 +446,34 @@
 		"setexpr tmpval $filesize + 3; setexpr tmpval $tmpval / 4; " \
 		"echo Copying nonos image to $addr_dst_nonos; " \
 		"cp.l $addr_dst_kernel $addr_dst_nonos $tmpval; " \
-		"echo \"## Booting A926 from image at ${addr_dst_nonos}\"; " \
+		"echo Booting M4 at ${addr_dst_nonos}; " \
 		"sp_nonos_go ${addr_dst_nonos}; " \
-		"sp_wdt_set;" \
 	"fi; " \
 	"dhcp ${addr_dst_dtb} ${serverip}:dtb" __stringify(USER_NAME) " && " \
 	"dhcp ${addr_dst_kernel} ${serverip}:uImage" __stringify(USER_NAME) "; " \
 	"if test $? != 0; then " \
-	"	echo Error occurred while getting images from tftp server!; " \
-	"	exit; " \
+		"echo Error occurred while getting images from tftp server!; " \
+		"exit; " \
 	"fi; " \
-	"verify ${addr_dst_kernel}; " \
-	"bootm ${addr_dst_kernel} - ${addr_dst_dtb}; " \
+	"booti ${addr_dst_kernel} - ${addr_dst_dtb}; " \
 	"\0" \
 "isp_usb=setenv isp_if usb && setenv isp_dev 0; " \
 	"$isp_if start; " \
 	"run isp_common; " \
 	"\0" \
+"usb_boot=setenv isp_if usb && setenv isp_dev 0; " \
+	"$isp_if start; " \
+	"run isp_common; " \
+	"\0" \
 "isp_sdcard=setenv isp_if mmc && setenv isp_dev $sdcard_devid; " \
 	"mmc list; " \
-	"fatsize $isp_if $isp_dev /ISPBOOOT.BIN; " \
-	"echo ISPBOOOT filesize = $filesize; "\
-	"if itest.l ${filesize} == " __stringify(XBOOT_SIZE) ";  then " \
-		"echo run sdcard_boot; "\
-		SDCARD_EXT_CMD \
-	"else "\
-		"echo run isp_common; "\
-		"run isp_common; " \
-	"fi" \
+	"echo run isp_common; "\
+	"run isp_common; " \
+	"\0" \
+"sdcard_boot=setenv isp_if mmc && setenv isp_dev $sdcard_devid; " \
+	"mmc list; " \
+	"echo run sdcard_boot; "\
+	SDCARD_EXT_CMD \
 	"\0" \
 "isp_common=setenv isp_ram_addr 0x1000000; " \
 	RASPBIAN_INIT \
@@ -529,7 +530,7 @@ mmc read 0x2fffc0 0x1422 0xa ; mmc read 0x307fc0 0x1822 0x30f0 ; sp_go 0x308000 
 
 #define CONFIG_ENV_OVERWRITE    /* Allow to overwrite ethaddr and serial */
 
-#if !defined(CONFIG_SP_SPINAND)
+#if !defined(CONFIG_SP_SPINAND_Q645)
 #define SPEED_UP_SPI_NOR_CLK    /* Set CLK based on flash id */
 #endif
 
@@ -557,7 +558,7 @@ mmc read 0x2fffc0 0x1422 0xa ; mmc read 0x307fc0 0x1822 0x30f0 ; sp_go 0x308000 
 
 #ifdef CONFIG_USB_KEYBOARD
 #define STDIN_CFG "usbkbd,serial"
-//#define CONFIG_PREBOOT "usb start"
+#define CONFIG_PREBOOT "usb start"
 #undef CONFIG_BOOTDELAY
 #define CONFIG_BOOTDELAY 1
 #else

@@ -61,6 +61,7 @@ typedef struct sp_mmc_dev_info {
 #define SP_MMC_VER_Q628	 2
 #define SP_MMC_VER_I143	 3
 #define SP_MMC_VER_Q645	 3
+#define SP_MMC_VER_Q654	 4
 
 	int (*set_clock)(struct sp_mmc_dev_info *dev);
 	int (*set_pinmux)(struct sp_mmc_dev_info *info);

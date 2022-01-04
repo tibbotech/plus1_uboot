@@ -22,7 +22,7 @@
 #if (defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)) || \
 	(defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C))
 static volatile struct hb_gp_regs *otp_data = (volatile struct hb_gp_regs *)(HB_GP_REG);
-#elif defined(CONFIG_TARGET_PENTAGRAM_Q645)
+#elif defined(CONFIG_TARGET_PENTAGRAM_Q645) || defined(CONFIG_TARGET_PENTAGRAM_Q654)
 static volatile struct hb_gp_regs *otp_data = (volatile struct hb_gp_regs *)(KEY_HB_GP_REG);
 #endif
 
@@ -51,7 +51,7 @@ static void load_otp_pub_key(u8 in_pub[])
 #if (defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)) || \
 		(defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C))
 			read_otp_data(HB_GP_REG, SP_OTPRX_REG, i+64,(char *)&in_pub[i]);
-#elif defined(CONFIG_TARGET_PENTAGRAM_Q645)
+#elif defined(CONFIG_TARGET_PENTAGRAM_Q645) || defined(CONFIG_TARGET_PENTAGRAM_Q654)
 			read_otp_data(KEY_HB_GP_REG, KEY_OTPRX_REG, i+64,(char *)&in_pub[i]);
 #endif
 	}
@@ -72,19 +72,19 @@ int do_verify(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[])
 	int tv1=0,tv2=0;
 	unsigned int data_size=0;
 	image_header_t  *hdr;
-	
-	if (argc == 1) 
+
+	if (argc == 1)
 	{
 		return CMD_RET_USAGE;
 	}
-	
+
 	int kernel_addr =  simple_strtoul(argv[1], NULL, 0);
-	
+
 	hdr = (image_header_t  *)kernel_addr;
 	printf("\nkernel_hdr addr = %x\n",(unsigned int)hdr);
 	if(hdr == NULL)
 		goto out;
-	
+
 	if (!image_check_magic(hdr)) {
 		puts("Bad Magic Number\n");
 		return (int)NULL;
@@ -94,17 +94,17 @@ int do_verify(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[])
 		puts("\n ******OTP Secure Boot is OFF, return success******\n");
 		return 0;
 	}
-	
+
 	/* Load public key */
 	imgsize = image_get_data_size(hdr);
-	
+
 	/* load signature from image end */
 	if (imgsize < sig_size) {
 		puts("image size error, too small img\n");
 		goto out;
 	}
 	puts("Verify signature...(Uboot-->Kernel)");
-	
+
 	data = ((u8 *)hdr);
 	data_size = imgsize + sizeof(struct image_header);
 	sig = data + data_size + sig_flag_size;

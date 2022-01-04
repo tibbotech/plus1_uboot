@@ -1,5 +1,5 @@
 config PINCTRL_SUNPLUS
-	depends on DM && (ARCH_PENTAGRAM && !TARGET_PENTAGRAM_Q645)
+	depends on DM && (ARCH_PENTAGRAM && !TARGET_PENTAGRAM_Q645 && !TARGET_PENTAGRAM_Q654)
 	default y
 	bool "Sunplus SP7021 pin control driver"
 	help
@@ -12,3 +12,10 @@ config PINCTRL_SUNPLUS_Q645
 	bool "Sunplus Q645 pin control driver"
 	help
 	   Support pin configuration control on Sunplus's Q645 SoC.
+
+config PINCTRL_SUNPLUS_Q654
+	depends on DM && TARGET_PENTAGRAM_Q654
+	default y
+	bool "Sunplus Q654 pin control driver"
+	help
+	   Support pin configuration control on Sunplus's Q654 SoC.

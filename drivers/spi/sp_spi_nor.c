@@ -884,6 +884,7 @@ static const struct udevice_id sp_spi_nor_ids[] = {
 	{ .compatible = "sunplus,sunplus-q628-spi-nor" },
 	{ .compatible = "sunplus,sp-spi-nor" },
 	{ .compatible = "sunplus,q645-spi-nor" },
+	{ .compatible = "sunplus,q654-spi-nor" },
 	{ }
 };
 

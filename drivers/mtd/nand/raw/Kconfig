@@ -244,7 +244,7 @@ config NAND_ARASAN
 	  write operations.
 
 config SP_SPINAND
-	bool "Sunplus SPI NAND Controller Interface support"
+	bool "Sunplus SP7021 SPI NAND Controller"
 	select SP_NAND_BBLK
 	depends on DM || MTD
 	imply CMD_NAND
@@ -254,14 +254,14 @@ config SP_SPINAND
 	  If unsure, say N.
 
 config SP_SPINAND_Q645
-	bool "Sunplus SPI NAND Controller Interface support on Q645"
+	bool "Sunplus Q645 and Q654 SPI NAND Controller"
 	select SP_NAND_BBLK
 	depends on DM || MTD
 	imply CMD_NAND
 	help
-	  This selects the Sunplus SPI NAND Controller Interface on Q645.
-	  If you have a controller with this interface, say Y here.
-	  If unsure, say N.
+	  This selects the Sunplus SPI NAND Controller Interface on
+	  Q645 and Q654. If you have a controller with this interface,
+	  say Y here. If unsure, say N.
 
 config GLB_GMNCFG_SPINAND_ENABLE_SFTPAD
 	bool "Enable setting softpad timing"
