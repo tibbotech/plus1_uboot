@@ -17,7 +17,7 @@
 
 #define MAX_SDDEVICES   2
 
-#if defined(CONFIG_TARGET_PENTAGRAM_Q645) || defined(CONFIG_TARGET_PENTAGRAM_Q654)
+#if defined(CONFIG_TARGET_PENTAGRAM_Q645) || defined(CONFIG_TARGET_PENTAGRAM_SP7350)
 #define SPMMC_CLK_SRC CLOCK_360M    /* Host controller's clk source */
 #elif defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)
 #define SPMMC_CLK_SRC CLOCK_202M    /* Host controller's clk source */
@@ -1479,7 +1479,7 @@ int sp_mmc_set_dmapio(struct mmc *mmc, uint val)
 }
 
 static sp_mmc_dev_info q628_dev_info[] = {
-#if defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C) && !defined(CONFIG_TARGET_PENTAGRAM_Q645) && !defined(CONFIG_TARGET_PENTAGRAM_Q654)
+#if defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C) && !defined(CONFIG_TARGET_PENTAGRAM_Q645) && !defined(CONFIG_TARGET_PENTAGRAM_SP7350)
 	{
 		.id = 0,
 		.type = SPMMC_DEVICE_TYPE_EMMC,
@@ -1503,18 +1503,18 @@ static sp_mmc_dev_info q628_dev_info[] = {
 		.type = SPMMC_DEVICE_TYPE_EMMC,
 		.version = SP_MMC_VER_Q645,
 	},
-#elif defined(CONFIG_TARGET_PENTAGRAM_Q654)
+#elif defined(CONFIG_TARGET_PENTAGRAM_SP7350)
 	{
 		.id = 0,
 		.type = SPMMC_DEVICE_TYPE_EMMC,
-		.version = SP_MMC_VER_Q654,
+		.version = SP_MMC_VER_SP7350,
 	},
 #endif
 };
 
 
 static const struct udevice_id sunplus_mmc_ids[] = {
-#if defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C) && !defined(CONFIG_TARGET_PENTAGRAM_Q645) && !defined(CONFIG_TARGET_PENTAGRAM_Q654)
+#if defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C) && !defined(CONFIG_TARGET_PENTAGRAM_Q645) && !defined(CONFIG_TARGET_PENTAGRAM_SP7350)
 
 	#if defined(CONFIG_MMC_SP_7021_SD)
 		{
@@ -1548,9 +1548,9 @@ static const struct udevice_id sunplus_mmc_ids[] = {
 		.compatible = "sunplus,q645-emmc",
 		.data		= (ulong)&q628_dev_info[0],
 	},
-#elif defined(CONFIG_TARGET_PENTAGRAM_Q654)
+#elif defined(CONFIG_TARGET_PENTAGRAM_SP7350)
 	{
-		.compatible = "sunplus,q654-emmc",
+		.compatible = "sunplus,sp7350-emmc",
 		.data		= (ulong)&q628_dev_info[0],
 	},
 #endif

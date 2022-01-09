@@ -1,6 +1,0 @@
-Q654 BOARD
-M:	Wells Lu <wells.lu@sunplus.com>
-S:	Maintained
-F:	board/sunplus/q654/
-F:	include/configs/pentagram_common_q654.h
-F:	configs/q654_*_defconfig

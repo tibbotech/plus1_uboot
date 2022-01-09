@@ -1,5 +1,5 @@
-#ifndef __SP_BOOTMODE_BITMAP_Q654_H
-#define __SP_BOOTMODE_BITMAP_Q654_H
+#ifndef __SP_BOOTMODE_BITMAP_SP7350_H
+#define __SP_BOOTMODE_BITMAP_SP7350_H
 
 /*
  * This head is included by config header in include/configs/<soc>.h
@@ -22,4 +22,4 @@
 #define SP_SRAM_BASE        0xfa200000
 #define SP_BOOTINFO_BASE    0xfa218008
 
-#endif /* __SP_BOOTMODE_BITMAP_Q654_H */
+#endif /* __SP_BOOTMODE_BITMAP_SP7350_H */

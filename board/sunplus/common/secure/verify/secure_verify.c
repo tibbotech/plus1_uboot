@@ -9,20 +9,20 @@
 
 /***********************************
 |---------------------------|
-|		kernel data 		|
+|        kernel data        |
 |---------------------------|
 |---------------------------|
-|	sig_flag_data(8byte)	|
+|   sig_flag_data(8byte)    |
 |---------------------------|
 |---------------------------|
-|		sig data(64byte)	|
+|      sig data(64byte)     |
 |---------------------------|
 ***********************************/
 
 #if (defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)) || \
 	(defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C))
 static volatile struct hb_gp_regs *otp_data = (volatile struct hb_gp_regs *)(HB_GP_REG);
-#elif defined(CONFIG_TARGET_PENTAGRAM_Q645) || defined(CONFIG_TARGET_PENTAGRAM_Q654)
+#elif defined(CONFIG_TARGET_PENTAGRAM_Q645) || defined(CONFIG_TARGET_PENTAGRAM_SP7350)
 static volatile struct hb_gp_regs *otp_data = (volatile struct hb_gp_regs *)(KEY_HB_GP_REG);
 #endif
 
@@ -51,7 +51,7 @@ static void load_otp_pub_key(u8 in_pub[])
 #if (defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)) || \
 		(defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C))
 			read_otp_data(HB_GP_REG, SP_OTPRX_REG, i+64,(char *)&in_pub[i]);
-#elif defined(CONFIG_TARGET_PENTAGRAM_Q645) || defined(CONFIG_TARGET_PENTAGRAM_Q654)
+#elif defined(CONFIG_TARGET_PENTAGRAM_Q645) || defined(CONFIG_TARGET_PENTAGRAM_SP7350)
 			read_otp_data(KEY_HB_GP_REG, KEY_OTPRX_REG, i+64,(char *)&in_pub[i]);
 #endif
 	}

@@ -10,9 +10,9 @@
 #elif defined (CONFIG_PINCTRL_SUNPLUS_Q645)
 #include <mach/gpio_drv.h>
 #include <dt-bindings/pinctrl/sppctl-q645.h>
-#elif defined (CONFIG_PINCTRL_SUNPLUS_Q654)
+#elif defined (CONFIG_PINCTRL_SUNPLUS_SP7350)
 #include <mach/gpio_drv.h>
-#include <dt-bindings/pinctrl/sppctl-q654.h>
+#include <dt-bindings/pinctrl/sppctl-sp7350.h>
 #else
 #include <asm/arch/gpio_drv.h>
 #include <dt-bindings/pinctrl/sppctl-i143.h>

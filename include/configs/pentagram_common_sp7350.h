@@ -19,7 +19,7 @@
 #define CONFIG_SYS_SDRAM_BASE		0
 #if defined(CONFIG_SYS_ENV_ZEBU)
 #define CONFIG_SYS_SDRAM_SIZE           (1024 << 20)
-#elif defined(CONFIG_SYS_ENV_Q654_EVB)
+#elif defined(CONFIG_SYS_ENV_SP7350_EVB)
 #define CONFIG_SYS_SDRAM_SIZE           (1024 << 20)
 #else /* normal SP7021 evb environment can have larger DRAM size */
 #define CONFIG_SYS_SDRAM_SIZE           (1024 << 20)
@@ -82,7 +82,7 @@
 #define CONFIG_ARCH_MISC_INIT
 #define CONFIG_SYS_HZ			1000
 
-#include <asm/arch/sp_bootmode_bitmap_q654.h>
+#include <asm/arch/sp_bootmode_bitmap_sp7350.h>
 
 #undef DBG_SCR
 #ifdef DBG_SCR

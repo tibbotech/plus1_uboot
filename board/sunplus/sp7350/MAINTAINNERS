@@ -1,0 +1,6 @@
+SP7021 BOARD
+M:	Wells Lu <wells.lu@sunplus.com>
+S:	Maintained
+F:	board/sunplus/sp7350/
+F:	include/configs/pentagram_common_sp7350.h
+F:	configs/sp7350_*_defconfig

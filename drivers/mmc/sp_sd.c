@@ -1642,7 +1642,7 @@ static sp_mmc_dev_info sp_dev_info[] = {
 	{
 		.id = 1,
 		.type = SPMMC_DEVICE_TYPE_SD,
-		.version = SP_MMC_VER_Q654,
+		.version = SP_MMC_VER_SP7350,
 	},
 };
 
@@ -1657,7 +1657,7 @@ static const struct udevice_id sunplus_mmc_ids[] = {
 		.data		= (ulong)&sp_dev_info[2],
 	},
 	{
-		.compatible	= "sunplus,q654-card",
+		.compatible	= "sunplus,sp7350-card",
 		.data		= (ulong)&sp_dev_info[2],
 	},
 	{

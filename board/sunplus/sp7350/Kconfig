@@ -1,13 +1,13 @@
-if TARGET_PENTAGRAM_Q654
+if TARGET_PENTAGRAM_SP7350
 
 config SYS_CONFIG_NAME
-	default "pentagram_common_q654"
+	default "pentagram_common_sp7350"
 
 config SYS_SOC
 	default "pentagram"
 
 config SYS_BOARD
-	default "q654"
+	default "sp7350"
 
 config SYS_VENDOR
 	default "sunplus"

@@ -1,7 +1,7 @@
 #include <common.h>
 #include <cpu_func.h>
 #include <fdtdec.h>
-#if defined(CONFIG_TARGET_PENTAGRAM_Q645) || defined(CONFIG_TARGET_PENTAGRAM_Q654)
+#if defined(CONFIG_TARGET_PENTAGRAM_Q645) || defined(CONFIG_TARGET_PENTAGRAM_SP7350)
 #include <asm/armv8/mmu.h>
 #endif
 #include <asm/global_data.h>
@@ -9,7 +9,7 @@
 DECLARE_GLOBAL_DATA_PTR;
 
 /* Group 96, 97, 99: STC_AV0 - STC_AV2 */
-#if defined(CONFIG_TARGET_PENTAGRAM_Q645) || defined(CONFIG_TARGET_PENTAGRAM_Q654)
+#if defined(CONFIG_TARGET_PENTAGRAM_Q645) || defined(CONFIG_TARGET_PENTAGRAM_SP7350)
 typedef struct {
 	unsigned int stc_15_0;       // 12.0
 	unsigned int stc_31_16;      // 12.1
@@ -81,7 +81,7 @@ typedef struct {
 } stc_avReg_t;
 #endif
 
-#if defined(CONFIG_TARGET_PENTAGRAM_Q645) || defined(CONFIG_TARGET_PENTAGRAM_Q654)
+#if defined(CONFIG_TARGET_PENTAGRAM_Q645) || defined(CONFIG_TARGET_PENTAGRAM_SP7350)
 #define PENTAGRAM_BASE_ADDR	(0xf8000000)
 #else
 #define PENTAGRAM_BASE_ADDR	(0x9C000000)
@@ -143,7 +143,7 @@ void reset_cpu(ulong ignored)
 
 	puts("System is going to reboot ...\n");
 
-#if !defined(CONFIG_TARGET_PENTAGRAM_Q645) && !defined(CONFIG_TARGET_PENTAGRAM_Q654)
+#if !defined(CONFIG_TARGET_PENTAGRAM_Q645) && !defined(CONFIG_TARGET_PENTAGRAM_SP7350)
 	/*
 	 * Enable all methods (in Grp(4, 29)) to cause chip reset:
 	 * Bit [4:1]
@@ -240,7 +240,7 @@ int arch_misc_init(void)
 {
 	volatile unsigned int *ptr;
 
-#if defined(CONFIG_TARGET_PENTAGRAM_Q645) || defined(CONFIG_TARGET_PENTAGRAM_Q654)
+#if defined(CONFIG_TARGET_PENTAGRAM_Q645) || defined(CONFIG_TARGET_PENTAGRAM_SP7350)
 	return 0;
 #endif
 
@@ -304,7 +304,7 @@ void smp_set_core_boot_addr(unsigned long addr, int corenr)
 #endif
 #endif
 
-#if defined(CONFIG_TARGET_PENTAGRAM_Q645) || defined(CONFIG_TARGET_PENTAGRAM_Q654)
+#if defined(CONFIG_TARGET_PENTAGRAM_Q645) || defined(CONFIG_TARGET_PENTAGRAM_SP7350)
 static struct mm_region sp_mem_map[] = {
 	{
 		/* RGST */

@@ -115,7 +115,7 @@ static const struct udevice_id sunplus_serial_ids[] = {
 	{ .compatible = "sunplus,sp7021-uart"},
 	{ .compatible = "sunplus,sunplus-uart"},
 	{ .compatible = "sunplus,q645-uart"},
-	{ .compatible = "sunplus,q654-uart"},
+	{ .compatible = "sunplus,sp7350-uart"},
 	{}
 };
 

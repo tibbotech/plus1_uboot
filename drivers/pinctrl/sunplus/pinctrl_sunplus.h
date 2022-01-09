@@ -11,13 +11,12 @@
 #define pctl_info(fmt, arg...)
 #endif
 
-
 #define GPIO_PINGRP(x)  moon1_regs[x]
 #ifdef CONFIG_PINCTRL_SUNPLUS
 #define GPIO_PINMUX(x)  moon2_regs[x]
 #endif
 
-#if defined(CONFIG_PINCTRL_SUNPLUS_Q645) || defined(CONFIG_PINCTRL_SUNPLUS_Q654)
+#if defined(CONFIG_PINCTRL_SUNPLUS_Q645) || defined(CONFIG_PINCTRL_SUNPLUS_SP7350)
 #define GPIO_MASTER(x)  gpioxt_regs[x]
 #define GPIO_OE(x)      gpioxt_regs[x+13]
 #define GPIO_OUT(x)     gpioxt_regs[x+26]
@@ -41,7 +40,7 @@
 #define MAX_PINS        99
 #elif defined (CONFIG_PINCTRL_SUNPLUS_Q645)
 #define MAX_PINS        108
-#elif defined (CONFIG_PINCTRL_SUNPLUS_Q654)
+#elif defined (CONFIG_PINCTRL_SUNPLUS_SP7350)
 #define MAX_PINS        108
 #else
 #define MAX_PINS        108

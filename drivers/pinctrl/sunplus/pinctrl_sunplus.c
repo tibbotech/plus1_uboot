@@ -8,8 +8,8 @@
 #include <dt-bindings/pinctrl/sppctl-sp7021.h>
 #elif defined (CONFIG_PINCTRL_SUNPLUS_Q645)
 #include <dt-bindings/pinctrl/sppctl-q645.h>
-#elif defined (CONFIG_PINCTRL_SUNPLUS_Q654)
-#include <dt-bindings/pinctrl/sppctl-q654.h>
+#elif defined (CONFIG_PINCTRL_SUNPLUS_SP7350)
+#include <dt-bindings/pinctrl/sppctl-sp7350.h>
 #else
 #include <dt-bindings/pinctrl/sppctl-i143.h>
 #endif
@@ -491,8 +491,8 @@ static const struct udevice_id sunplus_pinctrl_ids[] = {
 	{ .compatible = "sunplus,sp7021-pctl"},
 #elif defined (CONFIG_PINCTRL_SUNPLUS_Q645)
 	{ .compatible = "sunplus,q645-pctl"},
-#elif defined (CONFIG_PINCTRL_SUNPLUS_Q654)
-	{ .compatible = "sunplus,q654-pctl"},
+#elif defined (CONFIG_PINCTRL_SUNPLUS_SP7350)
+	{ .compatible = "sunplus,sp7350-pctl"},
 #else
 	{ .compatible = "sunplus,i143-pctl"},
 #endif

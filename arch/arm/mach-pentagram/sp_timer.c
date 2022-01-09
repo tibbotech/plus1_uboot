@@ -8,7 +8,7 @@
 #include <asm/io.h>
 #include <asm/global_data.h>
 
-#if defined(CONFIG_TARGET_PENTAGRAM_Q645) || defined(CONFIG_TARGET_PENTAGRAM_Q654)
+#if defined(CONFIG_TARGET_PENTAGRAM_Q645) || defined(CONFIG_TARGET_PENTAGRAM_SP7350)
 struct stc_regs {
 	unsigned int stc_15_0;       // 12.0
 	unsigned int stc_31_16;      // 12.1
@@ -78,7 +78,7 @@ struct stc_regs {
 };
 #endif
 
-#if defined(CONFIG_TARGET_PENTAGRAM_Q645) || defined(CONFIG_TARGET_PENTAGRAM_Q654)
+#if defined(CONFIG_TARGET_PENTAGRAM_Q645) || defined(CONFIG_TARGET_PENTAGRAM_SP7350)
 #define SPHE_DEVICE_BASE	(0xf8000000)
 #else
 #define SPHE_DEVICE_BASE	(0x9C000000)
@@ -99,7 +99,7 @@ static volatile struct stc_regs *g_regs = STC_AV2_REG;
  * TRIGGER_CLOCK is timer's runtime frequency. We expect it to be 1MHz.
  * TRIGGER_CLOCK = SOURCE_CLOCK / ([13:0] of 12.3 + 1).
  */
-#if defined(CONFIG_TARGET_PENTAGRAM_Q645) || defined(CONFIG_TARGET_PENTAGRAM_Q654)
+#if defined(CONFIG_TARGET_PENTAGRAM_Q645) || defined(CONFIG_TARGET_PENTAGRAM_SP7350)
 #define USE_EXT_CLK
 #define SP_STC_TRIGGER_CLOCK	90000
 #else

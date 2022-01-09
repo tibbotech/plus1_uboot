@@ -792,7 +792,7 @@ config FSL_LS_MDIO
 
 config SUNPLUS_L2SW
 	bool "Sunplus Ethernet MAC (L2SW) support"
-	depends on DM_ETH && (ARCH_PENTAGRAM && !TARGET_PENTAGRAM_Q645 && !TARGET_PENTAGRAM_Q654)
+	depends on DM_ETH && (ARCH_PENTAGRAM && !TARGET_PENTAGRAM_Q645 && !TARGET_PENTAGRAM_SP7350)
 	select PHYLIB
 	select PHY_GIGE
 	help

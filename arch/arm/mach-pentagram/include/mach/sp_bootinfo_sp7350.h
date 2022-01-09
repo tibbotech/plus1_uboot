@@ -1,7 +1,7 @@
-#ifndef __SP_BOOTINFO_Q654_H
-#define __SP_BOOTINFO_Q654_H
+#ifndef __SP_BOOTINFO_SP7350_H
+#define __SP_BOOTINFO_SP7350_H
 
-#include <asm/arch/sp_bootmode_bitmap_q654.h>
+#include <asm/arch/sp_bootmode_bitmap_sp7350.h>
 
 /* copy from iboot "include/common.h" */
 struct sp_bootinfo {
@@ -43,4 +43,4 @@ enum Device_table {
 #define IS_IC_SECURE_ENABLE()   (SP_GET_BOOTINFO()->hw_security & FLAG_SECURE_ENABLE)
 #define IS_IC_HSM_DISABLE()     (SP_GET_BOOTINFO()->hw_security & FLAG_HSM_DISABLE )
 
-#endif /* __SP_BOOTINFO_Q654_H */
+#endif /* __SP_BOOTINFO_SP7350_H */
