@@ -220,8 +220,8 @@
 
 #define TMPADDR_KERNEL		0x3FFFFC0
 #define TMPADDR_HEADER		0x800000
-#define DSTADDR_KERNEL		0x3FFFC0 /* if stext is on 0x400000 */
-#define DSTADDR_DTB		0x3EFFC0
+#define DSTADDR_KERNEL		0x5FFFC0 /* if stext is on 0x600000 */
+#define DSTADDR_DTB		0x57FFC0
 #define DSTADDR_NONOS		0x10000
 
 
