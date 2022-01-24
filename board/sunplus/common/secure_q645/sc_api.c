@@ -5,6 +5,8 @@
 #include "hw/sc_spacc.h"
 #include "sp_otp.h"
 #include "sw/libeddsa/lib/eddsa.h"
+#include "sw/linux/crypto/sha3.h"  //edwin
+#include "sw/wpa_supplicant/src/crypto/aes-gcm.h"  //edwin
 #include <asm/arch/sp_bootinfo.h>
 
 void prn_dump_buffer(unsigned char *buf, int len)
@@ -22,7 +24,7 @@ static int load_otp_pub_key(unsigned char *buf, int otp_byte_off, int bytes)
 {
 	int i;
 	for (i = 0; i < bytes; i++) {
-		read_otp_data(KEY_HB_GP_REG, KEY_OTPRX_REG, i+64,(char *)&buf[i]);
+		read_otp_data(KEY_HB_GP_REG, KEY_OTPRX_REG, i,(char *)&buf[i]);
 	}
 	puts("uboot  OTP pub-key:\n");
 	prn_dump_buffer(buf,bytes);
@@ -31,14 +33,22 @@ static int load_otp_pub_key(unsigned char *buf, int otp_byte_off, int bytes)
 
 int SC_shaX_512(const void *message, size_t message_len, unsigned char h_val[64])
 {
-	return spacc_shaX_512(message, message_len, h_val);
+	if (!IS_IC_HSM_DISABLE())   
+		return spacc_shaX_512(message, message_len, h_val);
+	else 
+		return sha3_512(message, message_len, h_val);
 }
 
 int SC_ed25519_hash(const unsigned char *signature,
 		const void *message, size_t message_len,
 		const unsigned char *public_key, unsigned char h_val[64])
 {
-	return spacc_ed25519_hash(signature, message, message_len, public_key, h_val);
+	if (!IS_IC_HSM_DISABLE())   
+		return spacc_ed25519_hash(signature, message, message_len, public_key, h_val);
+	else {
+		ed25519_hash(signature, message, message_len, public_key, h_val);
+		return 0;
+	}
 }
 
 
@@ -46,7 +56,10 @@ int SC_aes_gcm_ad(const u8 *key, size_t key_len, const u8 *iv, size_t iv_len,
 		const u8 *crypt, size_t crypt_len,
 		const u8 *aad, size_t aad_len, const u8 *tag, u8 *plain)
 {
-	return spacc_aes_gcm_ad(key, key_len, iv, iv_len, crypt, crypt_len, aad, aad_len, tag, plain);
+	if (!IS_IC_HSM_DISABLE())   
+		return spacc_aes_gcm_ad(key, key_len, iv, iv_len, crypt, crypt_len, aad, aad_len, tag, plain);
+	else
+		return aes_gcm_ad(key, key_len, iv, iv_len, crypt, crypt_len, aad, aad_len, tag, plain);
 }
 
 int SC_ed25519_verify_hash(const unsigned char *signature, const unsigned char *public_key,

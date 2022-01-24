@@ -143,10 +143,9 @@ int sha3_update(struct sha3_state *sctx, const u8 *data, unsigned int len)
 	const u8 *src;
 
 #if !defined(__i386__) && !defined(__x86_64__)
-	if ((u32)data& 0x3) {
-		prn_string("warn: unaligned data=");
-		prn_dword((u32)data);
-	}
+//	if ((u32)*data & 0x3) {
+//		printf("warn: unaligned data=%d",(u32)data);  
+//	}
 #endif
 
 	done = 0;
@@ -184,10 +183,9 @@ int sha3_final(struct sha3_state *sctx, u8 *out)
 	unsigned int i, inlen = sctx->partial;
 
 #if !defined(__i386__) && !defined(__x86_64__)
-	if ((u32)sctx->buf & 0x3) {
-		prn_string("warn: unaligned sha3 buf=");
-		prn_dword((u32)sctx->buf);
-	}
+//	if ((u32)sctx->buf & 0x3) {
+//		printf("warn: unaligned sha3 buf=%d",(u32)sctx->buf);  
+//	}
 #endif
 
 	sctx->buf[inlen++] = 0x06;
