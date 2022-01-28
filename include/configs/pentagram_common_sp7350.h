@@ -132,30 +132,30 @@
  * if_zebu to choose different boot flow :
  * romter_boot
  *      kernel is in SPI nor offset 2M+128K, and dtb is in offset 256K.
- *      kernel will be loaded to 0x47FFC0 and dtb will be loaded to 0x3FFFC0.
- *      Then booti 0x47FFC0 - 0x3FFFC0.
+ *      kernel will be loaded to 0x7FFFC0 and dtb will be loaded to 0x77FFC0.
+ *      Then booti 0x7FFFC0 - 0x77FFC0.
  * qk_romter_boot
  *      kernel is in SPI nor offset 2M+128K, and dtb is in offset 256K.
- *      kernel will be loaded to 0x47FFC0 and dtb will be loaded to 0x3FFFC0.
- *      Then sp_go 0x47FFC0 0x3FFFC0.
+ *      kernel will be loaded to 0x7FFFC0 and dtb will be loaded to 0x77FFC0.
+ *      Then sp_go 0x7FFFC0 0x77FFC0.
  * emmc_boot
  *      kernel is stored in emmc LBA CONFIG_SRCADDR_KERNEL and dtb is
  *      stored in emmc LBA CONFIG_SRCADDR_DTB.
- *      kernel will be loaded to 0x47FFC0 and dtb will be loaded to 0x3FFFC0.
- *      Then booti 0x47FFC0 - 0x3FFFC0.
+ *      kernel will be loaded to 0x7FFFC0 and dtb will be loaded to 0x77FFC0.
+ *      Then booti 0x7FFFC0 - 0x77FFC0.
  * qk_emmc_boot
  *      kernel is stored in emmc LBA CONFIG_SRCADDR_KERNEL and dtb is
  *      stored in emmc LBA CONFIG_SRCADDR_DTB.
- *      kernel will be loaded to 0x47FFC0 and dtb will be loaded to 0x3FFFC0.
- *      Then sp_go 0x47FFC0 - 0x3FFFC0.
+ *      kernel will be loaded to 0x7FFFC0 and dtb will be loaded to 0x77FFC0.
+ *      Then sp_go 0x7FFFC0 - 0x77FFC0.
  * zmem_boot / qk_zmem_boot
- *      kernel is preloaded to 0x47FFC0 and dtb is preloaded to 0x3FFFC0.
- *      Then sp_go 0x47FFC0 0x3FFFC0.
+ *      kernel is preloaded to 0x7FFFC0 and dtb is preloaded to 0x77FFC0.
+ *      Then sp_go 0x7FFFC0 0x77FFC0.
  * zebu_emmc_boot
  *      kernel is stored in emmc LBA CONFIG_SRCADDR_KERNEL and dtb is
  *      stored in emmc LBA CONFIG_SRCADDR_DTB.
- *      kernel will be loaded to 0x47FFC0 and dtb will be loaded to 0x3FFFC0.
- *      Then sp_go 0x47FFC0 0x3FFFC0.
+ *      kernel will be loaded to 0x7FFFC0 and dtb will be loaded to 0x77FFC0.
+ *      Then sp_go 0x7FFFC0 0x77FFC0.
  *
  * About "sp_go"
  * Earlier, sp_go do not handle header so you should pass addr w/o header.
@@ -416,12 +416,12 @@
 	"if itest.l *${bootinfo_base} == " __stringify(SPI_NOR_BOOT) "; then " \
 		"verify ${addr_temp_kernel} ${do_secure}; "\
 		"setexpr addr_temp_kernel ${addr_temp_kernel} + 0x40; " \
-	  "setexpr addr_dst_kernel ${addr_dst_kernel} + 0x40; " \
+		"setexpr addr_dst_kernel ${addr_dst_kernel} + 0x40; " \
 		"echo unzip ${addr_temp_kernel} ${addr_dst_kernel}; " \
 		"unzip ${addr_temp_kernel} ${addr_dst_kernel}; " \
 	"else " \
 		"verify ${addr_dst_kernel} ${do_secure}; "\
-	  "setexpr addr_dst_kernel ${addr_dst_kernel} + 0x40; " \
+		"setexpr addr_dst_kernel ${addr_dst_kernel} + 0x40; " \
 	"fi; " \
 	dbg_scr("echo booti ${addr_dst_kernel} - ${fdtcontroladdr}; ") \
 	"echo booti ${addr_dst_kernel} - ${fdtcontroladdr}; " \
@@ -503,26 +503,6 @@
 	"setenv isp_main_storage ${sp_main_storage} && printenv isp_main_storage; " \
 	"setexpr script_addr $isp_ram_addr + 0x00 && setenv script_addr 0x${script_addr} && source $script_addr; " \
 	"\0"
-
-#if 0
-/* romter test booting command */
-#define CONFIG_BOOTCOMMAND      "echo bootcmd started ; sp_preboot dump ; sp_preboot ; printenv ; \
-echo [cmd] cp.l 0x98200000 0x307FC0 0x280000 ; \
-cp.l 0x98200000 0x307FC0 0x280000 ; \
-echo [cmd] cp.l 0x98020000 0x2FFFC0 0x400 ; \
-cp.l 0x98020000 0x2FFFC0 0x400 ; \
-sp_go 0x308000 0x300000"
-
-/* zebu emmc booting test command */
-#define CONFIG_BOOTCOMMAND      "echo [scr] emmc bootcmd started ; \
-mmc rescan ; mmc part ; \
-mmc read 0x2fffc0 0x1422 0x1 ; md 0x2fffc0 0x60 ; \
-mmc read 0x307fc0 0x1822 0x1 ; md 0x307fc0 0x60 ; \
-mmc read 0x2fffc0 0x1422 0xa ; mmc read 0x307fc0 0x1822 0x30f0 ; sp_go 0x308000 0x300000"
-
-/* zebu zmem booting test command */
-#define CONFIG_BOOTCOMMAND      "echo [scr] zmem bootcmd started ; sp_go 0x308000 0x300040"
-#endif
 
 /* MMC related configs */
 #define CONFIG_SUPPORT_EMMC_BOOT
