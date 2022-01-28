@@ -23,12 +23,12 @@
 #ifdef PORT_IN_BOOT
 #include <common.h>
 #include <aes.h>
-#include <arm/lib/utils_def.h>
+//#include <arm/lib/utils_def.h>
 
 #define os_memset memset
 #define os_memcpy memcpy
 #define os_memcmp_const(_s1,_s2,_num) memcmp(_s1, _s2, _num)
-#define wpa_printf(_type,_msg) prn_string(_msg)
+#define wpa_printf(_type,_msg) printf(_msg)
 #define wpa_hexdump_key(...)
 #define aes_encrypt(_key,_in,_out) AES_encrypt(_in, _out, _key)
 #define aes_encrypt_deinit(...)
@@ -72,11 +72,11 @@ static void xor_block(u8 *dst, const u8 *src)
 	u32 *s = (u32 *) src;
 
 #ifdef SUPPORT_IN_PLACE
-	if (((u32)dst & 3) || ((u32)src & 3)) {
-		prn_string("unaligned:\n");
-		prn_dword((u32)dst);
-		prn_dword((u32)src);
-	}
+//	if (((u32)dst & 3) || ((u32)src & 3)) {
+//		prn_string("unaligned:\n");
+//		prn_dword((u32)dst);
+//		prn_dword((u32)src);
+//	}
 #endif
 
 	*d++ ^= *s++;
@@ -388,11 +388,11 @@ int aes_gcm_ad(const u8 *key, size_t key_len, const u8 *iv, size_t iv_len,
 	struct AES_KEY aes_key;
 	aes = (void *)&aes_key;
 
-	if ((u32)iv & 3) {
-		prn_string("ad: err, unalign iv@");
-		prn_dword((u32)iv);
-		return -1;
-	}
+//	if ((u32)iv & 3) {
+//		prn_string("ad: err, unalign iv@");
+//		prn_dword((u32)iv);
+//		return -1;
+//	}
 
         private_AES_set_encrypt_key(key, key_len * 8, &aes_key);
         aes_key.rounds = aes_num_rounds(key_len);
@@ -424,8 +424,8 @@ int aes_gcm_ad(const u8 *key, size_t key_len, const u8 *iv, size_t iv_len,
 
 	if (os_memcmp_const(tag, T, 16) != 0) {
 		wpa_printf(MSG_EXCESSIVE, "GCM: Tag mismatch");
-		prn_dump("\ntag e: ", (u8 *)tag, 16);
-		prn_dump("tag d: ", (u8 *)T, 16);
+//		prn_dump("\ntag e: ", (u8 *)tag, 16);
+//		prn_dump("tag d: ", (u8 *)T, 16);
 		return -1;
 	}
 

@@ -5,8 +5,8 @@
 #include "hw/sc_spacc.h"
 #include "sp_otp.h"
 #include "sw/libeddsa/lib/eddsa.h"
-#include "sw/linux/crypto/sha3.h"  //edwin
-#include "sw/wpa_supplicant/src/crypto/aes-gcm.h"  //edwin
+#include "sw/linux/crypto/sha3.h"  
+#include "sw/wpa_supplicant/src/crypto/aes-gcm.h"  
 #include <asm/arch/sp_bootinfo.h>
 
 void prn_dump_buffer(unsigned char *buf, int len)

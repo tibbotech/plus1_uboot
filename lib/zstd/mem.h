@@ -139,4 +139,7 @@ ZSTD_STATIC U32 ZSTD_readMINMATCH(const void *memPtr, U32 length)
 	}
 }
 
+#define __ALIGN4       __attribute__((aligned(4)))
+#define __ALIGN8       __attribute__((aligned(8)))
+
 #endif /* MEM_H_MODULE */

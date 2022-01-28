@@ -12,6 +12,7 @@
 #ifndef __COMMON_H_
 #define __COMMON_H_	1
 
+#include "../lib/zstd/mem.h"
 #ifndef __ASSEMBLY__		/* put C only stuff in this section */
 #include <config.h>
 #include <errno.h>
