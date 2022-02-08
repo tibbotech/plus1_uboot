@@ -69,7 +69,7 @@
 #define B_START_POS			(0x9e809ff8)
 
 
-#define COUNTER_FREQUENCY (27*1000*1000)
+#define COUNTER_FREQUENCY (25*1000*1000)
 
 //#define CONFIG_CMDLINE_EDITING
 //#define CONFIG_AUTO_COMPLETE
@@ -284,7 +284,7 @@
 	"setexpr sz_kernel ${sz_kernel} / 0x10000; " \
 	"setexpr sz_kernel ${sz_kernel} * 0x10000; " \
 	"setenv bootargs ${b_c} root=/dev/mtdblock6 rw rootfstype=jffs2 user_debug=255 rootwait " \
-	"mtdparts=f8000b00.spinor:96k@0(iboot)ro,160k(xboot)ro,128k(dtb),768k(uboot),1m(nonos),0x${sz_kernel}(kernel),-(rootfs); "
+	"mtdparts=f8000b00.spinor:96k@0(iboot)ro,160k(xboot)ro,128k(dtb),1m(uboot),640k(nonos),0x${sz_kernel}(kernel),-(rootfs); "
 #else
 #define NOR_LOAD_KERNEL \
 	"setexpr sz_kernel ${sz_kernel} + 3; setexpr sz_kernel ${sz_kernel} / 4; " \

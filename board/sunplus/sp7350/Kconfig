@@ -32,17 +32,17 @@ config SRCADDR_NONOS
 	hex "nonos source address"
 	default 0x0 if SD_BOOT
 	default 0x0 if NAND_BOOT
-	default 0xF0120000
+	default 0xF0160000
 	help
-	  nonos source address
-	  nonos image is stored in this address.
+	  CM4 source address
+	  CM4 image is stored in this address.
 	  This address can be nand/emmc address.
 
 config SRCADDR_KERNEL
 	hex "Linux kernel source address"
 	default 0x0 if SD_BOOT
 	default 0x0 if NAND_BOOT
-	default 0xF0220000
+	default 0xF0200000
 	help
 	  Linux kernel source address
 	  Linux kernel image is stored in this

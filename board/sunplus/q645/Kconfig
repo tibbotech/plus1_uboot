@@ -34,8 +34,8 @@ config SRCADDR_NONOS
 	default 0x0 if NAND_BOOT
 	default 0xF0120000
 	help
-	  nonos source address
-	  nonos image is stored in this address.
+	  CM4 source address
+	  CM4 image is stored in this address.
 	  This address can be nand/emmc address.
 
 config SRCADDR_KERNEL
