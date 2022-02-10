@@ -98,7 +98,7 @@
 #endif
 #endif
 
-#ifdef CONFIG_SP_SPINAND_Q645
+#ifdef CONFIG_MTD_RAW_NAND
 //#define CONFIG_MTD_PARTITIONS
 #define CONFIG_SYS_MAX_NAND_DEVICE	1
 #define CONFIG_SYS_NAND_SELF_INIT
@@ -200,8 +200,11 @@
 		"fi; " \
 	"fi; " \
 "elif itest.l *${bootinfo_base} == " __stringify(SPINAND_BOOT) "; then " \
-	"echo [scr] nand boot; " \
-	"run nand_boot; " \
+	"echo [scr] spinand boot; " \
+	"run spinand_boot; " \
+"elif itest.l *${bootinfo_base} == " __stringify(PARA_NAND_BOOT) "; then " \
+	"echo [scr] pnand boot; " \
+	"run pnand_boot; " \
 "elif itest.l *${bootinfo_base} == " __stringify(USB_ISP) "; then " \
 	"echo [scr] ISP from USB storage; " \
 	"run isp_usb; " \
@@ -393,7 +396,23 @@
 	"setexpr sz_kernel ${sz_kernel} + 0x200; setexpr sz_kernel ${sz_kernel} / 0x200; " \
 	"mmc read ${addr_dst_kernel} ${addr_src_kernel} ${sz_kernel}; " \
 	"sp_go ${addr_dst_kernel} ${fdtcontroladdr}\0" \
-"nand_boot=nand read ${addr_tmp_header} nonos 0x40; " \
+"spinand_boot=nand read ${addr_tmp_header} nonos 0x40; " \
+	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
+	"setexpr sz_nonos ${tmpval} + 0x40; " \
+	"nand read ${addr_dst_nonos} nonos ${sz_nonos}; " \
+	dbg_scr("echo sz_nonos ${sz_nonos}  addr_dst_nonos ${addr_dst_nonos};") \
+	"echo Booting M4 at ${addr_dst_nonos}; " \
+	"sp_nonos_go ${addr_dst_nonos}; " \
+	"nand read ${addr_tmp_header} kernel 0x40; " \
+	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
+	dbg_scr("md ${addr_tmp_header} 0x10; printenv tmpval; ") \
+	"setexpr sz_kernel ${tmpval} + 0x40; " \
+	"setexpr sz_kernel ${sz_kernel} + 0x48; " \
+	dbg_scr("echo from kernel partition to ${addr_dst_kernel} sz ${sz_kernel}; ") \
+	"nand read ${addr_dst_kernel} kernel ${sz_kernel}; " \
+	"setenv bootargs ${b_c} root=ubi0:rootfs rw ubi.mtd=9,2048 rootflags=sync rootfstype=ubifs mtdparts=${mtdparts} user_debug=255 rootwait; " \
+	"run boot_kernel \0" \
+"pnand_boot=nand read ${addr_tmp_header} nonos 0x40; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
 	"setexpr sz_nonos ${tmpval} + 0x40; " \
 	"nand read ${addr_dst_nonos} nonos ${sz_nonos}; " \
