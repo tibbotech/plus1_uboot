@@ -28,16 +28,6 @@ config SYS_USE_QKBOOT_HEADER
 	  replace mkimage header of kernel image and
 	  also add sunplus-mkimage header on dtb image.
 
-config SRCADDR_NONOS
-	hex "nonos source address"
-	default 0x0 if SD_BOOT
-	default 0x0 if NAND_BOOT
-	default 0xF0160000
-	help
-	  CM4 source address
-	  CM4 image is stored in this address.
-	  This address can be nand/emmc address.
-
 config SRCADDR_KERNEL
 	hex "Linux kernel source address"
 	default 0x0 if SD_BOOT

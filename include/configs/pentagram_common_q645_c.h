@@ -106,9 +106,9 @@
 //#define CONFIG_MTD_DEVICE		/* needed for mtdparts cmd */
 #define MTDIDS_DEFAULT			"nand0=sp_spinand.0"
 #if 0 // Set default mtdparts for zebu sim
-#define MTDPARTS_DEFAULT		"sp_spinand.0:128k(nand_header),256k(xboot1),1408k(uboot1),2304k(uboot2),512k(env),512k(env_redund),1m(nonos),256k(dtb),25m(kernel),33536k(rootfs)"
+#define MTDPARTS_DEFAULT		"sp_spinand.0:128k(nand_header),256k(xboot1),1408k(uboot1),2304k(uboot2),512k(env),512k(env_redund),1m(reserve),256k(dtb),25m(kernel),33536k(rootfs)"
 #else
-#define MTDPARTS_DEFAULT		"sp_spinand.0:128k(nand_header),256k(xboot1),1408k(uboot1),2304k(uboot2),512k(env),512k(env_redund),1m(nonos),256k(dtb),25m(kernel),230144k(rootfs)"
+#define MTDPARTS_DEFAULT		"sp_spinand.0:128k(nand_header),256k(xboot1),1408k(uboot1),2304k(uboot2),512k(env),512k(env_redund),1m(reserve),256k(dtb),25m(kernel),230144k(rootfs)"
 #endif
 #endif
 
@@ -221,9 +221,7 @@
 #define TMPADDR_KERNEL		0x3FFFFC0
 #define TMPADDR_HEADER		0x600000
 #define DSTADDR_KERNEL		0x7FFFC0 /* if stext is on 0x800000 */
-#define DSTADDR_DTB		0x77FFC0
-#define DSTADDR_NONOS		0x10000
-
+#define DSTADDR_DTB			0x77FFC0
 
 //#define SUPPROT_NFS_ROOTFS
 #ifdef SUPPROT_NFS_ROOTFS
@@ -284,7 +282,7 @@
 	"setexpr sz_kernel ${sz_kernel} / 0x10000; " \
 	"setexpr sz_kernel ${sz_kernel} * 0x10000; " \
 	"setenv bootargs ${b_c} root=/dev/mtdblock6 rw rootfstype=jffs2 user_debug=255 rootwait " \
-	"mtdparts=f8000b00.spinor:96k@0(iboot)ro,160k(xboot)ro,128k(dtb),768k(uboot),1m(nonos),0x${sz_kernel}(kernel),-(rootfs); "
+	"mtdparts=f8000b00.spinor:96k@0(iboot)ro,160k(xboot)ro,128k(dtb),768k(uboot),1m(reserve),0x${sz_kernel}(kernel),-(rootfs); "
 #else
 #define NOR_LOAD_KERNEL \
 	"setexpr sz_kernel ${sz_kernel} + 3; setexpr sz_kernel ${sz_kernel} / 4; " \
@@ -301,9 +299,7 @@
 "stderr=" STDOUT_CFG "\0" \
 "bootinfo_base="                __stringify(SP_BOOTINFO_BASE) "\0" \
 "addr_src_kernel="              __stringify(CONFIG_SRCADDR_KERNEL) "\0" \
-"addr_src_nonos="               __stringify(CONFIG_SRCADDR_NONOS) "\0" \
 "addr_src_dtb="                 __stringify(CONFIG_SRCADDR_DTB) "\0" \
-"addr_dst_nonos="               __stringify(DSTADDR_NONOS) "\0" \
 "addr_dst_kernel="              __stringify(DSTADDR_KERNEL) "\0" \
 "addr_dst_dtb="                 __stringify(DSTADDR_DTB) "\0" \
 "addr_tmp_header="              __stringify(TMPADDR_HEADER) "\0" \
@@ -343,17 +339,7 @@
 	"setexpr byte *${tmpaddr} '&' 0xff000000; " \
 	"setexpr byte ${byte} / 0x1000000; " \
 	"setexpr tmpval $tmpval + $byte;\0" \
-"romter_boot=cp.b ${addr_src_nonos} ${addr_tmp_header} 0x40; " \
-	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
-	dbg_scr("md ${addr_tmp_header} 0x10; printenv tmpval; ") \
-	"setexpr sz_nonos ${tmpval} + 0x40; " \
-	"setexpr sz_nonos ${sz_nonos} + 3; setexpr sz_nonos ${sz_nonos} / 4; " \
-	dbg_scr("echo sz_nonos ${sz_nonos}  addr_dst_nonos ${addr_dst_nonos};") \
-	"echo cp.l ${addr_src_nonos} ${addr_dst_nonos} ${sz_nonos}; " \
-	"cp.l ${addr_src_nonos} ${addr_dst_nonos} ${sz_nonos}; " \
-	"echo Booting M4 at ${addr_dst_nonos}; " \
-	"sp_nonos_go ${addr_dst_nonos}; " \
-	"cp.b ${addr_src_kernel} ${addr_tmp_header} 0x40; " \
+"romter_boot=cp.b ${addr_src_kernel} ${addr_tmp_header} 0x40; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
 	dbg_scr("md ${addr_tmp_header} 0x10; printenv tmpval; ") \
 	"setexpr sz_kernel ${tmpval} + 0x40; " \
@@ -370,15 +356,7 @@
 	"cp.l ${addr_src_kernel} ${addr_dst_kernel} ${sz_kernel}; " \
 	dbg_scr("echo sp_go ${addr_dst_kernel} ${fdtcontroladdr}; ") \
 	"sp_go ${addr_dst_kernel} ${fdtcontroladdr}\0" \
-"emmc_boot=mmc read ${addr_tmp_header} ${addr_src_nonos} 0x1; " \
-	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
-	"setexpr sz_nonos ${tmpval} + 0x40; " \
-	"setexpr sz_nonos ${sz_nonos} + 0x200; setexpr sz_nonos ${sz_nonos} / 0x200; " \
-	dbg_scr("echo sz_nonos ${sz_nonos}  addr_dst_nonos ${addr_dst_nonos};") \
-	"mmc read ${addr_dst_nonos} ${addr_src_nonos} ${sz_nonos}; " \
-	"echo Booting M4 at ${addr_dst_nonos}; " \
-	"sp_nonos_go ${addr_dst_nonos}; " \
-	"mmc read ${addr_tmp_header} ${addr_src_kernel} 0x1; " \
+"emmc_boot=mmc read ${addr_tmp_header} ${addr_src_kernel} 0x1; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
 	"setexpr sz_kernel ${tmpval} + 0x40; " \
 	"setexpr sz_kernel ${sz_kernel} + 0x48; " \
@@ -393,14 +371,7 @@
 	"setexpr sz_kernel ${sz_kernel} + 0x200; setexpr sz_kernel ${sz_kernel} / 0x200; " \
 	"mmc read ${addr_dst_kernel} ${addr_src_kernel} ${sz_kernel}; " \
 	"sp_go ${addr_dst_kernel} ${fdtcontroladdr}\0" \
-"nand_boot=nand read ${addr_tmp_header} nonos 0x40; " \
-	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
-	"setexpr sz_nonos ${tmpval} + 0x40; " \
-	"nand read ${addr_dst_nonos} nonos ${sz_nonos}; " \
-	dbg_scr("echo sz_nonos ${sz_nonos}  addr_dst_nonos ${addr_dst_nonos};") \
-	"echo Booting M4 at ${addr_dst_nonos}; " \
-	"sp_nonos_go ${addr_dst_nonos}; " \
-	"nand read ${addr_tmp_header} kernel 0x40; " \
+"nand_boot=nand read ${addr_tmp_header} kernel 0x40; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
 	dbg_scr("md ${addr_tmp_header} 0x10; printenv tmpval; ") \
 	"setexpr sz_kernel ${tmpval} + 0x40; " \
@@ -441,14 +412,6 @@
 "tftp_boot=setenv ethaddr ${macaddr} && printenv ethaddr; " \
 	"printenv serverip; " \
 	"setenv filesize 0; " \
-	"dhcp ${addr_dst_kernel} ${serverip}:a926" __stringify(USER_NAME) "; " \
-	"if test $filesize != 0; then " \
-		"setexpr tmpval $filesize + 3; setexpr tmpval $tmpval / 4; " \
-		"echo Copying nonos image to $addr_dst_nonos; " \
-		"cp.l $addr_dst_kernel $addr_dst_nonos $tmpval; " \
-		"echo Booting M4 at ${addr_dst_nonos}; " \
-		"sp_nonos_go ${addr_dst_nonos}; " \
-	"fi; " \
 	"dhcp ${addr_dst_dtb} ${serverip}:dtb" __stringify(USER_NAME) " && " \
 	"dhcp ${addr_dst_kernel} ${serverip}:uImage" __stringify(USER_NAME) "; " \
 	"if test $? != 0; then " \

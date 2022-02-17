@@ -212,7 +212,6 @@
 #define DSTADDR_DTB		0x2FFFC0
 #define TMPADDR_HEADER		0x800000
 #define DSTADDR_ROOTFS		0x13FFFC0
-#define DSTADDR_NONOS		0x10000
 
 #define XBOOT_SIZE		0x10000	/* for sdcard .ISPBOOOT.BIN size is equal to xboot.img size, do boot.otherwise do ISP*/
 
@@ -273,7 +272,7 @@
 	"setexpr sz_kernel ${sz_kernel} / 0x10000; " \
 	"setexpr sz_kernel ${sz_kernel} * 0x10000; " \
 	"setenv bootargs ${b_c} root=/dev/mtdblock6 rw rootfstype=jffs2 user_debug=255 rootwait " \
-	"mtdparts=9c000b00.spinor:64k@0(iboot)ro,64k(xboot)ro,128k(dtb),768k(uboot),1m(nonos),0x${sz_kernel}(kernel),-(rootfs); "
+	"mtdparts=9c000b00.spinor:64k@0(iboot)ro,64k(xboot)ro,128k(dtb),768k(uboot),1m(reserve),0x${sz_kernel}(kernel),-(rootfs); "
 #else
 #define NOR_LOAD_KERNEL \
 	"setexpr sz_kernel ${sz_kernel} + 3; setexpr sz_kernel ${sz_kernel} / 4; " \
@@ -313,9 +312,7 @@
 "stderr=" STDOUT_CFG "\0" \
 "bootinfo_base="		__stringify(SP_BOOTINFO_BASE) "\0" \
 "addr_src_kernel="		__stringify(CONFIG_SRCADDR_KERNEL) "\0" \
-"addr_src_nonos="		__stringify(CONFIG_SRCADDR_NONOS) "\0" \
 "addr_src_dtb="			__stringify(CONFIG_SRCADDR_DTB) "\0" \
-"addr_dst_nonos="		__stringify(DSTADDR_NONOS) "\0" \
 "addr_dst_kernel="		__stringify(DSTADDR_KERNEL) "\0" \
 "addr_dst_dtb="			__stringify(DSTADDR_DTB) "\0" \
 "addr_tmp_header="		__stringify(TMPADDR_HEADER) "\0" \
@@ -353,15 +350,7 @@
 	"setexpr byte *${tmpaddr} '&' 0xff000000; " \
 	"setexpr byte ${byte} / 0x1000000; " \
 	"setexpr tmpval $tmpval + $byte;\0" \
-"romter_boot=cp.b ${addr_src_nonos} ${addr_tmp_header} 0x40; " \
-	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
-	dbg_scr("md ${addr_tmp_header} 0x10; printenv tmpval; ") \
-	"setexpr sz_nonos ${tmpval} + 0x40; " \
-	"setexpr sz_nonos ${sz_nonos} + 3; setexpr sz_nonos ${sz_nonos} / 4; " \
-	dbg_scr("echo nonosize ${sz_nonos}  addr_dst_nonos ${addr_dst_nonos};") \
-	"cp.l ${addr_src_nonos} ${addr_dst_nonos} ${sz_nonos}; " \
-	"sp_nonos_go ${addr_dst_nonos}; "\
-	"cp.b ${addr_src_kernel} ${addr_tmp_header} 0x40; " \
+"romter_boot=cp.b ${addr_src_kernel} ${addr_tmp_header} 0x40; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
 	dbg_scr("md ${addr_tmp_header} 0x10; printenv tmpval; ") \
 	"setexpr sz_kernel ${tmpval} + 0x40; " \
@@ -380,14 +369,7 @@
 	"cp.l ${addr_src_kernel} ${addr_dst_kernel} ${sz_kernel}; " \
 	dbg_scr("echo sp_go ${addr_dst_kernel} ${fdtcontroladdr}; ") \
 	"sp_go ${addr_dst_kernel} ${fdtcontroladdr}\0" \
-"emmc_boot=mmc read ${addr_tmp_header} ${addr_src_nonos} 0x1; " \
-	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
-	"setexpr sz_nonos ${tmpval} + 0x40; " \
-	"setexpr sz_nonos ${sz_nonos} + 0x200; setexpr sz_nonos ${sz_nonos} / 0x200; " \
-	dbg_scr("echo nonosize ${sz_nonos}  addr_dst_nonos ${addr_dst_nonos};")\
-	"mmc read ${addr_dst_nonos} ${addr_src_nonos} ${sz_nonos}; " \
-	"sp_nonos_go ${addr_dst_nonos}; "\
-	"sp_wdt_set;" \
+"emmc_boot=sp_wdt_set;" \
 	DTS_LOAD_EMMC \
 	"mmc read ${addr_tmp_header} ${addr_src_kernel} 0x1; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
@@ -403,13 +385,7 @@
 	"setexpr sz_kernel ${sz_kernel} + 0x200; setexpr sz_kernel ${sz_kernel} / 0x200; " \
 	"mmc read ${addr_dst_kernel} ${addr_src_kernel} ${sz_kernel}; " \
 	"sp_go ${addr_dst_kernel} ${fdtcontroladdr}\0" \
-"nand_boot=nand read ${addr_tmp_header} nonos 0x40; " \
-	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
-	"setexpr sz_nonos ${tmpval} + 0x40; " \
-	"nand read ${addr_dst_nonos} nonos ${sz_nonos}; " \
-	dbg_scr("echo nonosize ${sz_nonos}  addr_dst_nonos ${addr_dst_nonos};")\
-	"sp_nonos_go ${addr_dst_nonos}; "\
-	"sp_wdt_set;" \
+"nand_boot=sp_wdt_set;" \
 	DTS_LOAD_NAND \
 	"nand read ${addr_tmp_header} kernel 0x40; " \
 	"setenv tmpval 0; setexpr tmpaddr ${addr_tmp_header} + 0x0c; run be2le; " \
@@ -440,15 +416,6 @@
 "tftp_boot=setenv ethaddr ${macaddr} && printenv ethaddr; " \
 	"printenv serverip; " \
 	"setenv filesize 0; " \
-	"dhcp ${addr_dst_kernel} ${serverip}:a926" __stringify(USER_NAME) "; " \
-	"if test $filesize != 0; then " \
-		"setexpr tmpval $filesize + 3; setexpr tmpval $tmpval / 4; " \
-		"echo Copying nonos image to $addr_dst_nonos; " \
-		"cp.l $addr_dst_kernel $addr_dst_nonos $tmpval; " \
-		"echo \"## Booting A926 from image at ${addr_dst_nonos}\"; " \
-		"sp_nonos_go ${addr_dst_nonos}; " \
-		"sp_wdt_set;" \
-	"fi; " \
 	"dhcp ${addr_dst_dtb} ${serverip}:dtb" __stringify(USER_NAME) " && " \
 	"dhcp ${addr_dst_kernel} ${serverip}:uImage" __stringify(USER_NAME) "; " \
 	"if test $? != 0; then " \

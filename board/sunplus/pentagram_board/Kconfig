@@ -43,16 +43,6 @@ config SYS_USE_QKBOOT_HEADER
 	  replace mkimage header of kernel image and
 	  also add sunplus-mkimage header on dtb image.
 
-config SRCADDR_NONOS
-	hex "nonos source address"
-	default 0x0 if SD_BOOT
-	default 0x0 if NAND_BOOT
-	default 0x98100000
-	help
-	  nonos source address
-	  nonos image is stored in this address.
-	  This address can be nand/emmc address.
-
 config SRCADDR_KERNEL
 	hex "Linux kernel source address"
 	default 0x0 if SD_BOOT
