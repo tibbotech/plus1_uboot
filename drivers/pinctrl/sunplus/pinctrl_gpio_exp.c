@@ -19,7 +19,7 @@
 #endif
 
 
-#ifdef CONFIG_PINCTRL_SUNPLUS
+#ifdef SUPPORT_PINMUX
 int gpio_pin_mux_set(u32 func, u32 pin)
 {
 	u32 idx, bit_pos;

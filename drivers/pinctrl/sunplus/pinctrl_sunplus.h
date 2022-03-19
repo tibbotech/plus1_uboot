@@ -3,6 +3,9 @@
 
 #include <common.h>
 
+#ifdef CONFIG_PINCTRL_SUNPLUS
+#define SUPPORT_PINMUX
+#endif
 
 #define pctl_err(fmt, arg...)            printf(fmt, ##arg)
 #if 0
@@ -12,7 +15,7 @@
 #endif
 
 #define GPIO_PINGRP(x)  moon1_regs[x]
-#ifdef CONFIG_PINCTRL_SUNPLUS
+#ifdef SUPPORT_PINMUX
 #define GPIO_PINMUX(x)  moon2_regs[x]
 #endif
 
@@ -102,7 +105,9 @@ extern func_t list_funcs[];
 extern const int list_funcsSZ;
 
 extern volatile u32 *moon1_regs;
+#ifdef SUPPORT_PINMUX
 extern volatile u32 *moon2_regs;
+#endif
 extern volatile u32 *gpioxt_regs;
 #if defined(CONFIG_PINCTRL_SUNPLUS)
 extern volatile u32 *gpioxt2_regs;

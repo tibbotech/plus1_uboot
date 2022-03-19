@@ -18,12 +18,10 @@ DECLARE_GLOBAL_DATA_PTR;
 
 //#define PINCTRL_DEBUG
 
-#ifdef CONFIG_PINCTRL_SUNPLUS
-#define SUPPORT_PINMUX
-#endif
-
 volatile u32 *moon1_regs = NULL;
+#ifdef SUPPORT_PINMUX
 volatile u32 *moon2_regs = NULL;
+#endif
 volatile u32 *gpioxt_regs = NULL;
 #ifdef CONFIG_PINCTRL_SUNPLUS
 volatile u32 *gpioxt2_regs = NULL;
@@ -433,6 +431,7 @@ static int sunplus_pinctrl_probe(struct udevice *dev)
 {
 	int i;
 
+#ifdef SUPPORT_PINMUX
 	// Get address of MOON2 registers.
 	moon2_regs = (void*)devfdt_get_addr_name(dev, "moon2");
 	pctl_info("moon2_regs = %px\n", moon2_regs);
@@ -440,6 +439,7 @@ static int sunplus_pinctrl_probe(struct udevice *dev)
 		pctl_err("Failed to get base address of MOON2!\n");
 		return -EINVAL;
 	}
+#endif
 
 	// Get address of GPIOXT registers.
 	gpioxt_regs = (void*)devfdt_get_addr_name(dev, "gpioxt");
