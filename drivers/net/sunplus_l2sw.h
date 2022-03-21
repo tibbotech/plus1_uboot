@@ -55,10 +55,6 @@
 // Register write & read
 #define HWREG_W(M, N)                   writel(N, (void*)&l2sw_reg_base->M)
 #define HWREG_R(M)                      readl((void*)&l2sw_reg_base->M)
-#ifdef CONFIG_SUNPLUS_L2SW
-#define MOON5REG_W(M, N)                writel(N, (int)&moon5_reg_base->M)
-#define MOON5REG_R(M)                   readl((int)&moon5_reg_base->M)
-#endif
 
 // Queue defines
 #define CONFIG_TX_DESCR_NUM             4
@@ -197,19 +193,6 @@ struct l2sw_reg {
 	u32 rx_hw_addr_1;
 	u32 rx_lw_addr_1;
 	u32 cpu_port_cntl_reg_1;
-};
-
-//=================================================================================================
-/*
- * TYPE: RegisterFile_MOON5
- */
-struct moon5_reg {
-	u32 mo5_thermal_ctl_0;
-	u32 mo5_thermal_ctl_1;
-	u32 mo4_thermal_ctl_2;
-	u32 mo4_thermal_ctl_3;
-	u32 mo4_tmds_l2sw_ctl;
-	u32 mo4_l2sw_clksw_ctl;
 };
 
 #else

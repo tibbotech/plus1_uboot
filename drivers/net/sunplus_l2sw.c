@@ -26,9 +26,6 @@ extern int read_otp_data(volatile struct hb_gp_regs *otp_data, volatile struct o
 				int addr, char *value);
 
 static struct l2sw_reg* l2sw_reg_base = NULL;
-#ifdef CONFIG_SUNPLUS_L2SW
-static struct moon5_reg* moon5_reg_base = NULL;
-#endif
 
 #if 0
 static void print_packet(char *p, int len)
@@ -630,12 +627,6 @@ static void l2sw_emac_board_setup(struct emac_eth_dev *priv)
 {
 	u32 reg;
 
-#ifdef CONFIG_SUNPLUS_L2SW
-	// Set polarity of TX & RX
-	reg = MOON5REG_R(mo4_l2sw_clksw_ctl);
-	MOON5REG_W(mo4_l2sw_clksw_ctl, reg | (0xf<<16) | 0xf);
-#endif
-
 	// Set phy 0 address.
 	if (priv->phy_addr0 <= 31) {
 #ifdef CONFIG_SUNPLUS_GL2SW
@@ -800,11 +791,7 @@ static int l2sw_emac_eth_ofdata_to_platdata(struct udevice *dev)
 	int i;
 	u8 otp_mac[ARP_HLEN];
 
-#ifdef CONFIG_SUNPLUS_GL2SW
-	l2sw_reg_base = (void*)devfdt_get_addr_name(dev, "gl2sw");
-#else
-	l2sw_reg_base = (void*)devfdt_get_addr_name(dev, "l2sw");
-#endif
+	l2sw_reg_base = (void*)devfdt_get_addr(dev);
 	pdata->iobase = (long)l2sw_reg_base;
 	//eth_info("l2sw_reg_base = %p\n", l2sw_reg_base);
 	if (l2sw_reg_base == (void*)-1) {
@@ -815,15 +802,6 @@ static int l2sw_emac_eth_ofdata_to_platdata(struct udevice *dev)
 #endif
 		return -EINVAL;
 	}
-
-#ifdef CONFIG_SUNPLUS_L2SW
-	moon5_reg_base = (void*)devfdt_get_addr_name(dev, "moon5");
-	//eth_info("moon5_reg_base = %p\n", moon5_reg_base);
-	if (moon5_reg_base == (void*)-1) {
-		eth_err("Failed to get base address of MOON5!\n");
-		return -EINVAL;
-	}
-#endif
 
 	pdata->phy_interface = -1;
 	priv->phy_addr0 = -1;
