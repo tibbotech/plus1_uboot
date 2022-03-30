@@ -9,7 +9,7 @@
 DECLARE_GLOBAL_DATA_PTR;
 
 /* Group 96, 97, 99: STC_AV0 - STC_AV2 */
-#if defined(CONFIG_TARGET_PENTAGRAM_Q645) || defined(CONFIG_TARGET_PENTAGRAM_SP7350)
+#if defined(CONFIG_TARGET_PENTAGRAM_Q645)
 typedef struct {
 	unsigned int stc_15_0;       // 12.0
 	unsigned int stc_31_16;      // 12.1
@@ -44,6 +44,37 @@ typedef struct {
 	unsigned int atc_1;          // 12.30
 	unsigned int atc_2;          // 12.31
 } stc_avReg_t;
+#elif defined(CONFIG_TARGET_PENTAGRAM_SP7350)
+typedef struct {
+	unsigned int stc_31_0;       // 12.0
+	unsigned int stc_63_32;      // 12.1
+	unsigned int stc_64;         // 12.2
+	unsigned int stc_divisor;    // 12.3
+	unsigned int stc_config;     // 12.4
+	unsigned int rtc_23_0;       // 12.5
+	unsigned int rtc_divisor;    // 12.6
+	unsigned int timerw_ctl;     // 12.7
+	unsigned int timerw_cnt;     // 12.8
+	unsigned int timer0_ctl;     // 12.9
+	unsigned int timer0_cnt;     // 12.10
+	unsigned int timer0_reload;  // 12.11
+	unsigned int timer1_ctl;     // 12.12
+	unsigned int timer1_cnt;     // 12.13
+	unsigned int timer1_reload;  // 12.14
+	unsigned int timer2_ctl;     // 12.15
+	unsigned int timer2_cnt;     // 12.16
+	unsigned int timer2_reload;  // 12.17
+	unsigned int timer3_ctl;     // 12.18
+	unsigned int timer3_cnt;     // 12.19
+	unsigned int timer3_reload;  // 12.20
+	unsigned int stcl_31_0;      // 12.21
+	unsigned int stcl_32;        // 12.22
+	unsigned int atc_31_0;       // 12.23
+	unsigned int atc_33_32;      // 12.24
+	unsigned int timer2_pres_val;// 12.25
+	unsigned int timer3_pres_val;// 12.26
+	unsigned int reserve[5];     // 12.27 --12.31
+}stc_avReg_t;
 #else
 typedef struct {
 	volatile unsigned int stc_15_0;
@@ -82,24 +113,35 @@ typedef struct {
 #endif
 
 #if defined(CONFIG_TARGET_PENTAGRAM_Q645) || defined(CONFIG_TARGET_PENTAGRAM_SP7350)
-#define PENTAGRAM_BASE_ADDR	(0xf8000000)
+#define PENTAGRAM_BASE_ADDR     (0xf8000000)
 #else
-#define PENTAGRAM_BASE_ADDR	(0x9C000000)
+#define PENTAGRAM_BASE_ADDR     (0x9C000000)
 #endif
 
-#define PENTAGRAM_MOON0		(PENTAGRAM_BASE_ADDR + (0 << 7))
-#define PENTAGRAM_MOON4		(PENTAGRAM_BASE_ADDR + (4 << 7))
-#define PENTAGRAM_WDTMR_ADDR	(PENTAGRAM_BASE_ADDR + (12 << 7))	/* Either Group 12 or 96 */
-#define PENTAGRAM_TIMER_ADDR	(PENTAGRAM_BASE_ADDR + (99 << 7))
-#define PENTAGRAM_RTC_ADDR	(PENTAGRAM_BASE_ADDR + (116 << 7))
-#define PENTAGRAM_OTP_ADDR	(PENTAGRAM_BASE_ADDR + (350<<7))
+#ifdef CONFIG_TARGET_PENTAGRAM_SP7350
 
-#define WATCHDOG_CMD_CNT_WR_UNLOCK	0xAB00
-#define WATCHDOG_CMD_CNT_WR_LOCK	0xAB01
-#define WATCHDOG_CMD_CNT_WR_MAX		0xDEAF
-#define WATCHDOG_CMD_PAUSE		0x3877
-#define WATCHDOG_CMD_RESUME		0x4A4B
-#define WATCHDOG_CMD_INTR_CLR		0x7482
+#define PENTAGRAM_AO_BASE_ADDR  (0xf8800000)   /*  sp7350  AO Domain base address */
+
+#define PENTAGRAM_MOON0         (PENTAGRAM_AO_BASE_ADDR + (0 << 7))
+#define PENTAGRAM_WDTMR_ADDR    (PENTAGRAM_AO_BASE_ADDR + (23 << 7))	/* Either Group 12 or 96 */
+#define PENTAGRAM_TIMER_ADDR    (PENTAGRAM_AO_BASE_ADDR + (26 << 7))
+#define PENTAGRAM_RTC_ADDR      (PENTAGRAM_AO_BASE_ADDR + (35 << 7))
+#else
+#define PENTAGRAM_MOON0         (PENTAGRAM_BASE_ADDR + (0 << 7))
+#define PENTAGRAM_WDTMR_ADDR    (PENTAGRAM_BASE_ADDR + (12 << 7))	/* Either Group 12 or 96 */
+#define PENTAGRAM_TIMER_ADDR    (PENTAGRAM_BASE_ADDR + (99 << 7))
+#define PENTAGRAM_RTC_ADDR      (PENTAGRAM_BASE_ADDR + (116 << 7))
+#endif
+
+#define PENTAGRAM_MOON4         (PENTAGRAM_BASE_ADDR + (4 << 7))
+#define PENTAGRAM_OTP_ADDR      (PENTAGRAM_BASE_ADDR + (350<<7))
+
+#define WATCHDOG_CMD_CNT_WR_UNLOCK  0xAB00
+#define WATCHDOG_CMD_CNT_WR_LOCK    0xAB01
+#define WATCHDOG_CMD_CNT_WR_MAX     0xDEAF
+#define WATCHDOG_CMD_PAUSE          0x3877
+#define WATCHDOG_CMD_RESUME         0x4A4B
+#define WATCHDOG_CMD_INTR_CLR       0x7482
 
 
 void s_init(void)
@@ -122,8 +164,16 @@ void s_init(void)
 unsigned long notrace timer_read_counter(void)
 {
 	unsigned long value;
+
 	stc_avReg_t *pstc_avReg = (stc_avReg_t *)(PENTAGRAM_TIMER_ADDR);
 
+#ifdef CONFIG_TARGET_PENTAGRAM_SP7350
+	pstc_avReg->stcl_32 = 0; /* latch */
+	value  = (unsigned long)(pstc_avReg->stcl_32);
+	value  = value << 32;
+	value  |= (unsigned long)(pstc_avReg->stcl_31_0);
+	value  = value >> 5;
+#else
 	pstc_avReg->stcl_2 = 0; /* latch */
 	value  = (unsigned long)(pstc_avReg->stcl_2);
 	value  = value << 16;
@@ -131,6 +181,7 @@ unsigned long notrace timer_read_counter(void)
 	value  = value << 16;
 	value |= (unsigned long)(pstc_avReg->stcl_0);
 	value = value >> 5; /* divided by 32 => (1000 * 32)/32 = 1000*/
+#endif
 	return value;
 }
 
