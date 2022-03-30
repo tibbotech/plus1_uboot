@@ -1,21 +1,32 @@
 config PINCTRL_SUNPLUS
+	bool "Sunplus SP7021 Pinctrl and GPIO driver"
 	depends on DM && (ARCH_PENTAGRAM && !TARGET_PENTAGRAM_Q645 && !TARGET_PENTAGRAM_SP7350)
+	select DM_GPIO
 	default y
-	bool "Sunplus SP7021 pin control driver"
 	help
-	   Support pin multiplexing and pin configuration control on
-	   Sunplus's SP7021 SoC.
+	  Support pin configuration control on Sunplus's SP7021 SoC.
+
+	  The driver is controlled by a device tree node which contains both
+	  the GPIO definitions and pin control functions.
 
 config PINCTRL_SUNPLUS_Q645
+	bool "Sunplus Q645 Pinctrl and GPIO driver"
 	depends on DM && TARGET_PENTAGRAM_Q645
+	select DM_GPIO
 	default y
-	bool "Sunplus Q645 pin control driver"
 	help
-	   Support pin configuration control on Sunplus's Q645 SoC.
+	  Support pin configuration control on Sunplus's Q645 SoC.
+
+	  The driver is controlled by a device tree node which contains both
+	  the GPIO definitions and pin control functions.
 
 config PINCTRL_SUNPLUS_SP7350
+	bool "Sunplus SP7350 Pinctrl and GPIO driver"
 	depends on DM && TARGET_PENTAGRAM_SP7350
+	select DM_GPIO
 	default y
-	bool "Sunplus SP7350 pin control driver"
 	help
-	   Support pin configuration control on Sunplus's SP7350 SoC.
+	  Support pin configuration control on Sunplus's SP7350 SoC.
+
+	  The driver is controlled by a device tree node which contains both
+	  the GPIO definitions and pin control functions.
