@@ -221,7 +221,7 @@
 #define TMPADDR_KERNEL		0x3FFFFC0
 #define TMPADDR_HEADER		0x600000
 #define DSTADDR_KERNEL		0x7FFFC0 /* if stext is on 0x800000 */
-#define DSTADDR_DTB			0x77FFC0
+#define DSTADDR_DTB		0x77FFC0
 
 //#define SUPPROT_NFS_ROOTFS
 #ifdef SUPPROT_NFS_ROOTFS
@@ -282,7 +282,7 @@
 	"setexpr sz_kernel ${sz_kernel} / 0x10000; " \
 	"setexpr sz_kernel ${sz_kernel} * 0x10000; " \
 	"setenv bootargs ${b_c} root=/dev/mtdblock6 rw rootfstype=jffs2 user_debug=255 rootwait " \
-	"mtdparts=f8000b00.spinor:96k@0(iboot)ro,160k(xboot)ro,128k(dtb),768k(uboot),1m(reserve),0x${sz_kernel}(kernel),-(rootfs); "
+	"mtdparts=f8000b00.spinor:96k@0(iboot)ro,160k(xboot)ro,128k(dtb),1m(uboot),640k(reserve),0x${sz_kernel}(kernel),-(rootfs); "
 #else
 #define NOR_LOAD_KERNEL \
 	"setexpr sz_kernel ${sz_kernel} + 3; setexpr sz_kernel ${sz_kernel} / 4; " \

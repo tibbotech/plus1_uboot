@@ -32,7 +32,7 @@ config SRCADDR_KERNEL
 	hex "Linux kernel source address"
 	default 0x0 if SD_BOOT
 	default 0x0 if NAND_BOOT
-	default 0xF0220000
+	default 0xF0200000
 	help
 	  Linux kernel source address
 	  Linux kernel image is stored in this
