@@ -430,6 +430,7 @@
 	"run isp_common; " \
 	"\0" \
 "isp_sdcard=setenv isp_if mmc && setenv isp_dev $sdcard_devid; " \
+	"sp_wdt_set;" \
 	"mmc list; " \
 	"fatsize $isp_if $isp_dev /ISPBOOOT.BIN; " \
 	"echo ISPBOOOT filesize = $filesize; "\
