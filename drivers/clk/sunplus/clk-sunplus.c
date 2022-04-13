@@ -101,12 +101,13 @@ static int sunplus_clk_probe(struct udevice *dev)
 
 static const struct udevice_id sunplus_clk_ids[] = {
 	{ .compatible = "sunplus,sp-clkc" },
+	{ .compatible = "sunplus,sp7021-clkc" },
 	{ }
 };
 
 U_BOOT_DRIVER(sunplus_clk) = {
 	.name					= "sunplus_clk",
-	.id						= UCLASS_CLK,
+	.id					= UCLASS_CLK,
 	.of_match				= sunplus_clk_ids,
 	.priv_auto				= sizeof(struct sunplus_clk),
 	.ops					= &sunplus_clk_ops,
@@ -139,7 +140,7 @@ int set_cpu_clk_info(void)
 		}
 	}
 
-#ifdef CONFIG_RESET_SP7021
+#ifdef CONFIG_RESET_SUNPLUS
 	ret = uclass_get_device(UCLASS_RESET, 0, &dev);
 	if (ret) {
 		pr_err("Failed to find reset node. Check device tree\n");

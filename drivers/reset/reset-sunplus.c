@@ -12,19 +12,21 @@
 #include <reset-uclass.h>
 #ifdef CONFIG_TARGET_PENTAGRAM_I143_P
 #include <dt-bindings/reset/sp-i143.h>
+#elif defined(CONFIG_TARGET_PENTAGRAM_Q645)
+#include <dt-bindings/reset/sp-q645.h>
 #else
 #include <dt-bindings/reset/sp-q628.h>
 #endif
 
 #define BITASSERT(id, val)	(BIT(16 + (id)) | ((val) << (id)))
 
-struct sp7021_reset_priv {
+struct sp_reset_priv {
 	void *membase;
 };
 
-static int sp7021_reset_update(struct reset_ctl *reset_ctl, int assert)
+static int sp_reset_update(struct reset_ctl *reset_ctl, int assert)
 {
-	struct sp7021_reset_priv *priv = dev_get_priv(reset_ctl->dev);
+	struct sp_reset_priv *priv = dev_get_priv(reset_ctl->dev);
 	int reg_width = sizeof(u32)/2;
 	int bank = reset_ctl->id / (reg_width * BITS_PER_BYTE);
 	int offset = reset_ctl->id % (reg_width * BITS_PER_BYTE);
@@ -36,9 +38,9 @@ static int sp7021_reset_update(struct reset_ctl *reset_ctl, int assert)
 	return 0;
 }
 
-static int sp7021_reset_status(struct reset_ctl *reset_ctl)
-{ 
-	struct sp7021_reset_priv *priv = dev_get_priv(reset_ctl->dev);
+static int sp_reset_status(struct reset_ctl *reset_ctl)
+{
+	struct sp_reset_priv *priv = dev_get_priv(reset_ctl->dev);
 	int reg_width = sizeof(u32)/2;
 	int bank = reset_ctl->id / (reg_width * BITS_PER_BYTE);
 	int offset = reset_ctl->id % (reg_width * BITS_PER_BYTE);
@@ -49,31 +51,32 @@ static int sp7021_reset_status(struct reset_ctl *reset_ctl)
 	return !!(reg & BIT(offset));
 }
 
-static int sp7021_reset_assert(struct reset_ctl *reset_ctl)
+static int sp_reset_assert(struct reset_ctl *reset_ctl)
 {
-	return sp7021_reset_update(reset_ctl, 1);
+	return sp_reset_update(reset_ctl, 1);
 }
 
-static int sp7021_reset_deassert(struct reset_ctl *reset_ctl)
+static int sp_reset_deassert(struct reset_ctl *reset_ctl)
 {
-	return sp7021_reset_update(reset_ctl, 0);
+	return sp_reset_update(reset_ctl, 0);
 }
 
-struct reset_ops sp7021_reset_ops = {
-	.rst_assert   = sp7021_reset_assert,
-	.rst_deassert = sp7021_reset_deassert,
-	.rst_status   = sp7021_reset_status,
+struct reset_ops sp_reset_ops = {
+	.rst_assert   = sp_reset_assert,
+	.rst_deassert = sp_reset_deassert,
+	.rst_status   = sp_reset_status,
 };
 
-static const struct udevice_id sp7021_reset_ids[] = {
+static const struct udevice_id sp_reset_ids[] = {
 	{ .compatible = "sunplus,sp-reset" },
 	{ .compatible = "sunplus,sp7021-reset" },
+	{ .compatible = "sunplus,q645-reset" },
 	{ /* sentinel */ }
 };
 
-static int sp7021_reset_probe(struct udevice *dev)
+static int sp_reset_probe(struct udevice *dev)
 {
-	struct sp7021_reset_priv *priv = dev_get_priv(dev);
+	struct sp_reset_priv *priv = dev_get_priv(dev);
 
 	priv->membase = (void *)devfdt_get_addr(dev);
 
@@ -81,11 +84,11 @@ static int sp7021_reset_probe(struct udevice *dev)
 	return 0;
 }
 
-U_BOOT_DRIVER(sp7021_reset) = {
-	.name = "sp7021_reset",
+U_BOOT_DRIVER(sp_reset) = {
+	.name = "sp_reset",
 	.id = UCLASS_RESET,
-	.of_match = sp7021_reset_ids,
-	.probe = sp7021_reset_probe,
-	.ops = &sp7021_reset_ops,
-	.priv_auto = sizeof(struct sp7021_reset_priv),
+	.of_match = sp_reset_ids,
+	.probe = sp_reset_probe,
+	.ops = &sp_reset_ops,
+	.priv_auto = sizeof(struct sp_reset_priv),
 };

@@ -197,11 +197,11 @@ config RESET_SCMI
 	  Enable this option if you want to support reset controller
 	  devices exposed by a SCMI agent based on SCMI reset domain
 	  protocol communication with a SCMI server.
-config RESET_SP7021
-	bool "RESET support for Sunplus SP7021 SoC"
+config RESET_SUNPLUS
+	bool "RESET support for Sunplus SoC"
 	depends on DM_RESET && ARCH_PENTAGRAM
 	default y
 	help
 	  This enables support for common reset driver for
-	  Sunplus SP7021 SoCs.	  
+	  Sunplus SoCs.
 endmenu

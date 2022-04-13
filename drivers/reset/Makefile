@@ -29,4 +29,4 @@ obj-$(CONFIG_RESET_SIFIVE) += reset-sifive.o
 obj-$(CONFIG_RESET_SYSCON) += reset-syscon.o
 obj-$(CONFIG_RESET_RASPBERRYPI) += reset-raspberrypi.o
 obj-$(CONFIG_RESET_SCMI) += reset-scmi.o
-obj-$(CONFIG_RESET_SP7021) += reset-sp7021.o
+obj-$(CONFIG_RESET_SUNPLUS) += reset-sunplus.o
