@@ -73,6 +73,7 @@ static const struct udevice_id sp_reset_ids[] = {
 	{ .compatible = "sunplus,sp-reset" },
 	{ .compatible = "sunplus,sp7021-reset" },
 	{ .compatible = "sunplus,q645-reset" },
+	{ .compatible = "sunplus,sp7350-reset" },
 	{ /* sentinel */ }
 };
 
