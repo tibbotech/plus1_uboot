@@ -7,9 +7,6 @@
  */
 
 #include <asm/arch/clk-sunplus.h>
-#ifdef SP_CLK_TEST
-#include <dt-bindings/clock/sp-q628.h>
-#endif
 
 ulong extclk_rate;
 struct udevice *clkc_dev;
@@ -30,18 +27,12 @@ static int sunplus_clk_disable(struct clk *clk)
 
 static ulong sunplus_clk_get_rate(struct clk *clk)
 {
-	if (clk->id < PLL_MAX)
-		return sp_pll_get_rate(clk->id);
-	else
-		return sp_gate_get_rate(clk->id);
+	return sp_clk_get_rate(clk);
 }
 
 static ulong sunplus_clk_set_rate(struct clk *clk, ulong rate)
 {
-	if (clk->id < PLL_MAX)
-		return sp_pll_set_rate(clk->id, rate);
-	else
-		return -ENOENT;
+	return sp_clk_set_rate(clk, rate);
 }
 
 int sunplus_clk_get_by_index(int index, struct clk *clk)
@@ -96,61 +87,33 @@ static int sunplus_clk_probe(struct udevice *dev)
 	priv->base = (void *)devfdt_get_addr(dev);
 	clkc_dev = dev;
 
-	return 0;
+	return sp_clkc_init();
 }
 
 static const struct udevice_id sunplus_clk_ids[] = {
 	{ .compatible = "sunplus,sp-clkc" },
 	{ .compatible = "sunplus,sp7021-clkc" },
+	{ .compatible = "sunplus,q645-clkc" },
 	{ }
 };
 
 U_BOOT_DRIVER(sunplus_clk) = {
-	.name					= "sunplus_clk",
-	.id					= UCLASS_CLK,
-	.of_match				= sunplus_clk_ids,
-	.priv_auto				= sizeof(struct sunplus_clk),
-	.ops					= &sunplus_clk_ops,
-	.probe					= sunplus_clk_probe,
+	.name		= "sunplus_clk",
+	.id		= UCLASS_CLK,
+	.of_match	= sunplus_clk_ids,
+	.priv_auto	= sizeof(struct sunplus_clk),
+	.ops		= &sunplus_clk_ops,
+	.probe		= sunplus_clk_probe,
 };
 
-int set_cpu_clk_info(void)
-{
-	struct udevice *dev;
-	struct uclass *uc;
-	struct clk clk;
-	int ret;
-
-	ret = uclass_get(UCLASS_CLK, &uc);
-	if (ret) {
-		pr_err("Failed to find clocks node. Check device tree\n");
-		return ret;
-	}
-
-	uclass_foreach_dev(dev, uc) {
-		if (!device_probe(dev)) {
-			if (dev != clkc_dev) {
-				clk.id = 0;
-				if (!clk_request(dev, &clk)) {
-					sp_clk_dump(&clk);
-					clk_free(&clk);
-				}
-			} else
-				sp_plls_dump();
-		}
-	}
-
-#ifdef CONFIG_RESET_SUNPLUS
-	ret = uclass_get_device(UCLASS_RESET, 0, &dev);
-	if (ret) {
-		pr_err("Failed to find reset node. Check device tree\n");
-		return ret;
-	}
-#endif
-
 #ifdef SP_CLK_TEST
+#include <dt-bindings/clock/sp-q628.h>
+
+void sp_clk_test(void)
+{
+	struct clk clk;
 	printf("===== SP_CLK_TEST: disable/enable uartdmarx0 clock #1\n");
-	ret = uclass_get_device_by_name(UCLASS_SERIAL, "serial@sp_uartdmarx0", &dev);
+	ret = uclass_get_device_by_name(UCLASS_SERIAL, "serial@9c008980", &dev);
 	if (!ret) {
 		clk.id = 1;
 		ret = sunplus_clk_request(dev, &clk);
@@ -167,6 +130,7 @@ int set_cpu_clk_info(void)
 	printf("===== SP_CLK_TEST: set PLL_TV_A rate\n");
 	ret = sunplus_clk_get_by_index(PLL_TV_A, &clk);
 	if (!ret) {
+		struct clk clk;
 		ulong rate = clk_get_rate(&clk);
 		sp_clk_dump(&clk);
 		clk_set_rate(&clk, 90000000UL); // change rate
@@ -175,7 +139,36 @@ int set_cpu_clk_info(void)
 		sp_clk_dump(&clk);
 		clk_free(&clk);
 	}
+}
+#else
+#define sp_clk_test()
 #endif
+
+int set_cpu_clk_info(void)
+{
+	struct udevice *dev;
+	struct uclass *uc;
+	int ret;
+
+	ret = uclass_get(UCLASS_CLK, &uc);
+	if (ret) {
+		pr_err("Failed to find clocks node. Check device tree\n");
+		return ret;
+	}
+
+	uclass_foreach_dev(dev, uc) {
+		device_probe(dev);
+	}
+	sp_plls_dump();
+
+#ifdef CONFIG_RESET_SUNPLUS
+	ret = uclass_get_device(UCLASS_RESET, 0, &dev);
+	if (ret) {
+		pr_err("Failed to find reset node. Check device tree\n");
+		return ret;
+	}
+#endif
+	sp_clk_test();
 
 	return ret;
 }
