@@ -14,6 +14,8 @@
 #include <dt-bindings/reset/sp-i143.h>
 #elif defined(CONFIG_TARGET_PENTAGRAM_Q645)
 #include <dt-bindings/reset/sp-q645.h>
+#elif defined(CONFIG_TARGET_PENTAGRAM_SP7350)
+#include <dt-bindings/reset/sp7350.h>
 #else
 #include <dt-bindings/reset/sp-q628.h>
 #endif
