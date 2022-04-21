@@ -107,8 +107,7 @@ U_BOOT_DRIVER(sunplus_clk) = {
 	.probe		= sunplus_clk_probe,
 };
 
-#if 1//def SP_CLK_TEST
-#include <dt-bindings/clock/sp-q628.h>
+#ifdef SP_CLK_TEST
 #include <reset.h>
 
 void sp_clk_test(void)
@@ -120,7 +119,11 @@ void sp_clk_test(void)
 	int ret;
 
 	printf("===== SP_CLK_TEST: get & show uart0 clocks\n");
+#ifdef CONFIG_TARGET_PENTAGRAM_COMMON
 	ret = uclass_get_device_by_name(UCLASS_SERIAL, "serial@9c000900", &dev);
+#else
+	ret = uclass_get_device_by_name(UCLASS_SERIAL, "serial@f8000900", &dev);
+#endif
 	if (!ret) {
 		ret = clk_get_bulk(dev, &clks);
 		if (ret)
@@ -134,14 +137,9 @@ void sp_clk_test(void)
 			pr_err("reset_get_bulk failed!");
 	}
 
-	printf("===== SP_CLK_TEST: set PLL_TV_A rate\n");
-	ret = sunplus_clk_get_by_index(PLL_TV_A, &clk);
+	printf("===== SP_CLK_TEST: get & show clock #0\n");
+	ret = sunplus_clk_get_by_index(0, &clk);
 	if (!ret) {
-		ulong rate = clk_get_rate(&clk);
-		sp_clk_dump(&clk);
-		clk_set_rate(&clk, 90000000UL); // change rate
-		sp_clk_dump(&clk);
-		clk_set_rate(&clk, rate); // restore
 		sp_clk_dump(&clk);
 		clk_free(&clk);
 	}
