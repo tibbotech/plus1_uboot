@@ -511,6 +511,8 @@ ulong sp_clk_set_rate(struct clk *clk, ulong rate)
 
 void sp_clk_dump(struct clk *clk)
 {
+	if (clk->dev == clkc_dev)
+		clk = clks[clk->id];
 	CLK_PRINT(clk->dev->name, clk_get_rate(clk));
 }
 
