@@ -16,7 +16,7 @@
 #include <dm.h>
 #include <dm/device-internal.h>
 
-//#define SP_CLK_TEST
+#define SP_CLK_TEST
 
 //#define TRACE	printf("!!! %s:%d\n", __FUNCTION__, __LINE__)
 #define TRACE
@@ -38,5 +38,7 @@ int sp_clkc_init(void);
 
 int sunplus_clk_get_by_index(int index, struct clk *clk);
 int sunplus_clk_request(struct udevice *dev, struct clk *clk);
+
+extern struct udevice *clkc_dev;
 
 #endif /*__CLK_SUNPLUS_H__*/

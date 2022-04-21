@@ -107,31 +107,36 @@ U_BOOT_DRIVER(sunplus_clk) = {
 	.probe		= sunplus_clk_probe,
 };
 
-#ifdef SP_CLK_TEST
+#if 1//def SP_CLK_TEST
 #include <dt-bindings/clock/sp-q628.h>
+#include <reset.h>
 
 void sp_clk_test(void)
 {
+	struct udevice *dev;
 	struct clk clk;
-	printf("===== SP_CLK_TEST: disable/enable uartdmarx0 clock #1\n");
-	ret = uclass_get_device_by_name(UCLASS_SERIAL, "serial@9c008980", &dev);
+	struct clk_bulk clks;
+	struct reset_ctl_bulk resets;
+	int ret;
+
+	printf("===== SP_CLK_TEST: get & show uart0 clocks\n");
+	ret = uclass_get_device_by_name(UCLASS_SERIAL, "serial@9c000900", &dev);
 	if (!ret) {
-		clk.id = 1;
-		ret = sunplus_clk_request(dev, &clk);
-		if (!ret) {
-			sp_clk_dump(&clk);
-			clk_disable(&clk); // disable
-			sp_clk_dump(&clk);
-			clk_enable(&clk); // enable
-			sp_clk_dump(&clk);
-			clk_free(&clk);
-		}
+		ret = clk_get_bulk(dev, &clks);
+		if (ret)
+			pr_err("clk_get_bulk failed!");
+		else
+			for (int i = 0; i < clks.count; i++)
+				sp_clk_dump(&clks.clks[i]);
+
+		ret = reset_get_bulk(dev, &resets);
+		if (ret)
+			pr_err("reset_get_bulk failed!");
 	}
 
 	printf("===== SP_CLK_TEST: set PLL_TV_A rate\n");
 	ret = sunplus_clk_get_by_index(PLL_TV_A, &clk);
 	if (!ret) {
-		struct clk clk;
 		ulong rate = clk_get_rate(&clk);
 		sp_clk_dump(&clk);
 		clk_set_rate(&clk, 90000000UL); // change rate
@@ -168,6 +173,7 @@ int set_cpu_clk_info(void)
 		pr_err("Failed to find reset node. Check device tree\n");
 		return ret;
 	}
+	printf("reset: %s\n", dev->name);
 #endif
 	sp_clk_test();
 

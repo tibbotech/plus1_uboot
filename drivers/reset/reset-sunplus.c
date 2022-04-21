@@ -63,7 +63,19 @@ static int sp_reset_deassert(struct reset_ctl *reset_ctl)
 	return sp_reset_update(reset_ctl, 0);
 }
 
+static int sp_reset_request(struct reset_ctl *reset_ctl)
+{
+	return 0;
+}
+
+static int sp_reset_free(struct reset_ctl *reset_ctl)
+{
+	return 0;
+}
+
 struct reset_ops sp_reset_ops = {
+	.request = sp_reset_request,
+	.rfree = sp_reset_free,
 	.rst_assert   = sp_reset_assert,
 	.rst_deassert = sp_reset_deassert,
 	.rst_status   = sp_reset_status,

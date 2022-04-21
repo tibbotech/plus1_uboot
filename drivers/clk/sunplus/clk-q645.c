@@ -511,6 +511,8 @@ ulong sp_clk_set_rate(struct clk *clk, ulong rate)
 
 void sp_clk_dump(struct clk *clk)
 {
+	if (clk->dev == clkc_dev)
+		clk = clks[clk->id];
 	CLK_PRINT(clk->dev->name, clk_get_rate(clk));
 }
 
@@ -527,12 +529,12 @@ int sp_clkc_init(void)
 	pr_info("sp-clkc init\n");
 
 	/* PLLs */
-	clks[PLLS] = clk_register_sp_pll("PLLS", PLLS_CTL, 14);
-	clks[PLLC] = clk_register_sp_pll("PLLC", PLLC_CTL, 14);
-	clks[PLLN] = clk_register_sp_pll("PLLN", PLLN_CTL, 14);
-	clks[PLLH] = clk_register_sp_pll("PLLH", PLLH_CTL, 24); // BP: 16 + 8
-	clks[PLLD] = clk_register_sp_pll("PLLD", PLLD_CTL, 14);
-	clks[PLLA] = clk_register_sp_pll("PLLA", PLLA_CTL, 2);
+	clk_dm(PLLS, clks[PLLS] = clk_register_sp_pll("PLLS", PLLS_CTL, 14));
+	clk_dm(PLLC, clks[PLLC] = clk_register_sp_pll("PLLC", PLLC_CTL, 14));
+	clk_dm(PLLN, clks[PLLN] = clk_register_sp_pll("PLLN", PLLN_CTL, 14));
+	clk_dm(PLLH, clks[PLLH] = clk_register_sp_pll("PLLH", PLLH_CTL, 24)); // BP: 16 + 8
+	clk_dm(PLLD, clks[PLLD] = clk_register_sp_pll("PLLD", PLLD_CTL, 14));
+	clk_dm(PLLA, clks[PLLA] = clk_register_sp_pll("PLLA", PLLA_CTL, 2));
 
 	pr_info("sp-clkc: register fixed_rate/factor\n");
 	/* fixed frequency & fixed factor */
@@ -561,11 +563,11 @@ int sp_clkc_init(void)
 		struct sp_clk *sp_clk = &sp_clks[i];
 		int j = sp_clk->id;
 
-		clks[j] = clk_register_sp_clk(sp_clk);
+		clk_dm(j, clks[j] = clk_register_sp_clk(sp_clk));
 		if (IS_ERR(clks[j]))
 			return PTR_ERR(clks[j]);
 
-		//sp_clk_dump(clks[j]);
+		sp_clk_dump(clks[j]);
 		if (i == 0) {
 			// SYSTEM_D2/D4's parent is clks[0]:SYSTEM
 			clk_register_fixed_factor(NULL, "SYSTEM_D2", "SYSTEM", 0, 1, 2); // SYS_CLK/2
