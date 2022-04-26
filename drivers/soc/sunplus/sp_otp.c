@@ -82,9 +82,10 @@ static int do_read_otp(struct cmd_tbl *cmdtp, int flag, int argc, char * const a
 
 	efuse = 0;
 	if (argc == 3) {
-#if !defined(CONFIG_TARGET_PENTAGRAM_Q645) && !defined(CONFIG_TARGET_PENTAGRAM_SP7350)
-	#if (defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)) || \
-		(defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C))
+#if !defined(CONFIG_TARGET_PENTAGRAM_Q645)
+	#if (defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C) && !defined(CONFIG_TARGET_PENTAGRAM_SP7350)) || \
+		(defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C)) || \
+		defined(CONFIG_TARGET_PENTAGRAM_SP7350)
 		return CMD_RET_USAGE;
 	#endif
 #endif
@@ -100,15 +101,18 @@ static int do_read_otp(struct cmd_tbl *cmdtp, int flag, int argc, char * const a
 			otp_size = QAK645_EFUSE2_SIZE;
 		} else
 			return CMD_RET_USAGE;
-#if !defined(CONFIG_TARGET_PENTAGRAM_Q645) && !defined(CONFIG_TARGET_PENTAGRAM_SP7350)
-	#if (defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)) || \
-		(defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C))
+#if !defined(CONFIG_TARGET_PENTAGRAM_Q645)
+	#if (defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C) && !defined(CONFIG_TARGET_PENTAGRAM_SP7350)) || \
+		(defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C)) || \
+		defined(CONFIG_TARGET_PENTAGRAM_SP7350)
 	} else if (argc == 2) {
 		otp_data = HB_GP_REG;
 		#if defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)
 		otp_size = QAC628_EFUSE_SIZE;
 		#elif defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C)
 		otp_size = I143_EFUSE_SIZE;
+		#elif defined(CONFIG_TARGET_PENTAGRAM_SP7350)
+		otp_size = QAK654_EFUSE_SIZE;
 		#endif
 	#endif
 #endif
@@ -122,7 +126,7 @@ static int do_read_otp(struct cmd_tbl *cmdtp, int flag, int argc, char * const a
 		j = 0;
 
 		for (addr = 0 ; addr < (otp_size - 1); addr += (OTP_WORD_SIZE * OTP_WORDS_PER_BANK)) {
-#if defined(CONFIG_TARGET_PENTAGRAM_Q645) || defined(CONFIG_TARGET_PENTAGRAM_SP7350)
+#if defined(CONFIG_TARGET_PENTAGRAM_Q645)
 			if (efuse == 0) {
 				if (read_otp_data(HB_GP_REG, SP_OTPRX_REG, addr, &value) == -1)
 					return CMD_RET_FAILURE;
@@ -133,8 +137,9 @@ static int do_read_otp(struct cmd_tbl *cmdtp, int flag, int argc, char * const a
 				if (read_otp_data(CUSTOMER_HB_GP_REG, CUSTOMER_OTPRX_REG, addr, &value) == -1)
 					return CMD_RET_FAILURE;
 			}
-#elif (defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)) || \
-	(defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C))
+#elif (defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C) && !defined(CONFIG_TARGET_PENTAGRAM_SP7350)) || \
+	(defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C)) || \
+	defined(CONFIG_TARGET_PENTAGRAM_SP7350)
 			if (read_otp_data(HB_GP_REG, SP_OTPRX_REG, addr, &value) == -1)
 				return CMD_RET_FAILURE;
 #endif
@@ -156,7 +161,7 @@ static int do_read_otp(struct cmd_tbl *cmdtp, int flag, int argc, char * const a
 			return CMD_RET_USAGE;
 		}
 
-#if defined(CONFIG_TARGET_PENTAGRAM_Q645) || defined(CONFIG_TARGET_PENTAGRAM_SP7350)
+#if defined(CONFIG_TARGET_PENTAGRAM_Q645)
 		if (efuse == 0) {
 			if (read_otp_data(HB_GP_REG, SP_OTPRX_REG, addr, &value) == -1)
 				return CMD_RET_FAILURE;
@@ -167,8 +172,9 @@ static int do_read_otp(struct cmd_tbl *cmdtp, int flag, int argc, char * const a
 			if (read_otp_data(CUSTOMER_HB_GP_REG, CUSTOMER_OTPRX_REG, addr, &value) == -1)
 				return CMD_RET_FAILURE;
 		}
-#elif (defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)) || \
-	(defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C))
+#elif (defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C) && !defined(CONFIG_TARGET_PENTAGRAM_SP7350)) || \
+	(defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C)) || \
+	defined(CONFIG_TARGET_PENTAGRAM_SP7350)
 		if (read_otp_data(HB_GP_REG, SP_OTPRX_REG, addr, &value) == -1)
 			return CMD_RET_FAILURE;
 #endif
@@ -190,9 +196,10 @@ static int do_write_otp(struct cmd_tbl  *cmdtp, int flag, int argc, char * const
 	char value;
 
 	if (argc == 4) {
-	#if !defined(CONFIG_TARGET_PENTAGRAM_Q645) && !defined(CONFIG_TARGET_PENTAGRAM_SP7350)
-		#if (defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)) || \
-			(defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C))
+	#if !defined(CONFIG_TARGET_PENTAGRAM_Q645)
+		#if (defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C) && !defined(CONFIG_TARGET_PENTAGRAM_SP7350)) || \
+			(defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C)) || \
+			defined(CONFIG_TARGET_PENTAGRAM_SP7350)
 		return CMD_RET_USAGE;
 		#endif
 	#endif
@@ -205,14 +212,17 @@ static int do_write_otp(struct cmd_tbl  *cmdtp, int flag, int argc, char * const
 			otp_size = QAK645_EFUSE2_SIZE;
 		else
 			return CMD_RET_USAGE;
-	#if !defined(CONFIG_TARGET_PENTAGRAM_Q645) && !defined(CONFIG_TARGET_PENTAGRAM_SP7350)
-		#if (defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)) || \
-			(defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C))
+	#if !defined(CONFIG_TARGET_PENTAGRAM_Q645)
+		#if (defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C) && !defined(CONFIG_TARGET_PENTAGRAM_SP7350)) || \
+			(defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C)) || \
+			defined(CONFIG_TARGET_PENTAGRAM_SP7350)
 	} else if (argc == 3) {
 			#if defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)
 		otp_size = QAC628_EFUSE_SIZE;
 			#elif defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C)
 		otp_size = I143_EFUSE_SIZE;
+			#elif defined(CONFIG_TARGET_PENTAGRAM_SP7350)
+		otp_size = QAK654_EFUSE_SIZE;
 			#endif
 		#endif
 	#endif
@@ -231,7 +241,7 @@ static int do_write_otp(struct cmd_tbl  *cmdtp, int flag, int argc, char * const
 
 	value = data & 0xFF;
 
-#if defined(CONFIG_TARGET_PENTAGRAM_Q645) || defined(CONFIG_TARGET_PENTAGRAM_SP7350)
+#if defined(CONFIG_TARGET_PENTAGRAM_Q645)
 	if (efuse == 0) {
 		if (write_otp_data(HB_GP_REG, SP_OTPRX_REG, addr, &value) == -1)
 			return CMD_RET_FAILURE;
@@ -242,8 +252,9 @@ static int do_write_otp(struct cmd_tbl  *cmdtp, int flag, int argc, char * const
 		if (write_otp_data(CUSTOMER_HB_GP_REG, CUSTOMER_OTPRX_REG, addr, &value) == -1)
 			return CMD_RET_FAILURE;
 	}
-#elif (defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)) || \
-	(defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C))
+#elif (defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C) && !defined(CONFIG_TARGET_PENTAGRAM_SP7350)) || \
+	(defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C)) || \
+	defined(CONFIG_TARGET_PENTAGRAM_SP7350)
 	if (write_otp_data(HB_GP_REG, SP_OTPRX_REG, addr, &value) == -1)
 		return CMD_RET_FAILURE;
 #endif
@@ -256,7 +267,7 @@ static int do_write_otp(struct cmd_tbl  *cmdtp, int flag, int argc, char * const
 
 /*******************************************************/
 
-#if defined(CONFIG_TARGET_PENTAGRAM_Q645) || defined(CONFIG_TARGET_PENTAGRAM_SP7350)
+#if defined(CONFIG_TARGET_PENTAGRAM_Q645)
 U_BOOT_CMD(
 	rotp, 3, 1, do_read_otp,
 	"read 1 byte data or all data of OTP",

@@ -10,7 +10,7 @@
 #ifndef __CONFIG_PENTAGRAM_H
 #define __CONFIG_PENTAGRAM_H
 
-//#define CONFIG_CLOCKS
+#define CONFIG_CLOCKS
 
 /* Disable some options which is enabled by default: */
 #undef CONFIG_CMD_IMLS

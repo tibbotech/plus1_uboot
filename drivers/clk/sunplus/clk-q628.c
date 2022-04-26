@@ -9,7 +9,9 @@
 #include <asm/arch/clk-sunplus.h>
 #include <dt-bindings/clock/sp-q628.h>
 
-#define CLK_PRINT(name, rate)	printf("%-16.16s:%11lu Hz\n", name, rate)
+#define PLL_MAX		(16)
+#define EXTCLK		(-1)
+#define P_EXTCLK	(1 << 16)
 
 #define MASK_SET(shift, width, value) \
 ({ \
@@ -28,11 +30,11 @@
 #define PLLSYS_CTL	REG(4, 26)
 
 /* speical div_width values for PLLTV/PLLA */
-#define DIV_TV	33
-#define DIV_A	34
+#define DIV_TV		33
+#define DIV_A		34
 
 #define _M		1000000UL
-#define F_27M	(27 * _M)
+#define F_27M		(27 * _M)
 
 /* PLLTV parameters */
 enum {
@@ -48,27 +50,27 @@ enum {
 
 struct sp_pll {
 	char	*name;
-	int		parent;		/* parent clk->id, -1 for extclk */
+	int	parent;		/* parent clk->id, -1 for extclk */
 	void	*reg;
-	int		pd_bit;		/* power down bit idx */
-	int		bp_bit;		/* bypass bit idx */
+	int	pd_bit;		/* power down bit idx */
+	int	bp_bit;		/* bypass bit idx */
 	ulong	brate;		/* base rate, FIXME: replace brate with muldiv */
-	int		div_shift;
-	int		div_width;
-	u32		p[P_MAX];	/* for hold PLLTV/PLLA parameters */
+	int	div_shift;
+	int	div_width;
+	u32	p[P_MAX];	/* for hold PLLTV/PLLA parameters */
 };
 
 #define _PLL(p0, p1, p2, p3, p4, p5, p6, p7) \
-	{ \
-		.name		= p0, \
-		.parent		= p1, \
-		.reg		= p2, \
-		.pd_bit		= p3, \
-		.bp_bit		= p4, \
-		.brate		= p5, \
-		.div_shift	= p6, \
-		.div_width	= p7, \
-	}
+{ \
+	.name		= p0, \
+	.parent		= p1, \
+	.reg		= p2, \
+	.pd_bit		= p3, \
+	.bp_bit		= p4, \
+	.brate		= p5, \
+	.div_shift	= p6, \
+	.div_width	= p7, \
+}
 
 static struct sp_pll plls[] = {
 	_PLL("plla",		EXTCLK,	PLLA_CTL,	11, 12, F_27M, 0, DIV_A),
@@ -270,19 +272,19 @@ CALC:
 static const u32 pt[][5] = {
 	/* conventional fractional */
 	{
-		1,			// factor
-		5,			// 5 * p0 (nint)
-		1,			// 1 * p0
+		1,		// factor
+		5,		// 5 * p0 (nint)
+		1,		// 1 * p0
 		F_27M,		// F_27M / p0
-		1,			// p0 / p2
+		1,		// p0 / p2
 	},
 	/* phase rotation */
 	{
-		10,			// factor
-		54,			// 5.4 * p0 (nint)
-		2,			// 0.2 * p0
+		10,		// factor
+		54,		// 5.4 * p0 (nint)
+		2,		// 0.2 * p0
 		F_27M / 10,	// F_27M / p0
-		5,			// p0 / p2
+		5,		// p0 / p2
 	},
 };
 static const u32 mods[] = { 91, 55 }; /* SDM_MOD mod values */
@@ -477,7 +479,7 @@ static void plla_set_rate(struct sp_pll *pll)
 	int i;
 
 	for (i = 0; i < ARRAY_SIZE(pa->regs); i++) {
-		clk_writel(0xffff0000 | pp[i], pll->reg + (i * 4));
+		writel(0xffff0000 | pp[i], pll->reg + (i * 4));
 		pr_info("%04x\n", pp[i]);
 	}
 }
@@ -527,7 +529,7 @@ static ulong sp_pll_round_rate(struct sp_pll *pll, ulong rate, ulong *prate)
 			ret = *prate;
 	} else {
 		u32 fbdiv = sp_pll_calc_div(pll, rate, *prate);
-		if (!pll->brate) 
+		if (!pll->brate)
 			ret = *prate / fbdiv;
 		else
 			ret = pll->brate * fbdiv;
@@ -538,7 +540,7 @@ static ulong sp_pll_round_rate(struct sp_pll *pll, ulong rate, ulong *prate)
 
 static ulong sp_pll_recalc_rate(struct sp_pll *pll, ulong prate)
 {
-	u32 reg = clk_readl(pll->reg);
+	u32 reg = readl(pll->reg);
 	ulong ret = 0;
 
 	//TRACE;
@@ -546,13 +548,13 @@ static ulong sp_pll_recalc_rate(struct sp_pll *pll, ulong prate)
 		ret = prate; /* bypass */
 	else if (pll->div_width == DIV_A) {
 		ret = pa[pll->p[0]].rate;
-		//reg = clk_readl(pll->reg + 12); // G4.10 K_SDM_A
+		//reg = readl(pll->reg + 12); // G4.10 K_SDM_A
 	} else if (pll->div_width == DIV_TV) {
 		u32 m, r, reg2;
 
 		//pr_info("!!!!!!! %p:%p %08x\n", clk, clk->reg, reg);
-		r = MASK_GET(7, 2, clk_readl(pll->reg + 4));
-		reg2 = clk_readl(pll->reg + 8);
+		r = MASK_GET(7, 2, readl(pll->reg + 4));
+		reg2 = readl(pll->reg + 8);
 		m = MASK_GET(8, 7, reg2) + 1;
 
 		if (reg & BIT(1)) { /* SEL_FRA */
@@ -603,7 +605,7 @@ static ulong _sp_pll_set_rate(struct sp_pll *pll, ulong rate, ulong prate)
 		reg |= MASK_SET(pll->div_shift, pll->div_width, fbdiv - 1);
 	}
 
-	clk_writel(reg, pll->reg);
+	writel(reg, pll->reg);
 
 	return 0;
 }
@@ -619,7 +621,7 @@ static ulong sp_pll_get_prate(struct sp_pll *pll)
 		clk_free(&clk);
 	}
 
-	return prate;	
+	return prate;
 }
 
 static u32 to_gate(int clk_id)
@@ -646,19 +648,6 @@ static u32 to_gate(int clk_id)
 
 /************************************************** API **************************************************/
 
-ulong sp_gate_get_rate(int id)
-{
-	u32 gate = to_gate(id);
-
-	if (!gate)
-		return -ENOENT;
-
-	if (gate & P_EXTCLK)
-		return extclk_rate;
-
-	return sp_pll_get_rate(PLL_SYS);
-}
-
 ulong sp_pll_get_rate(int id)
 {
 	struct sp_pll *pll = &plls[id];
@@ -677,6 +666,19 @@ ulong sp_pll_set_rate(int id, ulong rate)
 	return rate;
 }
 
+ulong sp_gate_get_rate(int id)
+{
+	u32 gate = to_gate(id);
+
+	if (!gate)
+		return -ENOENT;
+
+	if (gate & P_EXTCLK)
+		return extclk_rate;
+
+	return sp_pll_get_rate(PLL_SYS);
+}
+
 int sp_clk_is_enabled(struct clk *clk)
 {
 	u32 id = clk->id;
@@ -685,10 +687,10 @@ int sp_clk_is_enabled(struct clk *clk)
 		struct sp_pll *pll = &plls[id];
 		if (pll->pd_bit < 0)
 			pll = &plls[pll->parent];
-		return clk_readl(pll->reg) & BIT(pll->pd_bit);
+		return readl(pll->reg) & BIT(pll->pd_bit);
 	} else {
 		struct sunplus_clk *priv = dev_get_priv(clk->dev);
-		return clk_readl(priv->base + (id >> 4) * 4) & BIT(id & 0x0f);
+		return readl(priv->base + (id >> 4) * 4) & BIT(id & 0x0f);
 	}
 }
 
@@ -699,33 +701,53 @@ void sp_clk_endisable(struct clk *clk, int enable)
 	if (id < PLL_MAX) {
 		struct sp_pll *pll = &plls[id];
 		if (pll->pd_bit >= 0)
-			clk_writel(BIT(pll->pd_bit + 16) | (enable << pll->pd_bit), pll->reg);
+			writel(BIT(pll->pd_bit + 16) | (enable << pll->pd_bit), pll->reg);
 	} else {
 		struct sunplus_clk *priv = dev_get_priv(clk->dev);
 		u32 j = id & 0x0f;
-		clk_writel((enable << j) | BIT(j + 16), priv->base + (id >> 4) * 4);
+		writel((enable << j) | BIT(j + 16), priv->base + (id >> 4) * 4);
 	}
 }
 
 void sp_clk_dump(struct clk *clk)
 {
 	int i = clk->id;
-	ulong rate = sp_clk_is_enabled(clk) ? clk_get_rate(clk) : 0;
+	ulong rate = (clk->dev != clkc_dev || sp_clk_is_enabled(clk)) ? clk_get_rate(clk) : 0;
 
-	if (clk->dev == clkc_dev) 
-		if (i < PLL_MAX)
-			CLK_PRINT(plls[i].name, rate);
-		else {
-			char s[10];
-			sprintf(s, "clkc:0x%02x", i);
-			CLK_PRINT(s, rate);
-		}
-	else
+	if (clk->dev != clkc_dev) {
 		CLK_PRINT(clk->dev->name, rate);
+	} else if (i < PLL_MAX) {
+		CLK_PRINT(plls[i].name, rate);
+	} else {
+		char s[10];
+		sprintf(s, "clkc:0x%02x", i);
+		CLK_PRINT(s, rate);
+	}
 }
 
 void sp_plls_dump(void)
 {
 	for (int i = 0; i < ARRAY_SIZE(plls); i++)
 		CLK_PRINT(plls[i].name, sp_pll_get_rate(i));
+}
+
+ulong sp_clk_get_rate(struct clk *clk)
+{
+	if (clk->id < PLL_MAX)
+		return sp_pll_get_rate(clk->id);
+	else
+		return sp_gate_get_rate(clk->id);
+}
+
+ulong sp_clk_set_rate(struct clk *clk, ulong rate)
+{
+	if (clk->id < PLL_MAX)
+		return sp_pll_set_rate(clk->id, rate);
+	else
+		return -ENOENT;
+}
+
+int sp_clkc_init(void)
+{
+	return 0;
 }

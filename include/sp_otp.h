@@ -61,6 +61,7 @@ struct otprx_regs {
 #define QAK645_EFUSE0_SIZE		128
 #define QAK645_EFUSE1_SIZE		1024
 #define QAK645_EFUSE2_SIZE		128
+#define QAK654_EFUSE_SIZE		128
 
 #define OTP_READ_TIMEOUT                20000
 #define OTP_WAIT_MICRO_SECONDS          100
