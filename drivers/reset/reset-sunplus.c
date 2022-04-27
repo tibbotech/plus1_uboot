@@ -14,6 +14,8 @@
 #include <dt-bindings/reset/sp-i143.h>
 #elif defined(CONFIG_TARGET_PENTAGRAM_Q645)
 #include <dt-bindings/reset/sp-q645.h>
+#elif defined(CONFIG_TARGET_PENTAGRAM_SP7350)
+#include <dt-bindings/reset/sp7350.h>
 #else
 #include <dt-bindings/reset/sp-q628.h>
 #endif
@@ -61,7 +63,19 @@ static int sp_reset_deassert(struct reset_ctl *reset_ctl)
 	return sp_reset_update(reset_ctl, 0);
 }
 
+static int sp_reset_request(struct reset_ctl *reset_ctl)
+{
+	return 0;
+}
+
+static int sp_reset_free(struct reset_ctl *reset_ctl)
+{
+	return 0;
+}
+
 struct reset_ops sp_reset_ops = {
+	.request = sp_reset_request,
+	.rfree = sp_reset_free,
 	.rst_assert   = sp_reset_assert,
 	.rst_deassert = sp_reset_deassert,
 	.rst_status   = sp_reset_status,
@@ -71,6 +85,7 @@ static const struct udevice_id sp_reset_ids[] = {
 	{ .compatible = "sunplus,sp-reset" },
 	{ .compatible = "sunplus,sp7021-reset" },
 	{ .compatible = "sunplus,q645-reset" },
+	{ .compatible = "sunplus,sp7350-reset" },
 	{ /* sentinel */ }
 };
 
