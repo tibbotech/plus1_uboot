@@ -22,17 +22,26 @@
 #define RF_MASK_V_SET(_mask)         (((_mask) << 16) | (_mask))
 #define RF_MASK_V_CLR(_mask)         (((_mask) << 16) | 0)
 
+#if defined(CONFIG_TARGET_PENTAGRAM_Q645)
+// usb spec 2.0 Table 7-3  VHSDSC (min, max) = (525, 625)
+// default = 577 mV (374 + 7 * 29)
+#define DEFAULT_UPHY_DISC	0x7   // 7 (=577mv)
+#define DEFAULT_SQ_CT		0x3
+#else
 // usb spec 2.0 Table 7-3  VHSDSC (min, max) = (525, 625)
 // default = 586.5 mV (405 + 11 * 16.5)
 // update  = 619.5 mV (405 + 13 * 16.5)
-#define DEFAULT_UPHY_DISC   0xd   // 13 (=619.5mV)
-#define ORIG_UPHY_DISC      0xb   // 11 (=586.5mV)
+#define DEFAULT_UPHY_DISC	0xd   // 13 (=619.5mV)
+#define ORIG_UPHY_DISC		0xb   // 11 (=586.5mV)
+#endif
 
-#if defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)
+#if defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C) && \
+	!defined(CONFIG_TARGET_PENTAGRAM_Q645)
 struct uphy_rn_regs {
        unsigned int cfg[22];
 };
-#elif defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C)
+#elif defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C) || \
+	defined(CONFIG_TARGET_PENTAGRAM_Q645)
 struct uphy_rn_regs {
 	u32 cfg[28];		       // 150.0
 	u32 gctrl[3];		       // 150.28
@@ -112,14 +121,15 @@ struct sunplus_ehci_priv {
 
 static void uphy_init(int port_num)
 {
-#if defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)
+#if defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C) && \
+	!defined(CONFIG_TARGET_PENTAGRAM_Q645)
 	unsigned int val, set;
 
 	// 1. Default value modification
-	if(0 == port_num){
+	if(0 == port_num) {
 		MOON4_REG->uphy0_ctl[0] = RF_MASK_V(0xffff, 0x4002);
 		MOON4_REG->uphy0_ctl[1] = RF_MASK_V(0xffff, 0x8747);
-	} else if (1 == port_num){
+	} else if (1 == port_num) {
 		MOON4_REG->uphy1_ctl[0] = RF_MASK_V(0xffff, 0x4004);
 		MOON4_REG->uphy1_ctl[1] = RF_MASK_V(0xffff, 0x8747);
 	}
@@ -149,39 +159,39 @@ static void uphy_init(int port_num)
 	mdelay(1);
 
 	// 3. reset UPHY0/1
-	if(0 == port_num){
+	if (0 == port_num) {
 		MOON0_REG->reset[2] = RF_MASK_V_SET(1 << 13);
 		MOON0_REG->reset[2] = RF_MASK_V_CLR(1 << 13);
-	} else if (1 == port_num){
+	} else if (1 == port_num) {
 		MOON0_REG->reset[2] = RF_MASK_V_SET(1 << 14);
 		MOON0_REG->reset[2] = RF_MASK_V_CLR(1 << 14);
 	}
 	mdelay(1);
 
 	// 4. UPHY 0 internal register modification
-	if(0 == port_num){
+	if (0 == port_num) {
 		UPHY0_RN_REG->cfg[7] = 0x8b;
 	} else if (1 == port_num){
 		UPHY1_RN_REG->cfg[7] = 0x8b;
 	}
 
 	// 5. USBC 0 reset
-	if(0 == port_num){
+	if (0 == port_num) {
 		MOON0_REG->reset[2] = RF_MASK_V_SET(1 << 10);
 		MOON0_REG->reset[2] = RF_MASK_V_CLR(1 << 10);
-	} else if (1 == port_num){
+	} else if (1 == port_num) {
 		MOON0_REG->reset[2] = RF_MASK_V_SET(1 << 11);
 		MOON0_REG->reset[2] = RF_MASK_V_CLR(1 << 11);
 	}
 
 	// Backup solution to workaround real IC USB clock issue
 	// (issue: hang on reading EHCI_USBSTS after EN_ASYNC_SCHEDULE)
-	if(0 == port_num){
+	if(0 == port_num) {
 		if (HB_GP_REG->hb_otp_data2 & 0x1) { // G350.2 bit[0]
 			printf("uphy0 rx clk inv\n");
 			MOON4_REG->uphy0_ctl[2] = RF_MASK_V_SET(1 << 6);
 		}
-	} else if (1 == port_num){
+	} else if (1 == port_num) {
 		if (HB_GP_REG->hb_otp_data2 & 0x2) { // G350.2 bit[1]
 			printf("uphy1 rx clk inv\n");
 			MOON4_REG->uphy1_ctl[2] = RF_MASK_V_SET(1 << 6);
@@ -190,7 +200,7 @@ static void uphy_init(int port_num)
 
     // OTP for USB DISC (disconnect voltage)
 	val = HB_GP_REG->hb_otp_data6;
-	if(0 == port_num){
+	if(0 == port_num) {
 		set = val & 0x1F; // UPHY0 DISC
 	    if (!set) {
 	            set = DEFAULT_UPHY_DISC;
@@ -198,7 +208,7 @@ static void uphy_init(int port_num)
 	            set += 2;
 	    }
 	    UPHY0_RN_REG->cfg[7] = (UPHY0_RN_REG->cfg[7] & ~0x1F) | set;
-	} else if (1 == port_num){
+	} else if (1 == port_num) {
 		set = (val >> 5) & 0x1F; // UPHY1 DISC
 	    if (!set) {
 	            set = DEFAULT_UPHY_DISC;
@@ -209,21 +219,21 @@ static void uphy_init(int port_num)
 	}
 #elif defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C)
 	// 1. enable UPHY 0/1 & USBC 0/1 HW CLOCK */
-	if(0 == port_num){
+	if (0 == port_num) {
 		MOON0_REG->clken[2] = RF_MASK_V_SET(1 << 13);
 		MOON0_REG->clken[2] = RF_MASK_V_SET(1 << 10);
-	} else if(1 == port_num){
+	} else if (1 == port_num) {
 		MOON0_REG->clken[2] = RF_MASK_V_SET(1 << 14);
 		MOON0_REG->clken[2] = RF_MASK_V_SET(1 << 11);
 	}
 	mdelay(1);
 
 	// 2. reset UPHY 0/1
-	if(0 == port_num){
+	if (0 == port_num) {
 		MOON0_REG->reset[2] = RF_MASK_V_SET(1 << 13);
 		mdelay(1);
 		MOON0_REG->reset[2] = RF_MASK_V_CLR(1 << 13);
-	} else if(1 == port_num){
+	} else if (1 == port_num) {
 		MOON0_REG->reset[2] = RF_MASK_V_SET(1 << 14);
 		mdelay(1);
 		MOON0_REG->reset[2] = RF_MASK_V_CLR(1 << 14);
@@ -231,15 +241,15 @@ static void uphy_init(int port_num)
 	mdelay(1);
 
 	// 3. Default value modification
-	if(0 == port_num){
+	if (0 == port_num) {
 		UPHY0_RN_REG->gctrl[0] = 0x18888002;
-	} else if(1 == port_num){
+	} else if (1 == port_num) {
 		UPHY1_RN_REG->gctrl[0] = 0x18888002;
 	}
 	mdelay(1);
 
 	// 4. PLL power off/on twice
-	if(0 == port_num){
+	if (0 == port_num) {
 		UPHY0_RN_REG->gctrl[2] = 0x88;
 		mdelay(1);
 		UPHY0_RN_REG->gctrl[2] = 0x80;
@@ -249,7 +259,7 @@ static void uphy_init(int port_num)
 		UPHY0_RN_REG->gctrl[2] = 0x80;;
 		mdelay(20);
 		UPHY0_RN_REG->gctrl[2] = 0x0;
-	} else if(1 == port_num){
+	} else if (1 == port_num) {
 		UPHY1_RN_REG->gctrl[2] = 0x88;
 		mdelay(1);
 		UPHY1_RN_REG->gctrl[2] = 0x80;
@@ -262,11 +272,11 @@ static void uphy_init(int port_num)
 	}
 
 	// 5. USBC 0/1 reset
-	if(0 == port_num){
+	if (0 == port_num) {
 		MOON0_REG->reset[2] = RF_MASK_V_SET(1 << 10);
 		mdelay(1);
 		MOON0_REG->reset[2] = RF_MASK_V_CLR(1 << 10);
-	} else if(1 == port_num){
+	} else if (1 == port_num){
 		MOON0_REG->reset[2] = RF_MASK_V_SET(1 << 11);
 		mdelay(1);
 		MOON0_REG->reset[2] = RF_MASK_V_CLR(1 << 11);
@@ -274,29 +284,100 @@ static void uphy_init(int port_num)
 	mdelay(1);
 
 	// 6. HW workaround
-	if(0 == port_num){
+	if (0 == port_num) {
 		UPHY0_RN_REG->cfg[19] |= 0x0f;
 	} else if(1 == port_num){
 		UPHY1_RN_REG->cfg[19] |= 0x0f;
 	}
 	// 7. USB DISC (disconnect voltage)
-	if(0 == port_num){
+	if (0 == port_num) {
 		UPHY0_RN_REG->cfg[7] = 0x8b;
-	} else if(1 == port_num){
+	} else if (1 == port_num) {
 		UPHY1_RN_REG->cfg[7] = 0x8b;
 	}
 	// 8. RX SQUELCH LEVEL
-	if(0 == port_num){
+	if (0 == port_num) {
 		UPHY0_RN_REG->cfg[25] = 0x4;
 	} else if(1 == port_num){
 		UPHY1_RN_REG->cfg[25] = 0x4;
+	}
+#elif defined(CONFIG_TARGET_PENTAGRAM_Q645)
+	unsigned int val, set;
+
+	if (0 == port_num) {
+		/* enable clock for UPHY, USBC and OTP */
+		MOON0_REG->clken[3] = RF_MASK_V_SET(1 << 8);
+		MOON0_REG->clken[3] = RF_MASK_V_SET(1 << 13);
+		MOON0_REG->clken[2] = RF_MASK_V_SET(1 << 2);
+
+		/* disable reset for OTP */
+		MOON0_REG->reset[2] = RF_MASK_V_CLR(1 << 2);
+
+		/* reset UPHY */
+		MOON0_REG->reset[3] = RF_MASK_V_SET(1 << 8);
+		mdelay(1);
+		MOON0_REG->reset[3] = RF_MASK_V_CLR(1 << 8);
+		mdelay(1);
+
+		/* Default value modification */
+		UPHY0_RN_REG->gctrl[0] = 0x08888001;
+
+		/* PLL power off/on twice */
+		UPHY0_RN_REG->gctrl[2] = 0x88;
+		mdelay(1);
+		UPHY0_RN_REG->gctrl[2] = 0x80;
+		mdelay(1);
+		UPHY0_RN_REG->gctrl[2] = 0x88;
+		mdelay(1);
+		UPHY0_RN_REG->gctrl[2] = 0x80;
+		mdelay(20); /*  experience */
+		UPHY0_RN_REG->gctrl[2] = 0;
+
+		/* USBC 0 reset */
+		MOON0_REG->reset[3] = RF_MASK_V_SET(1 << 13);
+		mdelay(1);
+		MOON0_REG->reset[3] = RF_MASK_V_CLR(1 << 13);
+		mdelay(1);
+
+		/* fix rx-active question */
+		UPHY0_RN_REG->cfg[19] |= 0xf;
+
+		/* OTP for USB phy tx clock invert */
+		val = HB_GP_REG->hb_otp_data2;
+		if ((val >> 1) & 1)
+			UPHY0_RN_REG->gctrl[1] |= (1 << 5);
+
+		/* OTP for USB phy rx clock invert */
+		val = HB_GP_REG->hb_otp_data2;
+		if (val & 1)
+			UPHY0_RN_REG->gctrl[1] |= (1 << 6);
+
+		/* OTP for USB DISC (disconnect voltage) */
+		val = HB_GP_REG->hb_otp_data6;
+	        set = val & 0x1f;
+	        if (!set)
+	                set = DEFAULT_UPHY_DISC;
+
+	        UPHY0_RN_REG->cfg[7] = (UPHY0_RN_REG->cfg[7] & ~0x1F) | set;
+
+		/* OTP for USB phy current source adjustment */
+		MOON3_REG->sft_cfg[20] = RF_MASK_V_CLR(1 << 5);
+
+		/* OTP for RX squelch level control to APHY */
+		val = HB_GP_REG->hb_otp_data6;
+	        set = (val >> 5) & 0x7;
+	        if (!set)
+			set = DEFAULT_SQ_CT;
+
+	        UPHY0_RN_REG->cfg[25] = (UPHY0_RN_REG->cfg[25] & ~0x7) | set;
 	}
 #endif
 }
 
 static void usb_power_init(int is_host, int port_num)
 {
-#if defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)
+#if defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C) && \
+	!defined(CONFIG_TARGET_PENTAGRAM_Q645)
     // a. enable pin mux control (sft_cfg_8, bit2/bit3)
     //    Host: enable
     //    Device: disable
@@ -338,19 +419,33 @@ static void usb_power_init(int is_host, int port_num)
     //    Host:   ctrl=1, host sel=1, type=1
     //    Device  ctrl=1, host sel=0, type=0
 	if (is_host) {
-	    if(0 == port_num){
+	    if (0 == port_num) {
 		    MOON5_REG->sft_cfg[17] = RF_MASK_V_SET(7 << 4);
-	    } else if (1 == port_num){
+	    } else if (1 == port_num) {
 		    MOON5_REG->sft_cfg[17] = RF_MASK_V_SET(7 << 12);
 	    }
 	} else {
-	    if(0 == port_num){
+	    if (0 == port_num) {
 		    MOON5_REG->sft_cfg[17] = RF_MASK_V_SET(1 << 4);
 		    MOON5_REG->sft_cfg[17] = RF_MASK_V_CLR(3 << 5);
-	    } else if (1 == port_num){
+	    } else if (1 == port_num) {
 		    MOON5_REG->sft_cfg[17] = RF_MASK_V_SET(1 << 12);
 		    MOON5_REG->sft_cfg[17] = RF_MASK_V_CLR(3 << 13);
 	    }
+	}
+#elif defined(CONFIG_TARGET_PENTAGRAM_Q645)
+	// USB control register:
+    	// Host:   ctrl=1, host sel=1, type=1
+    	// Device  ctrl=1, host sel=0, type=0
+	if (is_host) {
+		if (0 == port_num) {
+			MOON3_REG->sft_cfg[22] = RF_MASK_V_SET(7 << 0);
+		}
+	} else {
+		if (0 == port_num) {
+			MOON3_REG->sft_cfg[22] = RF_MASK_V_SET(1 << 0);
+			MOON3_REG->sft_cfg[22] = RF_MASK_V_CLR(3 << 1);
+		}
 	}
 #endif
 }
@@ -373,10 +468,12 @@ static int ehci_sunplus_probe(struct udevice *dev)
 	struct ehci_hccr *hccr;
 	struct ehci_hcor *hcor;
 
-#if defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)
+#if defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C) && \
+	!defined(CONFIG_TARGET_PENTAGRAM_Q645)
 	hccr = (struct ehci_hccr *)((uint32_t)&priv->ehci->ehci_len_rev);
 	hcor = (struct ehci_hcor *)((uint32_t)&priv->ehci->ehci_usbcmd);
-#elif defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C)
+#elif defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C) || \
+	defined(CONFIG_TARGET_PENTAGRAM_Q645)
 	hccr = (struct ehci_hccr *)((uint64_t)&priv->ehci->ehci_len_rev);
 	hcor = (struct ehci_hcor *)((uint64_t)&priv->ehci->ehci_usbcmd);
 #endif
@@ -398,7 +495,8 @@ static int ehci_usb_remove(struct udevice *dev)
 }
 
 static const struct udevice_id ehci_sunplus_ids[] = {
-#if defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)
+#if defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C) && \
+	!defined(CONFIG_TARGET_PENTAGRAM_Q645)
 	{ .compatible = "sunplus,sunplus-q628-usb-ehci0" },
 	{ .compatible = "sunplus,sp7021-usb-ehci0" },
 	{ .compatible = "sunplus,sp7021-usb-ehci1" },
@@ -406,6 +504,8 @@ static const struct udevice_id ehci_sunplus_ids[] = {
 #elif defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C)
 	{ .compatible = "sunplus,sunplus-i143-usb-ehci0" },
 	{ .compatible = "sunplus,sunplus-i143-usb-ehci1" },
+#elif defined(CONFIG_TARGET_PENTAGRAM_Q645)
+	{ .compatible = "sunplus,q645-usb-ehci0" },
 #endif
 	{ }
 };
