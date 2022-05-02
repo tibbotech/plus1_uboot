@@ -44,7 +44,7 @@
 #define CONFIG_SYS_LOAD_ADDR		(4 << 20)	/* kernel loaded address */
 
 #ifndef CONFIG_BAUDRATE
-#define CONFIG_BAUDRATE			921600 //115200		/* the value doesn't matter, it's not change in U-Boot */
+#define CONFIG_BAUDRATE			115200		/* the value doesn't matter, it's not change in U-Boot */
 #endif
 #define CONFIG_SYS_BAUDRATE_TABLE	{ 115200, 921600 }
 /* #define CONFIG_SUNPLUS_SERIAL */
@@ -292,7 +292,7 @@
 #endif
 
 #define CONFIG_EXTRA_ENV_SETTINGS \
-"b_c=console=ttyS0,921600 earlycon\0" \
+"b_c=console=ttyS0,115200 earlycon\0" \
 "emmc_root=root=/dev/mmcblk0p8 rw rootwait\0" \
 "stdin=" STDIN_CFG "\0" \
 "stdout=" STDOUT_CFG "\0" \
