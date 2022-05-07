@@ -16,7 +16,7 @@
 #include <dm.h>
 #include <dm/device-internal.h>
 
-#define SP_CLK_TEST
+//#define SP_CLK_TEST
 
 //#define TRACE	printf("!!! %s:%d\n", __FUNCTION__, __LINE__)
 #define TRACE
