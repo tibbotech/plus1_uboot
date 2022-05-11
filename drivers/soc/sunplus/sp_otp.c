@@ -46,7 +46,11 @@ int write_otp_data(volatile struct hb_gp_regs *otp_data, volatile struct otprx_r
 	unsigned int data;
 	u32 timeout = OTP_WAIT_MICRO_SECONDS;
 
-	writel(0xFD01, &regs->otp_ctrl);
+	#if defined(CONFIG_TARGET_PENTAGRAM_Q645)
+	writel(0x5dc1, &regs->otp_ctrl);
+	#else
+	writel(0xfd01, &regs->otp_ctrl);
+	#endif
 	writel(addr, &regs->otp_prog_addr);
 	writel(0x03, &regs->otp_prog_ctl);
 
@@ -189,6 +193,10 @@ static int do_read_otp(struct cmd_tbl *cmdtp, int flag, int argc, char * const a
 #ifdef SUPPORT_WRITE_OTP
 static int do_write_otp(struct cmd_tbl  *cmdtp, int flag, int argc, char * const argv[])
 {
+	#if defined(CONFIG_TARGET_PENTAGRAM_Q645)
+	volatile struct moon2_otp_regs *regs = MOON2_OTP_REG;
+	unsigned int cfg;
+	#endif
 	unsigned int addr;
 	unsigned int data;
 	unsigned int otp_size;
@@ -242,6 +250,9 @@ static int do_write_otp(struct cmd_tbl  *cmdtp, int flag, int argc, char * const
 	value = data & 0xFF;
 
 #if defined(CONFIG_TARGET_PENTAGRAM_Q645)
+	cfg = regs->sft_cfg[0];
+	regs->sft_cfg[0] = 0x003c0008;
+
 	if (efuse == 0) {
 		if (write_otp_data(HB_GP_REG, SP_OTPRX_REG, addr, &value) == -1)
 			return CMD_RET_FAILURE;
@@ -252,6 +263,8 @@ static int do_write_otp(struct cmd_tbl  *cmdtp, int flag, int argc, char * const
 		if (write_otp_data(CUSTOMER_HB_GP_REG, CUSTOMER_OTPRX_REG, addr, &value) == -1)
 			return CMD_RET_FAILURE;
 	}
+
+	regs->sft_cfg[0] = 0xffff0000 | cfg;
 #elif (defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C) && !defined(CONFIG_TARGET_PENTAGRAM_SP7350)) || \
 	(defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C)) || \
 	defined(CONFIG_TARGET_PENTAGRAM_SP7350)

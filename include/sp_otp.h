@@ -10,6 +10,11 @@
 #endif
 #define RF_GRP(_grp, _reg) ((((_grp) * 32 + (_reg)) * 4) + REG_BASE)
 
+struct moon2_otp_regs {
+	unsigned int sft_cfg[32];
+};
+#define MOON2_OTP_REG ((volatile struct moon2_otp_regs *)RF_GRP(2, 0))
+
 struct hb_gp_regs {
 	u32 hb_gpio_rgst_bus32[13];
 };
