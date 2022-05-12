@@ -724,30 +724,37 @@ static int sp_spi_nor_claim_bus(struct udevice *dev)
 	else
 		value = B_CHIP;
 
-	switch (plat->clock) {
-	case 100000000:
-		value |= SPI_CLK_D_2;
-		break;
-	case 50000000:
+#if defined (CONFIG_TARGET_PENTAGRAM_Q645)
+	// SPI-NOR source clock = 360.0 MHz
+	if (plat->clock >= 90000000)
 		value |= SPI_CLK_D_4;
-		break;
-	case 33000000:
+	else if (plat->clock >= 60000000)
 		value |= SPI_CLK_D_6;
-		break;
-	case 25000000:
+	else if (plat->clock >= 45000000)
 		value |= SPI_CLK_D_8;
-		break;
-	case 12000000:
+	else if (plat->clock >= 22000000)
 		value |= SPI_CLK_D_16;
-		break;
-	case  8000000:
+	else if (plat->clock >= 15000000)
 		value |= SPI_CLK_D_24;
-		break;
-	case  6000000:
-	default:
+	else
 		value |= SPI_CLK_D_32;
-		break;
-	}
+#else
+	// SPI-NOR source clock = 202.3 MHz
+	if (plat->clock >= 100000000)
+		value |= SPI_CLK_D_2;
+	else if (plat->clock >= 50000000)
+		value |= SPI_CLK_D_4;
+	else if (plat->clock >= 33000000)
+		value |= SPI_CLK_D_6;
+	else if (plat->clock >= 25000000)
+		value |= SPI_CLK_D_8;
+	else if (plat->clock >= 12000000)
+		value |= SPI_CLK_D_16;
+	else if (plat->clock >=  8000000)
+		value |= SPI_CLK_D_24;
+	else
+		value |= SPI_CLK_D_32;
+#endif
 
         spi_reg->spi_ctrl = value;
 #if (SP_SPINOR_DMA)
@@ -847,7 +854,7 @@ static int sp_spi_nor_set_speed(struct udevice *bus, uint speed)
 	struct sp_spi_nor_platdata *plat = dev_get_plat(bus);;
 	struct sp_spi_nor_priv *priv = dev_get_priv(bus);
 
-	diag_printf("%s %d\n",__FUNCTION__, speed);
+	printf("speed = %d Hz\n", speed);
 
 	if (speed > plat->clock)
 		speed = plat->clock;

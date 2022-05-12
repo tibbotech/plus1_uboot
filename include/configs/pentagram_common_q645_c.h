@@ -274,8 +274,8 @@
 #define NOR_LOAD_KERNEL \
 	dbg_scr("echo kernel from ${addr_src_kernel} to ${addr_temp_kernel} sz ${sz_kernel}; ") \
 	"setexpr kernel_off ${addr_src_kernel} - 0xf0000000; " \
-	"echo sf probe 0 50000000; " \
-	"sf probe 0 50000000; " \
+	"echo sf probe 0; " \
+	"sf probe 0; " \
 	"echo sf read ${addr_temp_kernel} ${kernel_off} ${sz_kernel}; " \
 	"sf read ${addr_temp_kernel} ${kernel_off} ${sz_kernel}; " \
 	"setexpr sz_kernel ${sz_kernel} + 0xffff; " \

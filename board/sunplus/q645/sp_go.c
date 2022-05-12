@@ -293,10 +293,11 @@ void SPI_nor_speed_up_clk(void)
 
 	if ((id != SUNPLUS_ROMTER_ID) && (id != 0) && (id != 0xFFFFFF)) {
 		printf("\n");
+		// SPI-NOR source clock = 360.0 MHz
 #if defined(CONFIG_SYS_ENV_ZEBU)
-		SPI_nor_set_clk_div(SPI_CLK_D_2);
+		SPI_nor_set_clk_div(SPI_CLK_D_2);	// 180.0 MHz
 #else
-		SPI_nor_set_clk_div(SPI_CLK_D_4);
+		SPI_nor_set_clk_div(SPI_CLK_D_16);	// 22.5 MHz
 #endif
 	} else {
 		if (id == SUNPLUS_ROMTER_ID)
