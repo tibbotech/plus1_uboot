@@ -297,7 +297,7 @@ void SPI_nor_speed_up_clk(void)
 #if defined(CONFIG_SYS_ENV_ZEBU)
 		SPI_nor_set_clk_div(SPI_CLK_D_2);	// 180.0 MHz
 #else
-		SPI_nor_set_clk_div(SPI_CLK_D_16);	// 22.5 MHz
+		SPI_nor_set_clk_div(SPI_CLK_D_8);	// 45.0 MHz
 #endif
 	} else {
 		if (id == SUNPLUS_ROMTER_ID)
