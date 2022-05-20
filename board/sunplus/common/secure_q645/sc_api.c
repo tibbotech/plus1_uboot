@@ -23,8 +23,9 @@ void prn_dump_buffer(unsigned char *buf, int len)
 static int load_otp_pub_key(unsigned char *buf, int otp_byte_off, int bytes)
 {
 	int i;
+	
 	for (i = 0; i < bytes; i++) {
-		read_otp_data(HB_GP_REG, SP_OTPRX_REG, i+otp_byte_off,(char *)&buf[i]);   //edwintest
+		read_otp_data(KEY_HB_GP_REG, KEY_OTPRX_REG, i+otp_byte_off,(char *)&buf[i]);   
 	}
 	//puts("uboot  OTP pub-key:\n");
 	//prn_dump_buffer(buf,bytes);
