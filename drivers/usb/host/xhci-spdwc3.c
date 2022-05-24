@@ -23,7 +23,7 @@
 struct xhci_dwc3_plat {
 	struct phy_bulk phys;
 };
-#if 0
+#if 1
 #define RF_GRP(_grp, _reg) ((((_grp) * 32 + (_reg)) * 4) + REG_BASE)
 #define RF_AMBA(_grp, _reg) ((((_grp) * 1024 + (_reg)) * 4) + REG_BASE)
 
@@ -154,7 +154,7 @@ static void uphy_init(void)
 	//if (HAL_GPIO_I_GET(98))
 	//	dwc3phy_reg->cfg[5] = (dwc3phy_reg->cfg[5] & 0xFFE0) | 0x15;
 	//else
-	//	dwc3phy_reg->cfg[5] = (dwc3phy_reg->cfg[5] & 0xFFE0) | 0x11;
+	dwc3phy_reg->cfg[5] = (dwc3phy_reg->cfg[5] & 0xFFE0) | 0x11;
 	for (;;)
 	{
 		result = dwc3phy_reg->cfg[2] & 0x3;
@@ -837,10 +837,10 @@ static int xhci_dwc3_probe(struct udevice *dev)
 	struct xhci_hccr *hccr;
 	struct dwc3 *dwc3_reg;
 	enum usb_dr_mode dr_mode;
-	struct xhci_dwc3_plat *plat = dev_get_plat(dev);
+	//struct xhci_dwc3_plat *plat = dev_get_plat(dev);
 	const char *phy;
 	u32 reg;
-	int ret;
+	//int ret;
 
 	hccr = (struct xhci_hccr *)((uintptr_t)dev_remap_addr(dev));
 	hcor = (struct xhci_hcor *)((uintptr_t)hccr +
@@ -849,7 +849,7 @@ static int xhci_dwc3_probe(struct udevice *dev)
 	//ret = dwc3_setup_phy(dev, &plat->phys);
 	//if (ret && (ret != -ENOTSUPP))
 	//	return ret;
-	//uphy_init();
+	uphy_init();
 
 	dwc3_reg = (struct dwc3 *)((char *)(hccr) + DWC3_REG_OFFSET);
 
