@@ -15,7 +15,6 @@
 /* Disable some options which is enabled by default: */
 #undef CONFIG_CMD_IMLS
 
-//#define CONFIG_NR_DRAM_BANKS		1
 #define CONFIG_SYS_SDRAM_BASE		0
 #if defined(CONFIG_SYS_ENV_ZEBU)
 #define CONFIG_SYS_SDRAM_SIZE           (1024 << 20)
@@ -71,9 +70,6 @@
 
 #define COUNTER_FREQUENCY (25*1000*1000)
 
-//#define CONFIG_CMDLINE_EDITING
-//#define CONFIG_AUTO_COMPLETE
-//#define CONFIG_SYS_LONGHELP
 #define CONFIG_SYS_MAXARGS		32
 #define CONFIG_SYS_CBSIZE		(2 << 10)
 #define CONFIG_SYS_PBSIZE		(CONFIG_SYS_CBSIZE + sizeof(CONFIG_SYS_PROMPT) + 16)

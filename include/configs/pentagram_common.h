@@ -26,7 +26,6 @@
 /* Disable some options which is enabled by default: */
 #undef CONFIG_CMD_IMLS
 
-//#define CONFIG_NR_DRAM_BANKS		1
 #define CONFIG_SYS_SDRAM_BASE		0
 #if defined(CONFIG_SYS_ENV_ZEBU)
 #define CONFIG_SYS_SDRAM_SIZE           (64 << 20)
@@ -77,9 +76,6 @@
 
 #define B_START_POS			(0x9e809ff8)
 
-//#define CONFIG_CMDLINE_EDITING
-//#define CONFIG_AUTO_COMPLETE
-//#define CONFIG_SYS_LONGHELP
 #define CONFIG_SYS_MAXARGS		32
 #define CONFIG_SYS_CBSIZE		(2 << 10)
 #define CONFIG_SYS_PBSIZE		(CONFIG_SYS_CBSIZE + sizeof(CONFIG_SYS_PROMPT) + 16)
@@ -470,26 +466,6 @@
 	"setenv isp_main_storage ${sp_main_storage} && printenv isp_main_storage; " \
 	"setexpr script_addr $isp_ram_addr + 0x00 && setenv script_addr 0x${script_addr} && source $script_addr; " \
 	"\0"
-
-#if 0
-/* romter test booting command */
-#define CONFIG_BOOTCOMMAND      "echo bootcmd started ; sp_preboot dump ; sp_preboot ; printenv ; \
-echo [cmd] cp.l 0x98200000 0x307FC0 0x280000 ; \
-cp.l 0x98200000 0x307FC0 0x280000 ; \
-echo [cmd] cp.l 0x98020000 0x2FFFC0 0x400 ; \
-cp.l 0x98020000 0x2FFFC0 0x400 ; \
-sp_go 0x308000 0x300000"
-
-/* zebu emmc booting test command */
-#define CONFIG_BOOTCOMMAND      "echo [scr] emmc bootcmd started ; \
-mmc rescan ; mmc part ; \
-mmc read 0x2fffc0 0x1422 0x1 ; md 0x2fffc0 0x60 ; \
-mmc read 0x307fc0 0x1822 0x1 ; md 0x307fc0 0x60 ; \
-mmc read 0x2fffc0 0x1422 0xa ; mmc read 0x307fc0 0x1822 0x30f0 ; sp_go 0x308000 0x300000"
-
-/* zebu zmem booting test command */
-#define CONFIG_BOOTCOMMAND      "echo [scr] zmem bootcmd started ; sp_go 0x308000 0x300040"
-#endif
 
 /* MMC related configs */
 #define CONFIG_SUPPORT_EMMC_BOOT
