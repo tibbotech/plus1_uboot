@@ -4,7 +4,7 @@
 #include <linux/delay.h>
 #include "sp_otp.h"
 
-//#define SUPPORT_WRITE_OTP
+#define SUPPORT_WRITE_OTP
 
 int read_otp_data(volatile struct hb_gp_regs *otp_data, volatile struct otprx_regs *regs, int addr, char *value)
 {
@@ -35,8 +35,11 @@ int read_otp_data(volatile struct hb_gp_regs *otp_data, volatile struct otprx_re
 		status = readl(&regs->otp_cmd_status);
 	} while ((status & OTP_READ_DONE) != OTP_READ_DONE);
 
+#if defined(CONFIG_TARGET_PENTAGRAM_SP7350)
+	*value = (otp_data->hb_gpio_rgst_bus32[addr_data] >> (8 * byte_shift)) & 0xFF;
+#else
 	*value = (otp_data->hb_gpio_rgst_bus32[8+addr_data] >> (8 * byte_shift)) & 0xFF;
-
+#endif
 	return 0;
 }
 
@@ -148,9 +151,15 @@ static int do_read_otp(struct cmd_tbl *cmdtp, int flag, int argc, char * const a
 				return CMD_RET_FAILURE;
 #endif
 
+#if defined(CONFIG_TARGET_PENTAGRAM_SP7350)
+			for (i = 0; i < 4; i++, j++) {
+				printf("  %03u~%03u : 0x%08X\n", 3+j*4, j*4, otp_data->hb_gpio_rgst_bus32[i]);
+			}
+#else
 			for (i = 0; i < 4; i++, j++) {
 				printf("  %03u~%03u : 0x%08X\n", 3+j*4, j*4, otp_data->hb_gpio_rgst_bus32[8+i]);
 			}
+#endif
 
 			printf("\n");
 		}

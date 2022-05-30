@@ -10,6 +10,17 @@
 #endif
 #define RF_GRP(_grp, _reg) ((((_grp) * 32 + (_reg)) * 4) + REG_BASE)
 
+#if defined(CONFIG_TARGET_PENTAGRAM_SP7350)
+#define REG_BASE_AO        0xF8800000
+#define RF_GRP_AO(_grp, _reg)           ((((_grp) * 32 + (_reg)) * 4) + REG_BASE_AO)
+struct hb_gp_regs {
+	u32 hb_gpio_rgst_bus32[8];
+};
+#define HB_GP_REG    ((volatile struct hb_gp_regs *)RF_GRP_AO(73, 0))
+#define KEY_HB_GP_REG ((volatile struct hb_gp_regs *)RF_GRP(779, 0))
+#define CUSTOMER_HB_GP_REG ((volatile struct hb_gp_regs *)RF_GRP(79, 0))
+
+#else  //for CONFIG_TARGET_PENTAGRAM_Q645
 struct moon2_otp_regs {
 	unsigned int sft_cfg[32];
 };
@@ -21,6 +32,8 @@ struct hb_gp_regs {
 #define HB_GP_REG ((volatile struct hb_gp_regs *)RF_GRP(350, 0))
 #define KEY_HB_GP_REG ((volatile struct hb_gp_regs *)RF_GRP(779, 0))
 #define CUSTOMER_HB_GP_REG ((volatile struct hb_gp_regs *)RF_GRP(79, 0))
+
+#endif
 
 struct otprx_regs {
 	u32 sw_trim;
@@ -46,9 +59,13 @@ struct otprx_regs {
 	u32 otp_addr;
 	u32 otp_data;
 };
+#if defined(CONFIG_TARGET_PENTAGRAM_SP7350)
+#define SP_OTPRX_REG    ((volatile struct otprx_regs *)RF_GRP_AO(72, 0))
+#else
 #define SP_OTPRX_REG    ((volatile struct otprx_regs *)RF_GRP(351, 0))
 #define KEY_OTPRX_REG   ((volatile struct otprx_regs *)RF_GRP(780, 0))
 #define CUSTOMER_OTPRX_REG   ((volatile struct otprx_regs *)RF_GRP(80, 0))
+#endif
 
 /*
  * OTP memory

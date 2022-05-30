@@ -37,7 +37,11 @@ static int q645_load_otp_Sb_pub_key(u8 in_pub[32])
 	printf("Test pub-key:\n");
 #else
 	printf("load OTP Sb_Kpub\n");
-	ret = SC_key_otp_load(in_pub, 0, 32); // G779.0~7
+#if defined(CONFIG_TARGET_PENTAGRAM_SP7350)
+	ret = SC_key_otp_load(in_pub, 16*4, 32); // OTP16~23 from G73
+#else
+	ret = SC_key_otp_load(in_pub, 0, 32);    // KEY_OTP0~7 from G779
+#endif
 #endif
 
 #ifdef CONFIG_SYS_ENV_ZEBU
