@@ -214,10 +214,10 @@
 	"echo Stop; " \
 "fi"
 
-#define TMPADDR_KERNEL		0x3FFFFC0
+#define TMPADDR_KERNEL		0x5FFFFC0
 #define TMPADDR_HEADER		0x600000
-#define DSTADDR_KERNEL		0x7FFFC0 /* if stext is on 0x800000 */
-#define DSTADDR_DTB		0x77FFC0
+#define DSTADDR_KERNEL		0x1FFFFC0 /* if stext is on 0x2000000 */
+#define DSTADDR_DTB		0x1F7FFC0
 
 //#define SUPPROT_NFS_ROOTFS
 #ifdef SUPPROT_NFS_ROOTFS
@@ -250,7 +250,7 @@
 
 
 #define SDCARD_EXT_CMD \
-	"scriptaddr=0x1000000; " \
+	"scriptaddr=0x800000; " \
 	"bootscr=boot.scr; " \
 	"bootenv=uEnv.txt; " \
 	"if run loadbootenv; then " \
@@ -428,7 +428,7 @@
 	"echo run sdcard_boot; "\
 	SDCARD_EXT_CMD \
 	"\0" \
-"isp_common=setenv isp_ram_addr 0x1000000; " \
+"isp_common=setenv isp_ram_addr 0x800000; " \
 	RASPBIAN_INIT \
 	"fatload $isp_if $isp_dev $isp_ram_addr /ISPBOOOT.BIN 0x800 0x100000; " \
 	"setenv isp_main_storage ${sp_main_storage} && printenv isp_main_storage; " \
@@ -442,14 +442,14 @@
 	"mmc list; " \
 	"run update_common; " \
 	"\0" \
-"update_common=setenv isp_ram_addr 0x1000000; " \
+"update_common=setenv isp_ram_addr 0x800000; " \
 	"setenv isp_update_file_name ISP_UPDT.BIN; " \
 	"fatload $isp_if $isp_dev $isp_ram_addr /$isp_update_file_name 0x800; " \
 	"setenv isp_main_storage ${sp_main_storage} && printenv isp_main_storage; " \
 	"setenv isp_image_header_offset 0; " \
 	"setexpr script_addr $isp_ram_addr + 0x20 && setenv script_addr 0x${script_addr} && source $script_addr; " \
 	"\0" \
-"update_tftp=setenv isp_ram_addr 0x1000000; " \
+"update_tftp=setenv isp_ram_addr 0x800000; " \
 	"setenv ethaddr ${macaddr} && printenv ethaddr; " \
 	"printenv serverip; " \
 	"dhcp $isp_ram_addr $serverip:TFTP0000.BIN; " \
