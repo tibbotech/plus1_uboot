@@ -75,9 +75,9 @@ static int sunplus_clk_probe(struct udevice *dev)
 	struct clk extclk = { .id = 0, };
 	struct udevice *extclk_dev;
 
-	ret = uclass_get_device_by_name(UCLASS_CLK, "clk@osc0", &extclk_dev);
+	ret = uclass_get_device_by_name(UCLASS_CLK, "osc0", &extclk_dev);
 	if (ret < 0) {
-		pr_err("Failed to find extclk(clk@osc0) node. Check device tree\n");
+		pr_err("Failed to find extclk(osc0) node. Check device tree\n");
 		return ret;
 	}
 	clk_request(extclk_dev, &extclk);
