@@ -6,7 +6,7 @@
 #include <asm/arch/clk-sunplus.h>
 #include <dt-bindings/clock/sp7350.h>
 
-#define EXT_CLK "clk@osc0"
+#define EXT_CLK "osc0"
 #define CLK_SP_PLL "sp_clk_pll"
 
 #define MASK_SET(shift, width, value) \
