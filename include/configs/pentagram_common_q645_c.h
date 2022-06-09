@@ -289,7 +289,7 @@
 
 #define CONFIG_EXTRA_ENV_SETTINGS \
 "b_c=console=ttyS0,115200 earlycon\0" \
-"emmc_root=root=/dev/mmcblk0p8 rw rootwait\0" \
+"emmc_root=root=/dev/mmcblk0p8 rw rootwait uio_pdrv_genirq.of_id=generic-uio-ev swiotlb=32768\0" \
 "stdin=" STDIN_CFG "\0" \
 "stdout=" STDOUT_CFG "\0" \
 "stderr=" STDOUT_CFG "\0" \
