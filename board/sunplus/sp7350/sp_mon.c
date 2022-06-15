@@ -8,8 +8,8 @@
 #include <command.h>
 #include <linux/compiler.h>
 
-#define RGST_OFFSET_A	0x9EC00000
-#define RGST_OFFSET_B   0x9C000000
+#define RGST_OFFSET	0xF8000000
+#define RGST_OFFSET_AO	0xF8800000
 
 #define ENTER		0x0D
 #define SPACE		0x20
@@ -34,27 +34,25 @@
 void prn_regs(unsigned int regGroupNum, unsigned int rgst_offset)
 {
 	unsigned int i = 0;
-	unsigned int regBaseAddr = 0;
+	unsigned long regBaseAddr = 0;
 
 	regBaseAddr = rgst_offset + regGroupNum * 32 * 4; /* unit: bytes */
-	for(i = 0; i < 32; i++)
+	for (i = 0; i < 32; i++)
 		dbg_printf("Read G%u.%2u = 0x%08x (%u)\n", regGroupNum, i,
 			   *((volatile unsigned int *)(regBaseAddr)+i),
 			   *((volatile unsigned int *)(regBaseAddr)+i));
-	return;
 }
 
 /* Write 4 bytes to a specific register in a certain group */
 void write_regs(unsigned int regGroupNum, unsigned int regIndex,
 		unsigned int value, unsigned int rgst_offset)
 {
-	unsigned int targetAddr = 0;
+	unsigned long targetAddr = 0;
 
 	targetAddr = rgst_offset + (regGroupNum * 32 * 4) + regIndex * 4; /* unit: bytes */
 	*((volatile unsigned int *) targetAddr) = value;
 
 	dbg_printf("Write G%u.%2u = 0x%08x (%u)\n", regGroupNum, regIndex, value, value);
-	return;
 }
 
 /* Load Registers (by group)
@@ -64,23 +62,19 @@ void write_regs(unsigned int regGroupNum, unsigned int regIndex,
  */
 static int do_reg_lreg(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[])
 {
-	int	regGroupNum = 0;
-	unsigned int rgst_offset = 0;
+	int regGroupNum = 0;
 
-	if (argc == 4) {
-
-	} else if (argc == 3) {
-		if (strncmp(argv[1], "a", 1) == 0)
-			rgst_offset = RGST_OFFSET_A;
-		else if (strncmp(argv[1], "b", 1) == 0)
-			rgst_offset = RGST_OFFSET_B;
-		else {
-			printf("Invalid chip. It should be \'a\' or \'b\'.\n");
+	if (argc == 3) {
+		if (strncmp(argv[1], "ao", 2) != 0) {
+			printf("Invalid domain. It should be \'ao\'.\n");
 			return CMD_RET_USAGE;
 		}
 
 		regGroupNum = simple_strtoul(argv[2], NULL, 0);
-		prn_regs(regGroupNum, rgst_offset);
+		prn_regs(regGroupNum, RGST_OFFSET_AO);
+	} else if (argc == 2) {
+		regGroupNum = simple_strtoul(argv[1], NULL, 0);
+		prn_regs(regGroupNum, RGST_OFFSET);
 	} else
 		return CMD_RET_USAGE;
 
@@ -94,26 +88,26 @@ static int do_reg_lreg(struct cmd_tbl *cmdtp, int flag, int argc, char * const a
  */
 static int do_reg_wreg(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[])
 {
-	if (argc == 5) {
-		unsigned int regGroupNum = 0, offset = 0, value = 0;
-		unsigned int rgst_offset = -1;
+	unsigned int regGroupNum = 0, offset = 0, value = 0;
 
-		if (strncmp(argv[1], "a", 1) == 0)
-			rgst_offset = RGST_OFFSET_A;
-		else if (strncmp(argv[1], "b", 1) == 0)
-			rgst_offset = RGST_OFFSET_B;
-		else {
-			printf("Invalid chip. It should be be \'a\' or \'b\'.\n");
+	if (argc == 5) {
+		if (strncmp(argv[1], "ao", 2) != 0) {
+			printf("Invalid domain. It should be \'ao\'.\n");
 			return CMD_RET_USAGE;
 		}
 
 		regGroupNum = simple_strtoul(argv[2], NULL, 0);
 		offset = simple_strtoul(argv[3], NULL, 0);
 		value = simple_strtoul(argv[4], NULL, 0);
-
-		write_regs(regGroupNum, offset, value, rgst_offset);
+		write_regs(regGroupNum, offset, value, RGST_OFFSET_AO);
+	} else if (argc == 4) {
+		regGroupNum = simple_strtoul(argv[1], NULL, 0);
+		offset = simple_strtoul(argv[2], NULL, 0);
+		value = simple_strtoul(argv[3], NULL, 0);
+		write_regs(regGroupNum, offset, value, RGST_OFFSET);
 	} else
 		return CMD_RET_USAGE;
+
 	return 0;
 }
 
@@ -121,11 +115,11 @@ static int do_reg_wreg(struct cmd_tbl *cmdtp, int flag, int argc, char * const a
 U_BOOT_CMD(
 	lreg,	3,	1,	do_reg_lreg,
 	"Sunplus MON : load register (by group)",
-	"[a|b] [register group #]"
+	"[ao] [register group #]"
 );
 
 U_BOOT_CMD(
 	wreg,	5,	1,	do_reg_wreg,
 	"Sunplus MON : write 4 bytes to register",
-	"[a|b] [register group #] [register # in group] [value (4 bytes)]"
+	"[ao] [register group #] [register # in group] [value (4 bytes)]"
 );

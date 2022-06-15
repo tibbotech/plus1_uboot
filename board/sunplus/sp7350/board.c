@@ -11,31 +11,37 @@ extern void board_spinand_init(void);
 
 #define SP7350_REG_BASE			(0xf8000000)
 #define SP7350_RF_GRP(_grp, _reg)	((((_grp)*32+(_reg))*4)+SP7350_REG_BASE)
+#define SP7350_REG_BASE_AO		(0xf8800000)
+#define SP7350_RF_GRP_AO(_grp, _reg)	((((_grp)*32+(_reg))*4)+SP7350_REG_BASE_AO)
 #define SP7350_RF_MASK_V_CLR(_mask)	(((_mask)<<16)| 0)
 
-struct SP7350_moon0_regs {
-	unsigned int stamp;             // 0.0
-	unsigned int clken[5];          // 0.1 - 0.5
-	unsigned int rsvd_1[5]; 	// 0.6 - 0.10
-	unsigned int gclken[5];         // 0.11
-	unsigned int rsvd_2[5]; 	// 0.16 - 0.20
-	unsigned int reset[5];          // 0.21
-	unsigned int rsvd_3[5];         // 0.26 - 030
-	unsigned int hw_cfg;            // 0.31
+struct SP7350_moon0_regs_ao {
+	unsigned int stamp;            // 0.0
+	unsigned int reset[12];        // 0.1 -  0.12
+	unsigned int rsvd[18];         // 0.13 - 0.30
+	unsigned int hw_cfg;           // 0.31
 };
-#define SP7350_MOON0_REG ((volatile struct SP7350_moon0_regs *)SP7350_RF_GRP(0,0))
+#define SP7350_MOON0_REG_AO ((volatile struct SP7350_moon0_regs_ao *)SP7350_RF_GRP_AO(0,0))
 
-struct SP7350_moon1_regs{
+struct SP7350_moon1_regs_ao{
 	unsigned int sft_cfg[32];
 };
-#define SP7350_MOON1_REG ((volatile struct SP7350_moon1_regs *)SP7350_RF_GRP(1,0))
+#define SP7350_MOON1_REG_AO ((volatile struct SP7350_moon1_regs *)SP7350_RF_GRP_AO(1,0))
 
-#define SP7350_MOON4_REG ((volatile struct SP7350_moon1_regs *)SP7350_RF_GRP(4,0))
-
-enum Device_table{
-	DEVICE_SPI_NAND = 0,
-	DEVICE_MAX
+struct SP7350_moon2_regs_ao {
+	unsigned int rsvd1;            // 2.0
+	unsigned int clken[12];        // 2.1 - 2.12
+	unsigned int rsvd2[2];         // 2.13 - 2.14
+	unsigned int gclken[12];       // 2.15 - 2.26
+	unsigned int rsvd3[5];         // 2.27 - 2.31
 };
+#define SP7350_MOON2_REG_AO ((volatile struct SP7350_moon2_regs_ao *)RF_GRP_AO(2, 0))
+
+struct SP7350_moon4_regs_ao{
+	unsigned int sft_cfg[32];
+};
+#define SP7350_MOON4_REG_AO ((volatile struct SP7350_moon4_regs_ao *)SP7350_RF_GRP_AO(4,0))
+
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -54,28 +60,9 @@ int misc_init_r(void)
 	return 0;
 }
 
-void SetBootDev(unsigned int bootdev, unsigned int pin_x)
-{
-	switch(bootdev)
-	{
-#ifdef CONFIG_SP_SPINAND_Q645
-		case DEVICE_SPI_NAND:
-			/* module release reset pin */
-			SP7350_MOON0_REG->reset[2] = SP7350_RF_MASK_V_CLR(3<<11);   // spi nand & bch
-			/* nand pll level set */
-			//SP7350_MOON4_REG->sft_cfg[27] |= (0x00040004);
-			break;
-#endif
-		default:
-			printf("unknowm \n");
-			break;
-	}
-}
-
 void board_nand_init(void)
 {
 #ifdef CONFIG_SP_SPINAND_Q645
-	SetBootDev(DEVICE_SPI_NAND,1);
 	board_spinand_init();
 #endif
 }
