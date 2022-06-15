@@ -8,9 +8,6 @@
 #include <command.h>
 #include <linux/compiler.h>
 
-#define RGST_OFFSET_A	0x9EC00000
-#define RGST_OFFSET_B   0x9C000000
-
 #define ENTER		0x0D
 #define SPACE		0x20
 #define BCKSPACE	0x7F
@@ -34,7 +31,7 @@
 void prn_regs(unsigned int regGroupNum, unsigned int rgst_offset)
 {
 	unsigned int i = 0;
-	unsigned int regBaseAddr = 0;
+	unsigned long regBaseAddr = 0;
 
 	regBaseAddr = rgst_offset + regGroupNum * 32 * 4; /* unit: bytes */
 	for(i = 0; i < 32; i++)
@@ -48,7 +45,7 @@ void prn_regs(unsigned int regGroupNum, unsigned int rgst_offset)
 void write_regs(unsigned int regGroupNum, unsigned int regIndex,
 		unsigned int value, unsigned int rgst_offset)
 {
-	unsigned int targetAddr = 0;
+	unsigned long targetAddr = 0;
 
 	targetAddr = rgst_offset + (regGroupNum * 32 * 4) + regIndex * 4; /* unit: bytes */
 	*((volatile unsigned int *) targetAddr) = value;
@@ -65,22 +62,10 @@ void write_regs(unsigned int regGroupNum, unsigned int regIndex,
 static int do_reg_lreg(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[])
 {
 	int	regGroupNum = 0;
-	unsigned int rgst_offset = 0;
 
-	if (argc == 4) {
-
-	} else if (argc == 3) {
-		if (strncmp(argv[1], "a", 1) == 0)
-			rgst_offset = RGST_OFFSET_A;
-		else if (strncmp(argv[1], "b", 1) == 0)
-			rgst_offset = RGST_OFFSET_B;
-		else {
-			printf("Invalid chip. It should be \'a\' or \'b\'.\n");
-			return CMD_RET_USAGE;
-		}
-
-		regGroupNum = simple_strtoul(argv[2], NULL, 0);
-		prn_regs(regGroupNum, rgst_offset);
+	if (argc == 2) {
+		regGroupNum = simple_strtoul(argv[1], NULL, 0);
+		prn_regs(regGroupNum, 0xf8000000);
 	} else
 		return CMD_RET_USAGE;
 
@@ -94,38 +79,29 @@ static int do_reg_lreg(struct cmd_tbl *cmdtp, int flag, int argc, char * const a
  */
 static int do_reg_wreg(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[])
 {
-	if (argc == 5) {
+	if (argc == 4) {
 		unsigned int regGroupNum = 0, offset = 0, value = 0;
-		unsigned int rgst_offset = -1;
 
-		if (strncmp(argv[1], "a", 1) == 0)
-			rgst_offset = RGST_OFFSET_A;
-		else if (strncmp(argv[1], "b", 1) == 0)
-			rgst_offset = RGST_OFFSET_B;
-		else {
-			printf("Invalid chip. It should be be \'a\' or \'b\'.\n");
-			return CMD_RET_USAGE;
-		}
+		regGroupNum = simple_strtoul(argv[1], NULL, 0);
+		offset = simple_strtoul(argv[2], NULL, 0);
+		value = simple_strtoul(argv[3], NULL, 0);
 
-		regGroupNum = simple_strtoul(argv[2], NULL, 0);
-		offset = simple_strtoul(argv[3], NULL, 0);
-		value = simple_strtoul(argv[4], NULL, 0);
-
-		write_regs(regGroupNum, offset, value, rgst_offset);
+		write_regs(regGroupNum, offset, value, 0xf8000000);
 	} else
 		return CMD_RET_USAGE;
+
 	return 0;
 }
 
 /**************************************************/
 U_BOOT_CMD(
-	lreg,	3,	1,	do_reg_lreg,
+	lreg,	2,	1,	do_reg_lreg,
 	"Sunplus MON : load register (by group)",
-	"[a|b] [register group #]"
+	"[register group #]"
 );
 
 U_BOOT_CMD(
-	wreg,	5,	1,	do_reg_wreg,
+	wreg,	4,	1,	do_reg_wreg,
 	"Sunplus MON : write 4 bytes to register",
-	"[a|b] [register group #] [register # in group] [value (4 bytes)]"
+	"[register group #] [register # in group] [value (4 bytes)]"
 );
