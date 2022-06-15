@@ -24,6 +24,7 @@
 #define CONFIG_SYS_SDRAM_SIZE           (1024 << 20)
 #endif
 #define CONFIG_SYS_MALLOC_LEN           (6 << 20)
+#define CONFIG_SYS_BOOTM_LEN            (64 << 20)
 
 #ifndef CONFIG_SYS_TEXT_BASE		/* where U-Boot is loaded by xBoot */
 /* It is defined in arch/arm/mach-pentagram/Kconfig */
@@ -64,11 +65,7 @@
 /* u-boot env parameter */
 #define CONFIG_SYS_MMC_ENV_DEV		0
 
-
-#define B_START_POS			(0x9e809ff8)
-
-
-#define COUNTER_FREQUENCY (25*1000*1000)
+#define COUNTER_FREQUENCY		(25*1000*1000)
 
 #define CONFIG_SYS_MAXARGS		32
 #define CONFIG_SYS_CBSIZE		(2 << 10)

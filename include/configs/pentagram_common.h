@@ -74,8 +74,6 @@
 #define CONFIG_SYS_MMC_ENV_DEV		0
 
 
-#define B_START_POS			(0x9e809ff8)
-
 #define CONFIG_SYS_MAXARGS		32
 #define CONFIG_SYS_CBSIZE		(2 << 10)
 #define CONFIG_SYS_PBSIZE		(CONFIG_SYS_CBSIZE + sizeof(CONFIG_SYS_PROMPT) + 16)
