@@ -15,14 +15,30 @@
 #include "ehci.h"
 
 
-#define REG_BASE           0x9c000000
+#if defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_Q645) && \
+	!defined(CONFIG_TARGET_PENTAGRAM_SP7350)
+#define REG_BASE		0x9c000000
+#elif defined(CONFIG_TARGET_PENTAGRAM_Q645)
+#define REG_BASE		0xf8000000
+#elif defined(CONFIG_TARGET_PENTAGRAM_SP7350)
+#define REG_BASE		0xf8800000
+#endif
+
+#if defined(CONFIG_TARGET_PENTAGRAM_SP7350)
+#define UPHY_REG_BASE		0xf8000000
+#endif
+
 #define RF_GRP(_grp, _reg) ((((_grp) * 32 + (_reg)) * 4) + REG_BASE)
+
+#if defined(CONFIG_TARGET_PENTAGRAM_SP7350)
+#define UPHY_RF_GRP(_grp, _reg) ((((_grp) * 32 + (_reg)) * 4) + UPHY_REG_BASE)
+#endif
 
 #define RF_MASK_V(_mask, _val)       (((_mask) << 16) | (_val))
 #define RF_MASK_V_SET(_mask)         (((_mask) << 16) | (_mask))
 #define RF_MASK_V_CLR(_mask)         (((_mask) << 16) | 0)
 
-#if defined(CONFIG_TARGET_PENTAGRAM_Q645)
+#if defined(CONFIG_TARGET_PENTAGRAM_Q645) || defined(CONFIG_TARGET_PENTAGRAM_SP7350)
 // usb spec 2.0 Table 7-3  VHSDSC (min, max) = (525, 625)
 // default = 577 mV (374 + 7 * 29)
 #define DEFAULT_UPHY_DISC	0x7   // 7 (=577mv)
@@ -41,7 +57,7 @@ struct uphy_rn_regs {
        unsigned int cfg[22];
 };
 #elif defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C) || \
-	defined(CONFIG_TARGET_PENTAGRAM_Q645)
+	defined(CONFIG_TARGET_PENTAGRAM_Q645)|| defined(CONFIG_TARGET_PENTAGRAM_SP7350)
 struct uphy_rn_regs {
 	u32 cfg[28];		       // 150.0
 	u32 gctrl[3];		       // 150.28
@@ -49,8 +65,12 @@ struct uphy_rn_regs {
 };
 #endif
 
+#if defined(CONFIG_TARGET_PENTAGRAM_SP7350)
+#define UPHY0_RN_REG ((volatile struct uphy_rn_regs *)UPHY_RF_GRP(149, 0))
+#else
 #define UPHY0_RN_REG ((volatile struct uphy_rn_regs *)RF_GRP(149, 0))
 #define UPHY1_RN_REG ((volatile struct uphy_rn_regs *)RF_GRP(150, 0))
+#endif
 
 struct moon0_regs {
 	unsigned int stamp;            // 0.0
@@ -122,7 +142,7 @@ struct sunplus_ehci_priv {
 static void uphy_init(int port_num)
 {
 #if defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C) && \
-	!defined(CONFIG_TARGET_PENTAGRAM_Q645)
+	!defined(CONFIG_TARGET_PENTAGRAM_Q645) && !defined(CONFIG_TARGET_PENTAGRAM_SP7350)
 	unsigned int val, set;
 
 	// 1. Default value modification
@@ -473,7 +493,7 @@ static int ehci_sunplus_probe(struct udevice *dev)
 	hccr = (struct ehci_hccr *)((uint32_t)&priv->ehci->ehci_len_rev);
 	hcor = (struct ehci_hcor *)((uint32_t)&priv->ehci->ehci_usbcmd);
 #elif defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C) || \
-	defined(CONFIG_TARGET_PENTAGRAM_Q645)
+	defined(CONFIG_TARGET_PENTAGRAM_Q645) || defined(CONFIG_TARGET_PENTAGRAM_SP7350)
 	hccr = (struct ehci_hccr *)((uint64_t)&priv->ehci->ehci_len_rev);
 	hcor = (struct ehci_hcor *)((uint64_t)&priv->ehci->ehci_usbcmd);
 #endif
@@ -506,6 +526,8 @@ static const struct udevice_id ehci_sunplus_ids[] = {
 	{ .compatible = "sunplus,sunplus-i143-usb-ehci1" },
 #elif defined(CONFIG_TARGET_PENTAGRAM_Q645)
 	{ .compatible = "sunplus,q645-usb-ehci0" },
+#elif defined(CONFIG_TARGET_PENTAGRAM_SP7350)
+	{ .compatible = "sunplus,sp7350-usb-ehci0" },
 #endif
 	{ }
 };
