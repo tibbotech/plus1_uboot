@@ -1,12 +1,14 @@
+// SPDX-License-Identifier: GPL-2.0
 /*
- * SP7021 LTPP3G2 Rev. D (empty sockets)
- * Copyright (C) 2020 Tibbo Tech. - http://tibbo.com/tps/
- * License: GPLv2 or later
+ * Device Tree Source (include) for LTPP3G2 Rev.D on SP7021 SoC
+ *
+ * Copyright (C) 2021 Tibbo Technology Co.
  */
+
 /dts-v1/;
 
 #include "sp7021-ltpp3g2revD.dtsi"
 
 / {
-	model = "SP7021 LTPP3G2 Rev. D (empty sockets)";
+	model = "LTPP3G2 Rev.D on SP7021 (empty sockets)";
 };

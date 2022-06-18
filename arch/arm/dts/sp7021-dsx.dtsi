@@ -1,9 +1,16 @@
+// SPDX-License-Identifier: GPL-2.0
+/*
+ * Device Tree Source (include) for DSX Rev.A on SP7021 SoC
+ *
+ * Copyright (C) 2021 Tibbo Technology Co.
+ */
+
 /dts-v1/;
 
-#include "sp7021-ChipC.dtsi"
+#include "sp7021-common.dtsi"
 
 / {
-	model = "SP7021 DSX Rev. A";
+	model = "DSX Rev.A on SP7021";
 
 	chosen {
 		bootargs = "console=ttyS0,115200 root=/dev/ram rw loglevel=8 earlyprintk";
