@@ -16,14 +16,9 @@
 /* 01 (UART) on s1 */
 &uart1 {  status = "okay";  pinctrl-names = "default";  pinctrl-0 = <&pins_uart1>;  tps-sock = "s1";  };
 
-
-&pctl {
-/* 01 (UART) on s1 */
- pins_uart1: pins_uart1 {
+&pins_uart1 {
  pins = <
       SPPCTL_IOPAD(8,SPPCTL_PCTL_G_PMUX,MUXF_UA1_TX,0)
       SPPCTL_IOPAD(9,SPPCTL_PCTL_G_PMUX,MUXF_UA1_RX,0)
     >;
- };
-
 };

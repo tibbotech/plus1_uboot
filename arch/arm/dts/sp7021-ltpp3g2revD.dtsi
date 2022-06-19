@@ -74,7 +74,7 @@
 
 &mmc1 {
  pinctrl-names = "default";
- pinctrl-0 = <&mmc1_mux>;
+ pinctrl-0 = <&mmc1_mux &mmc1_cd0_mux>;
  cd-gpios = <&pctl 0 GPIO_ACTIVE_LOW>;
 };
 
@@ -272,9 +272,7 @@
   >;
  };
 
- mmc1_mux: pinmux_mmc1-pins {
-	function = "SD_CARD";
-	groups = "SD_CARD";
+ mmc1_cd0_mux: pinmux_mmc1_cd0-pins {
 	sunplus,pins = < SPPCTL_IOPAD(0,SPPCTL_PCTL_G_GPIO,0,0) >;
  };
  pins_sdio: pinmux_sdio-pins {

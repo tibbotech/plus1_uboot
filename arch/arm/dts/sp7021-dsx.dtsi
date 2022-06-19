@@ -62,7 +62,7 @@
 
 &mmc1 {
  pinctrl-names = "default";
- pinctrl-0 = <&mmc1_mux>;
+ pinctrl-0 = <&mmc1_mux &mmc1_cd63_mux>;
  cd-gpios = <&pctl 63 GPIO_ACTIVE_LOW>;
 };
 
@@ -220,10 +220,6 @@
       SPPCTL_IOPAD(91,SPPCTL_PCTL_G_GPIO,0,SPPCTL_PCTL_L_OUT|SPPCTL_PCTL_L_ONV|SPPCTL_PCTL_L_ODR)
     >;
  };
- hdmi_A_tx1: hdmi_A_tx1_pins {
-    function = "HDMI_TX";
-    groups = "HDMI_TX1";
- };
  /* for all eth */
  ethA_pins: pinmux_ethA_pins {
   pins = <
@@ -253,9 +249,7 @@
   >;
  };
 
- mmc1_mux: mmc1_mux {
-	function = "SD_CARD";
-	groups = "SD_CARD";
+ mmc1_cd63_mux: mmc1_cd63_mux {
 	pins = < SPPCTL_IOPAD(63,SPPCTL_PCTL_G_GPIO,0,0) >;
  };
  pins_sdio: pins_sdio {
