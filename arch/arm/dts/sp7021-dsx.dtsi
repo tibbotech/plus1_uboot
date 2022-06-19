@@ -2,7 +2,7 @@
 /*
  * Device Tree Source (include) for DSX Rev.A on SP7021 SoC
  *
- * Copyright (C) 2021 Tibbo Technology Co.
+ * Copyright (C) 2021 Tibbo Technology Inc.
  */
 
 /dts-v1/;
