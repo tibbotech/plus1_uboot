@@ -1,27 +1,24 @@
+// SPDX-License-Identifier: GPL-2.0
 /*
- * SP7021 LTPP3G2 Rev. D with a926 messages on uart1 for debug
- * Copyright (C) 2020 Tibbo Tech. - http://tibbo.com/tps/
- * License: GPLv2 or later
+ * Device Tree Source (include) for LTPP3G2 Rev.D on SP7021 SoC
+ *
+ * Copyright (C) 2021 Tibbo Technology Inc.
  */
+
 /dts-v1/;
 
 #include "sp7021-ltpp3g2revD.dtsi"
 
 / {
-	model = "SP7021 LTPP3G2 Rev. D (a926 messages on uart1)";
+	model = "LTPP3G2 Rev.D on SP7021 (a926 messages on uart1)";
 };
 
 /* 01 (UART) on s1 */
 &uart1 {  status = "okay";  pinctrl-names = "default";  pinctrl-0 = <&pins_uart1>;  tps-sock = "s1";  };
 
-
-&pctl {
-/* 01 (UART) on s1 */
- pins_uart1: pins_uart1 {
+&pins_uart1 {
  pins = <
       SPPCTL_IOPAD(8,SPPCTL_PCTL_G_PMUX,MUXF_UA1_TX,0)
       SPPCTL_IOPAD(9,SPPCTL_PCTL_G_PMUX,MUXF_UA1_RX,0)
     >;
- };
-
 };
