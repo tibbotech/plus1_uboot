@@ -84,24 +84,24 @@ typedef enum {
 	.gnum = 0, \
 }
 
-typedef struct {
+struct sppctlgrp_t {
 	const char * const name;
 	const u8 gval;                  // value for register
 	const unsigned * const pins;    // list of pins
 	const unsigned pnum;            // number of pins
-} sppctlgrp_t;
+};
 
-typedef struct {
+struct func_t {
 	const char * const name;
 	const fOFF_t freg;              // function register type
 	const u8 roff;                  // register offset
 	const u8 boff;                  // bit offset
 	const u8 blen;                  // number of bits
 	const u8 gnum;                  // number of groups
-	const sppctlgrp_t * const grps; // list of groups
-} func_t;
+	const struct sppctlgrp_t * const grps; // list of groups
+};
 
-extern func_t list_funcs[];
+extern struct func_t list_funcs[];
 extern const int list_funcsSZ;
 
 extern volatile u32 *moon1_regs;

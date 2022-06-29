@@ -37,7 +37,7 @@ void pinmux_grps_dump(void)
 {
 	int i = 0, mask, rval, val;
 
-	func_t *func = &list_funcs[i];
+	struct func_t *func = &list_funcs[i];
 	for (i = 0; i < list_funcsSZ; i++) {
 		func = &(list_funcs[i]);
 
@@ -312,7 +312,7 @@ found_zero_func:
 			continue;
 		}
 
-		func_t *f = &list_funcs[func];
+		struct func_t *f = &list_funcs[func];
 		switch (f->freg) {
 #ifdef SUPPORT_PINMUX
 		case fOFF_M:
@@ -385,7 +385,7 @@ found_function:
 found_groups:
 		pctl_info("groups = %s (%d)\n", pin_group, len);
 		if (len > 1) {
-			func_t *func = &list_funcs[i];
+			struct func_t *func = &list_funcs[i];
 
 			// Find 'pin_group' string in list.
 			for (i = 0; i < func->gnum; i++)
@@ -399,7 +399,7 @@ found_groups:
 			}
 
 			// 'pin_group' is found!
-			const sppctlgrp_t *grp = &func->grps[i];
+			const struct sppctlgrp_t *grp = &func->grps[i];
 
 			// Register all pins of the group.
 			for (i = 0; i < grp->pnum; i++)
