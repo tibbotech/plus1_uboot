@@ -417,4 +417,4 @@ struct func_t list_funcs[] = {
 	FNCE("ANA_TEST_IF",     fOFF_G, 3, 7,  2, sp7021grps_anat)
 };
 
-const int list_funcsSZ = ARRAY_SIZE(list_funcs);
+const size_t list_funcsSZ = ARRAY_SIZE(list_funcs);

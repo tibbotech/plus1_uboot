@@ -102,7 +102,7 @@ struct func_t {
 };
 
 extern struct func_t list_funcs[];
-extern const int list_funcsSZ;
+extern const size_t list_funcsSZ;
 
 extern volatile u32 *moon1_regs;
 #ifdef SUPPORT_PINMUX

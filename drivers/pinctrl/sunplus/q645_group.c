@@ -379,4 +379,4 @@ struct func_t list_funcs[] = {
 	FNCE("INT7",            fOFF_G, 6, 3,  3, q645grps_int7)
 };
 
-const int list_funcsSZ = ARRAY_SIZE(list_funcs);
+const size_t list_funcsSZ = ARRAY_SIZE(list_funcs);
