@@ -1,5 +1,7 @@
 #include <common.h>
 #include <image.h>
+
+#if (COMPILE_WITH_SECURE == 1)
 #include <cpu_func.h>
 #include "crypto_drv.h"
 
@@ -156,7 +158,6 @@ static int sp_expmod(u8 *dst, u8 *src, u8 *e, u8 *n, u32 size)
 
 #define HEADER_SZ	(sizeof(struct image_header))
 
-// verify_kernel_signature
 static int do_verify(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[])
 {
 	if (argc < 2)
@@ -194,6 +195,12 @@ static int do_verify(struct cmd_tbl *cmdtp, int flag, int argc, char * const arg
 	if (ret) while (1); // verify fail, stop boot kernel
 	return ret;
 }
+#else
+static int do_verify(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[])
+{
+	return 0;
+}
+#endif
 
 U_BOOT_CMD(
 	verify, 3, 1, do_verify,
