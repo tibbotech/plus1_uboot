@@ -1,9 +1,0 @@
-1. sw/ : software crypto
-
-  sw/aes-gcm/        : PC aes-gcm tool, used when creating xboot image. Open source : https://github.com/theicfire/aes-gcm
-  sw/apps/           : PC tools, used when creating xboot image, self-made.
-  sw/libeddsa        : SW ED25519, X25519. Open source: https://github.com/phlay/libeddsa
-  sw/linux/          : SW SHA3 and AES (Q633 build). Open source : Linux kernel 4.9
-  sw/wpa_supplicant/ : KDF, AES-GCM (Q633 build). Open source: wpa_suuplicant 2.9, https://w1.fi/wpa_supplicant/
-
-2. hw/ : hareware crypto (SPACC and HSM)

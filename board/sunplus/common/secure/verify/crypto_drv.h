@@ -66,8 +66,6 @@ do{}while(0) \
 /*
  *   linux types
  */
-typedef u32 dma_addr_t;
-//typedef u64 dma_addr_t;
 #define SPCRYPTO_RET_SUCCESS             0
 #define SPCRYPTO_RET_INVALID_ARG         1
 #define SPCRYPTO_RET_DEV_ERROR           2
@@ -380,8 +378,6 @@ struct sp_crypto_reg {
 #define TRB_NORMAL              (1)
 #define TRB_LINK                (2)
 
-
-
 /*
  *  macros for trb.para.mode
  */
@@ -412,127 +408,4 @@ struct sp_crypto_reg {
 #define M_PADDED        (1 << 8)        /* only for poly1305 */
 					/* 1: padded  0:no padded */
 
-typedef enum {
-	SP_CRYPTO_AES = 0x20180428,
-	SP_CRYPTO_HASH,
-	SP_CRYPTO_RSA,
-} crypto_type_t;
-
-struct trb_s {
-	/* Cycle bits. indicates the current cycle of the ring */
-	void *priv;
-
-	/* Completion Code. only use in event trb
-	 *   0 Invalid Indicates this field has not been updated
-	 *   1 Success indicates the transfer is successfully completed
-	 */
-	unsigned int cc:1;
-
-	/* Toggle Cycle bit. Used in link TRB only.
-	 *   indicates the cycle bits will be toggle in trb_next segment.
-	 */
-	unsigned int tc:1;
-
-	/* Interrupt On Complete.
-	 *   when this bit is set, controller will set an interrupt
-	 *   after this TRB is transmitted.
-	 */
-	unsigned int ioc:1;
-
-	unsigned int rsv1:1;
-
-	/* TRB type:
-	 *   0x1: Normal. Normal TRB used in trb_ring.
-	 *   0x2: Link. Link TRB to link to trb_ring segments
-	 */
-	unsigned int type:4;
-
-	unsigned int rsv2:8;
-
-	/*  Plain text size in bytes.
-	 * indicates the read/write data bytes of this TRB.
-	 */
-	unsigned int size:16;
-
-	/* For link TRB indicates the trb_next segment address.
-	 * or  Source data pointer(depend on ENDC)
-	 */
-	dma_addr_t sptr;
-
-	/* Destination data pointer (depend on ENDC)
-	 */
-	dma_addr_t dptr;
-
-	/* Parameter
-	 */
-	unsigned int mode;
-	dma_addr_t iptr; /* Initial Vector/Counter (IV/ICB) pointer */
-	dma_addr_t kptr; /* AES/GHASH: Key/Sub-Key pointer */
-
-	/* Cycle bits. indicates the current cycle of the ring */
-	unsigned int c;
-
-}__attribute__((__packed__));
-
-typedef struct trb_s trb_t;
-
-typedef struct trb_ring_s {
-	trb_t *trb;
-
-	/* get trb at tail, put trb at head */
-	trb_t *head;
-	trb_t *tail;
-	trb_t *link;
-
-//	struct mutex lock;
-//	struct semaphore sem;
-
-	unsigned int trigger_count;
-	unsigned int irq_count;
-} trb_ring_t;
-
-typedef struct crypto_work_s {
-	crypto_type_t type;
-	trb_ring_t *ring;
-//	volatile bool done;
-//	wait_queue_head_t wait;
-} crypto_work_t;
-
-struct crypto_dev_s {
-	volatile struct sp_crypto_reg *reg;
-	unsigned int irq;
-	unsigned int initialized;
-	trb_ring_t *aes_ring;
-	trb_ring_t *hash_ring;
-
-	/* rsa related */
-//	struct mutex rsa_lock;
-//	wait_queue_head_t rsa_wait;
-	volatile unsigned int rsa_done;
-	unsigned int rsa_nbytes;
-	unsigned char* rsa_n;
-	unsigned char* rsa_e;
-	unsigned char* rsa_a;
-	unsigned char* rsa_x;
-	unsigned char* rsa_p2;
-};
-
-//int crypto_work_init(crypto_work_t *ctx, crypto_type_t type);
-//void crypto_work_deinit(crypto_work_t *ctx);
-//int crypto_work_do(crypto_work_t *ctx, bool wait);
-//int crypto_work_waitdone(crypto_work_t *ctx);
-//int crypto_work_add(crypto_work_t *ctx,
-//	dma_addr_t src, dma_addr_t dst, dma_addr_t iv, dma_addr_t key,
-//	unsigned int len, unsigned int mode, unsigned char ioc);
-//int crypto_do_expmod(unsigned char *x, unsigned char *a, unsigned char *e,
-//	unsigned char *n, unsigned int size, unsigned char big_endian);
-
-//int crypto_compare_array(unsigned char *a,unsigned char *b,unsigned int size,unsigned char reverse);
-//void crypto_copy_array(unsigned char *dst,unsigned char *src,unsigned int size,unsigned char reverse);
-//void crypto_rand_array(unsigned char array[], unsigned int size);
-//long long crypto_mont_w(unsigned char *mod);
-//void  crypto_dump_buf(const char *name, void *buf, int size);
-
-
 #endif //__CRYPTO_DRV_H
-

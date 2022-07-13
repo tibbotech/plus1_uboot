@@ -4,19 +4,16 @@
 # SPDX-License-Identifier:	GPL-2.0+
 #
 
-obj-y += hw/sc_spacc.o hw/host_hpi.o
-
-obj-y += sw/libeddsa/lib/burn.o \
-	sw/libeddsa/lib/burnstack.o \
-	sw/libeddsa/lib/ed25519-sha512.o \
-	sw/libeddsa/lib/ed.o \
-	sw/libeddsa/lib/fld.o \
-	sw/libeddsa/lib/sc.o \
-	sw/libeddsa/lib/x25519.o \
-	sw/linux/crypto/sha3_generic.o \
-	sw/wpa_supplicant/src/crypto/aes-gcm.o
-
-obj-y += sc_api.o
 obj-y += secure_verify.o
 
+rsakey_N.h: pk.pem
+	openssl rsa -in pk.pem -text -noout | head -20 | tail -18 | sed -e 's|    00:|    |;s|:|, 0x|g;s|    |0x|g;s|, 0x$$|,|g' > rsakey_N.h
 
+pk.pem:
+	openssl genrsa -out pk.pem 2048
+
+sign:
+	openssl sha3-512 -binary $(IMG) | openssl rsautl -sign -inkey pk.pem >> $(IMG)
+
+clean:
+	rm -f pk.pem rsakey_N.h
