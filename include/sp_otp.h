@@ -14,12 +14,15 @@
 #define REG_BASE_AO        0xF8800000
 #define RF_GRP_AO(_grp, _reg)           ((((_grp) * 32 + (_reg)) * 4) + REG_BASE_AO)
 struct hb_gp_regs {
-	u32 hb_gpio_rgst_bus32[8];
+	u32 hb_gpio_rgst_bus32[32];
 };
-#define HB_GP_REG    ((volatile struct hb_gp_regs *)RF_GRP_AO(73, 0))
-#define KEY_HB_GP_REG ((volatile struct hb_gp_regs *)RF_GRP(779, 0))
-#define CUSTOMER_HB_GP_REG ((volatile struct hb_gp_regs *)RF_GRP(79, 0))
+#define HB_GP_REG    ((volatile struct hb_gp_regs *)RF_GRP_AO(71, 0))
 
+struct otp_key_regs {
+	unsigned int block_addr[4];
+	unsigned int reserved_8[28];
+};
+#define OTP_KEY_REG    ((volatile struct otp_key_regs *)RF_GRP_AO(73, 0))
 #else  //for CONFIG_TARGET_PENTAGRAM_Q645
 struct moon2_otp_regs {
 	unsigned int sft_cfg[32];
@@ -32,7 +35,6 @@ struct hb_gp_regs {
 #define HB_GP_REG ((volatile struct hb_gp_regs *)RF_GRP(350, 0))
 #define KEY_HB_GP_REG ((volatile struct hb_gp_regs *)RF_GRP(779, 0))
 #define CUSTOMER_HB_GP_REG ((volatile struct hb_gp_regs *)RF_GRP(79, 0))
-
 #endif
 
 struct otprx_regs {
@@ -130,6 +132,9 @@ struct otprx_regs {
 #define RD_OTP_ADDRESS                  0x1F
 
 int read_otp_data(volatile struct hb_gp_regs *otp_data, volatile struct otprx_regs *regs, int addr, char *value);
+#if defined(CONFIG_TARGET_PENTAGRAM_SP7350)
+int read_otp_key(volatile struct otp_key_regs *otp_data, volatile struct otprx_regs *regs, int addr, char *value);
+#endif
 
 #endif /* __SP_OTP_H */
 

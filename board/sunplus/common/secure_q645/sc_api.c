@@ -23,10 +23,10 @@ void prn_dump_buffer(unsigned char *buf, int len)
 static int load_otp_pub_key(unsigned char *buf, int otp_byte_off, int bytes)
 {
 	int i;
-	
+
 #if defined(CONFIG_TARGET_PENTAGRAM_SP7350)
 	for (i = 0; i < bytes; i++) {
-		read_otp_data(HB_GP_REG, SP_OTPRX_REG, i+otp_byte_off,(char *)&buf[i]);   
+		read_otp_key(OTP_KEY_REG, SP_OTPRX_REG, i+otp_byte_off,(char *)&buf[i]);
 	}
 #else
 	for (i = 0; i < bytes; i++) {

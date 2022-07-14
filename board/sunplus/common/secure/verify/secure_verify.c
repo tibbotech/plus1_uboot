@@ -57,8 +57,10 @@ static void load_otp_pub_key(u8 in_pub[])
 #if (defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)) || \
 		(defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C))
 			read_otp_data(HB_GP_REG, SP_OTPRX_REG, i+64,(char *)&in_pub[i]);
-#elif defined(CONFIG_TARGET_PENTAGRAM_Q645) || defined(CONFIG_TARGET_PENTAGRAM_SP7350)
+#elif defined(CONFIG_TARGET_PENTAGRAM_Q645)
 			read_otp_data(KEY_HB_GP_REG, KEY_OTPRX_REG, i+64,(char *)&in_pub[i]);
+#elif defined(CONFIG_TARGET_PENTAGRAM_SP7350)
+			read_otp_key(OTP_KEY_REG, KEY_OTPRX_REG, i+64,(char *)&in_pub[i]);
 #endif
 	}
 	puts("uboot  OTP pub-key:\n");
