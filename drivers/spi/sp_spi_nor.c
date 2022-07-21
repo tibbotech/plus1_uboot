@@ -290,8 +290,11 @@ static int spi_flash_xfer_DMAwrite(struct sp_spi_nor_priv *priv, UINT8 *cmd, siz
 		}
 
 		value =  spi_reg->spi_cfg0;
+#if defined(CONFIG_SOC_Q645) || defined(CONFIG_SOC_SP7350)
+		spi_reg->spi_cfg0 = (value & CLEAR_DATA64_LEN) | temp_len | (1<<19);//| DATA64_EN;
+#else
 		spi_reg->spi_cfg0 = (value & CLEAR_DATA64_LEN) | temp_len;//| DATA64_EN;
-
+#endif
 		spi_reg->spi_mem_data_addr = desc_w->phys;
 
 		autocfg = DMA_TRIGGER | (cmd[0]<<8) | (1);
