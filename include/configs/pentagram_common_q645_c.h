@@ -373,6 +373,7 @@
 	"setenv bootargs ${b_c} root=ubi0:rootfs rw ubi.mtd=9,2048 rootflags=sync rootfstype=ubifs mtdparts=${mtdparts} user_debug=255 rootwait; " \
 	"run boot_kernel \0" \
 "boot_kernel="\
+	"sp_wdt_set;" \
 	"if itest ${if_use_nfs_rootfs} == 1; then " \
 		"setenv bootargs ${b_c} root=/dev/nfs nfsroot=${nfs_serverip}:${nfs_rootfs_dir} ip=${nfs_clintip}:${nfs_serverip}:${nfs_gatewayip}:${nfs_netmask}::eth0:off rdinit=/linuxrc noinitrd rw; "\
 	"fi; " \
@@ -423,6 +424,7 @@
 "sdcard_boot=setenv isp_if mmc && setenv isp_dev $sdcard_devid; " \
 	"mmc list; " \
 	"echo run sdcard_boot; "\
+	"sp_wdt_set;" \
 	SDCARD_EXT_CMD \
 	"\0" \
 "isp_common=setenv isp_ram_addr 0x800000; " \

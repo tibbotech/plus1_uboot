@@ -153,6 +153,38 @@ U_BOOT_CMD(
 	"\t<dtb addr>    : [qk uImage header][dtb header][dtb]\n"
 );
 
+#define RBUS_AND_STC_WDT_TRG    0xf8000248
+#define WDT_CTRL                0xf8000628
+
+#define WDT_STOP                0x3877
+#define WDT_RESUME              0x4A4B
+#define WDT_CLRIRQ              0x7482
+#define WDT_UNLOCK              0xAB00
+#define WDT_LOCK                0xAB01
+#define WDT_CONMAX              0xDEAF
+
+static int do_sp_wdt_set(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[])
+{
+	volatile unsigned int *trigger = (volatile unsigned int *)map_sysmem(RBUS_AND_STC_WDT_TRG, 0);
+	volatile unsigned int *wdt_ctrl = (volatile unsigned int *)map_sysmem(WDT_CTRL, 0);
+	/* avoid reboot */
+	*wdt_ctrl = WDT_STOP;
+	*wdt_ctrl = WDT_CONMAX;
+	*wdt_ctrl = WDT_CLRIRQ;
+	/* enable rbus and stc timeout trigger */
+	*trigger = 0x06000600;
+
+	return 0;
+}
+
+U_BOOT_CMD(
+	sp_wdt_set, CONFIG_SYS_MAXARGS, 1, do_sp_wdt_set,
+	"sunplus watchdog command",
+	"sp_wdt_set - init watchdog for linux.\n"
+	"\n"
+	"sp_wdt_set\n"
+);
+
 #ifdef SPEED_UP_SPI_NOR_CLK
 
 #if 0
