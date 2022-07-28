@@ -103,6 +103,14 @@
 #else
 #define MTDPARTS_DEFAULT		"sp_spinand.0:128k(nand_header),384k(xboot1),1536k(uboot1),2048k(uboot2),512k(env),512k(env_redund),1m(reserve),256k(dtb),25m(kernel),230144k(rootfs)"
 #endif
+#ifdef CONFIG_SP_PARANAND
+#undef CONFIG_SYS_NAND_BASE
+#undef MTDIDS_DEFAULT
+#undef MTDPARTS_DEFAULT
+#define CONFIG_SYS_NAND_BASE           0xf8120000
+#define MTDIDS_DEFAULT                 "nand0=sp_paranand.0"
+#define MTDPARTS_DEFAULT               "sp_paranand.0:128k(nand_header),384k(xboot1),1536k(uboot1),2048k(uboot2),512k(env),512k(env_redund),1m(reserve),256k(dtb),25m(kernel),230144k(rootfs)"
+#endif
 #endif
 
 /* TFTP server IP and board MAC address settings for TFTP ISP.

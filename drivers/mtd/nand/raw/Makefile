@@ -45,6 +45,10 @@ obj-$(CONFIG_SP_SPINAND_Q645) += sp_spinand_ids.o sp_spinand_q645.o sp_bch_q645.
 obj-$(CONFIG_SP_NAND_BBLK) += sp_bblk_q645.o
 endif
 
+ifdef CONFIG_SP_PARANAND
+obj-$(CONFIG_SP_PARANAND) += sp_paranand/
+endif
+
 obj-$(CONFIG_NAND_ECC_BCH) += nand_bch.o
 
 obj-$(CONFIG_NAND_ATMEL) += atmel_nand.o

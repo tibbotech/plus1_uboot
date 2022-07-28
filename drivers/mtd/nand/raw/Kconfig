@@ -263,6 +263,15 @@ config SP_SPINAND_Q645
 	  Q645 and SP7350. If you have a controller with this interface,
 	  say Y here. If unsure, say N.
 
+config SP_PARANAND
+	bool "Sunplus SP7350 PARA NAND Controller"
+	depends on DM || MTD
+	imply CMD_NAND
+	help
+		This selects the Sunplus PARA NAND Controller Interface on
+		SP7350. If you have a controller with this interface,
+		say Y here. If unsure, say N.
+
 config GLB_GMNCFG_SPINAND_ENABLE_SFTPAD
 	bool "Enable setting softpad timing"
 	default n

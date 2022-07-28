@@ -9,6 +9,10 @@
 extern void board_spinand_init(void);
 #endif
 
+#ifdef CONFIG_SP_PARANAND
+extern void board_paranand_init(void);
+#endif
+
 #define SP7350_REG_BASE			(0xf8000000)
 #define SP7350_RF_GRP(_grp, _reg)	((((_grp)*32+(_reg))*4)+SP7350_REG_BASE)
 #define SP7350_REG_BASE_AO		(0xf8800000)
@@ -64,6 +68,9 @@ void board_nand_init(void)
 {
 #ifdef CONFIG_SP_SPINAND_Q645
 	board_spinand_init();
+#endif
+#ifdef CONFIG_SP_PARANAND
+	board_paranand_init();
 #endif
 }
 
