@@ -33,7 +33,7 @@ static int ohci_sunplus_remove(struct udevice *dev)
 
 static const struct udevice_id ohci_sunplus_ids[] = {
 #if defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C) && \
-	!defined(CONFIG_TARGET_PENTAGRAM_Q645)
+	!defined(CONFIG_TARGET_PENTAGRAM_Q645) && !defined(CONFIG_TARGET_PENTAGRAM_SP7350)
 	{ .compatible = "sunplus,sp7021-usb-ohci0" },
 	{ .compatible = "sunplus,sp7021-usb-ohci1" },
 #elif defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C)
@@ -41,6 +41,8 @@ static const struct udevice_id ohci_sunplus_ids[] = {
 	{ .compatible = "sunplus,sunplus-i143-usb-ohci1" },
 #elif defined(CONFIG_TARGET_PENTAGRAM_Q645)
 	{ .compatible = "sunplus,q645-usb-ohci0" },
+#elif defined(CONFIG_TARGET_PENTAGRAM_SP7350)
+	{ .compatible = "sunplus,sp7350-usb-ohci0" },
 #endif
 	{ }
 };
