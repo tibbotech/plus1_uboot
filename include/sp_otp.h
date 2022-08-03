@@ -2,6 +2,9 @@
 #define __SP_OTP_H
 #include <common.h>
 
+#define SUPPORT_WRITE_OTP
+//#define OTP_PIO_MODE
+
 #if defined(CONFIG_TARGET_PENTAGRAM_Q645) || defined(CONFIG_TARGET_PENTAGRAM_SP7350)
 #define REG_BASE           0xF8000000
 #elif (defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)) || \
@@ -20,7 +23,9 @@ struct hb_gp_regs {
 
 struct otp_key_regs {
 	unsigned int block_addr[4];
-	unsigned int reserved_8[28];
+	unsigned int hw_do_addr;
+	unsigned int tsmc_do_addr;
+	unsigned int reserved_8[26];
 };
 #define OTP_KEY_REG    ((volatile struct otp_key_regs *)RF_GRP_AO(73, 0))
 #else  //for CONFIG_TARGET_PENTAGRAM_Q645

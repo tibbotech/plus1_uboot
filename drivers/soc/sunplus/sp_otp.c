@@ -4,8 +4,30 @@
 #include <linux/delay.h>
 #include "sp_otp.h"
 
-#define SUPPORT_WRITE_OTP
+#ifdef OTP_PIO_MODE
+int read_otp_data(volatile struct hb_gp_regs *otp_data, volatile struct otprx_regs *regs, int addr, char *value)
+{
+	/* set PIO mode */
+	regs->otp_prog_ctl = 0x5;
 
+	/* addr = byte address */
+	regs->otp_prog_addr = addr * 8;
+
+	regs->otp_prog_csb = 0x0;
+	regs->otp_prog_load = 0x1;
+	regs->otp_prog_strobe = 0x1;
+
+	/* SP7350 : byte 0 ~ byte 63 of OTP */
+	*value = regs->otp_data2;
+
+	regs->otp_prog_strobe = 0x0;
+	regs->otp_prog_load = 0x0;
+	regs->otp_prog_csb = 0x1;
+	regs->otp_prog_addr = 0;
+
+	return 0;
+}
+#else
 int read_otp_data(volatile struct hb_gp_regs *otp_data, volatile struct otprx_regs *regs, int addr, char *value)
 {
 	unsigned int addr_data;
@@ -39,8 +61,33 @@ int read_otp_data(volatile struct hb_gp_regs *otp_data, volatile struct otprx_re
 
 	return 0;
 }
+#endif
 
 #if defined(CONFIG_TARGET_PENTAGRAM_SP7350)
+	#ifdef OTP_PIO_MODE
+int read_otp_key(volatile struct otp_key_regs *otp_data, volatile struct otprx_regs *regs, int addr, char *value)
+{
+	/* set PIO mode */
+	regs->otp_prog_ctl = 0x5;
+
+	/* addr (byte) */
+	regs->otp_prog_addr = addr * 8;
+
+	regs->otp_prog_csb = 0x0;
+	regs->otp_prog_load = 0x1;
+	regs->otp_prog_strobe = 0x1;
+
+	/* SP7350 : byte 64 ~ byte 127 of OTP */
+	*value = otp_data->tsmc_do_addr;
+
+	regs->otp_prog_strobe = 0x0;
+	regs->otp_prog_load = 0x0;
+	regs->otp_prog_csb = 0x1;
+	regs->otp_prog_addr = 0;
+
+	return 0;
+}
+	#else
 int read_otp_key(volatile struct otp_key_regs *otp_data, volatile struct otprx_regs *regs, int addr, char *value)
 {
 	unsigned int addr_data;
@@ -74,19 +121,55 @@ int read_otp_key(volatile struct otp_key_regs *otp_data, volatile struct otprx_r
 
 	return 0;
 }
+	#endif
 #endif
 
 #ifdef SUPPORT_WRITE_OTP
+	#ifdef OTP_PIO_MODE
+int write_otp_data(volatile struct hb_gp_regs *otp_data, volatile struct otprx_regs *regs, int addr, char *value)
+{
+	unsigned int cnt;
+
+	/* set PIO mode */
+	regs->otp_prog_ctl = 0x5;
+
+	for (cnt = 0; cnt < 8; cnt++) {
+		if (((*value >> cnt) & 0x1) == 0x1) {
+			regs->otp_prog_wr = 0x1;
+			regs->otp_prog_reg25 = 0x1;
+			/* addr (byte) */
+			regs->otp_prog_addr = addr + (cnt * 1024);
+			regs->otp_pro_ps = 0x1;
+			regs->otp_prog_csb = 0x0;
+			regs->otp_prog_pgenb = 0x0;
+			regs->otp_prog_strobe = 0x1;
+
+			/* 4500ns ~ 5000ns */
+			udelay(5);
+
+			regs->otp_prog_strobe = 0x0;
+			regs->otp_prog_pgenb = 0x1;
+			regs->otp_prog_csb = 0x1;
+			regs->otp_pro_ps = 0x0;
+			regs->otp_prog_reg25 = 0x0;
+			regs->otp_prog_addr = 0x0;
+			regs->otp_prog_wr = 0x0;
+		}
+	}
+
+	return 0;
+}
+	#else
 int write_otp_data(volatile struct hb_gp_regs *otp_data, volatile struct otprx_regs *regs, int addr, char *value)
 {
 	unsigned int data;
 	u32 timeout = OTP_WAIT_MICRO_SECONDS;
 
-	#if defined(CONFIG_TARGET_PENTAGRAM_Q645)
+		#if defined(CONFIG_TARGET_PENTAGRAM_Q645)
 	writel(0x5dc1, &regs->otp_ctrl);
-	#else
+		#else
 	writel(0xfd01, &regs->otp_ctrl);
-	#endif
+		#endif
 	writel(addr, &regs->otp_prog_addr);
 	writel(0x03, &regs->otp_prog_ctl);
 
@@ -111,6 +194,7 @@ int write_otp_data(volatile struct hb_gp_regs *otp_data, volatile struct otprx_r
 
 	return 0;
 }
+	#endif
 #endif
 
 static int do_read_otp(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[])
@@ -121,8 +205,13 @@ static int do_read_otp(struct cmd_tbl *cmdtp, int flag, int argc, char * const a
 	volatile struct otp_key_regs *otp_key;
 #endif
 	unsigned int addr, data, efuse, otp_size;
-	char value;
+#ifdef OTP_PIO_MODE
+	u32 buf[4];
+	int i, j, k;
+#else
 	int i, j;
+#endif
+	char value;
 
 	efuse = 0;
 	if (argc == 3) {
@@ -164,12 +253,48 @@ static int do_read_otp(struct cmd_tbl *cmdtp, int flag, int argc, char * const a
 	}
 
 	if (strcmp(argv[1], "a") == 0) {
-		printf("         eFuse%d\n", efuse);
-		printf(" (byte No.)   (data)\n");
 		j = 0;
 
+#ifdef OTP_PIO_MODE
+		printf("        PIO mode\n");
+#else
+		printf("        HW mode\n");
+#endif
+		printf("         eFuse%d\n", efuse);
+		printf(" (byte No.)   (data)\n");
+
+#ifdef OTP_PIO_MODE
 		for (addr = 0 ; addr < (otp_size - 1); addr += (OTP_WORD_SIZE * OTP_WORDS_PER_BANK)) {
-#if defined(CONFIG_TARGET_PENTAGRAM_SP7350)
+			for (i = 0; i < OTP_WORD_SIZE; i++) {
+				buf[i] = 0;
+
+				for (k = (OTP_WORD_SIZE - 1); k >= 0; k--) {
+	#if defined(CONFIG_TARGET_PENTAGRAM_SP7350)
+					if (addr < 64) {
+						if (read_otp_data(otp_data, otprx, addr+i*4+k, &value) == -1)
+							return CMD_RET_FAILURE;
+					} else {
+						if (read_otp_key(otp_key, otprx, addr+i*4+k, &value) == -1)
+							return CMD_RET_FAILURE;
+					}
+	#else
+					if (read_otp_data(otp_data, otprx, addr+i*4+k, &value) == -1)
+						return CMD_RET_FAILURE;
+	#endif
+					buf[i] = buf[i] << 8;
+					buf[i] = (buf[i] & 0xfffffff0) | value;
+				}
+			}
+
+			for (i = 0; i < OTP_WORD_SIZE; i++, j++) {
+				printf("  %03u~%03u : 0x%08x\n", 3+j*4, j*4, buf[i]);
+			}
+
+			printf("\n");
+		}
+#else
+		for (addr = 0 ; addr < (otp_size - 1); addr += (OTP_WORD_SIZE * OTP_WORDS_PER_BANK)) {
+	#if defined(CONFIG_TARGET_PENTAGRAM_SP7350)
 			if (addr < 64) {
 				if (read_otp_data(otp_data, otprx, addr, &value) == -1)
 					return CMD_RET_FAILURE;
@@ -177,26 +302,27 @@ static int do_read_otp(struct cmd_tbl *cmdtp, int flag, int argc, char * const a
 				if (read_otp_key(otp_key, otprx, addr, &value) == -1)
 					return CMD_RET_FAILURE;
 			}
-#else
+	#else
 			if (read_otp_data(otp_data, otprx, addr, &value) == -1)
 				return CMD_RET_FAILURE;
-#endif
+	#endif
 
-#if defined(CONFIG_TARGET_PENTAGRAM_SP7350)
-			for (i = 0; i < 4; i++, j++) {
+	#if defined(CONFIG_TARGET_PENTAGRAM_SP7350)
+			for (i = 0; i < OTP_WORD_SIZE; i++, j++) {
 				if (addr < 64)
 					printf("  %03u~%03u : 0x%08x\n", 3+j*4, j*4, otp_data->hb_gpio_rgst_bus32[8+i]);
 				else
 					printf("  %03u~%03u : 0x%08x\n", 3+j*4, j*4, otp_key->block_addr[i]);
 			}
-#else
-			for (i = 0; i < 4; i++, j++) {
+	#else
+			for (i = 0; i < OTP_WORD_SIZE; i++, j++) {
 				printf("  %03u~%03u : 0x%08x\n", 3+j*4, j*4, otp_data->hb_gpio_rgst_bus32[8+i]);
 			}
-#endif
+	#endif
 
 			printf("\n");
 		}
+#endif
 	} else {
 		addr = simple_strtoul(argv[1], NULL, 0);
 
@@ -222,7 +348,12 @@ static int do_read_otp(struct cmd_tbl *cmdtp, int flag, int argc, char * const a
 #endif
 
 		data = value;
-		printf("eFuse%d DATA (byte %u) = 0x%02x\n", efuse, addr, data);
+
+#ifdef OTP_PIO_MODE
+		printf("PIO mode - eFuse%d DATA (byte %u) = 0x%02x\n", efuse, addr, data);
+#else
+		printf("HW mode - eFuse%d DATA (byte %u) = 0x%02x\n", efuse, addr, data);
+#endif
 	}
 
 	return 0;
@@ -310,7 +441,11 @@ static int do_write_otp(struct cmd_tbl  *cmdtp, int flag, int argc, char * const
 		return CMD_RET_FAILURE;
 #endif
 
-	printf("OTP write complete !!\n");
+#ifdef OTP_PIO_MODE
+	printf("OTP write (PIO mode) complete !!\n");
+#else
+	printf("OTP write (HW mode) complete !!\n");
+#endif
 
 	return 0;
 }
