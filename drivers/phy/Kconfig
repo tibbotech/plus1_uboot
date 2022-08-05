@@ -268,5 +268,12 @@ config PHY_MTK_TPHY
 	  multi-ports is first version, otherwise is second veriosn,
 	  so you can easily distinguish them by banks layout.
 
+config SUNPLUS_DWC_USB3_PHY
+	bool "SUNPLUS DWC3 USB3 PHY support"
+	depends on PHY
+	depends on TARGET_PENTAGRAM_Q645 || TARGET_PENTAGRAM_SP7350
+	help
+          Support the DWC3 USB3 PHY in SUNPLUS SoCs
+
 source "drivers/phy/rockchip/Kconfig"
 endmenu

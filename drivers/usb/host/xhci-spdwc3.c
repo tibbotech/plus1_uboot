@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
- * Copyright 2015 Freescale Semiconductor, Inc.
+ * Copyright 2022 Sunplus, Inc.
  *
  * DWC3 controller driver
  *
- * Author: Ramneek Mehresh<ramneek.mehresh@freescale.com>
+ * Author: ChingChouHuang<chingchou.huangh@sunplus.com>
  */
 
 #include <common.h>
@@ -14,7 +14,7 @@
 #include <usb.h>
 #include <dwc3-uboot.h>
 #include <linux/delay.h>
-
+#include <asm/gpio.h>
 #include <usb/xhci.h>
 #include <asm/io.h>
 #include <linux/usb/dwc3.h>
@@ -48,6 +48,9 @@ struct moon0_regs {
 struct uphy_u3_regs {
 	unsigned int cfg[32];		       // 189.0
 };
+
+struct gpio_desc *gpiodir;
+struct udevice *phydev;
 
 #define UPHY0_U3_REG ((volatile struct uphy_u3_regs *)RF_AMBA(189, 0))
 #define UPHY1_U3_REG ((volatile struct uphy_u3_regs *)RF_AMBA(190, 0))
@@ -120,20 +123,15 @@ static void uphy_init(void)
 #if defined(CONFIG_TARGET_PENTAGRAM_Q645) || defined(CONFIG_TARGET_PENTAGRAM_SP7350)
 	volatile struct uphy_u3_regs *dwc3phy_reg;
 	u32 result, i = 0;
-	
-	//HAL_GPIO_F_SET(98, 1);
-	//HAL_GPIO_F_SET(99, 1);
-	//HAL_GPIO_M_SET(98, 1);
-	//HAL_GPIO_M_SET(99, 1);
-		
+
 	MOON0_REG->clken[3] = RF_MASK_V_SET(1 << 11);
-	
-	MOON0_REG->reset[3] = RF_MASK_V_SET(1 << 9);		
-	MOON0_REG->reset[3] = RF_MASK_V_SET(1 << 11);		
+
+	MOON0_REG->reset[3] = RF_MASK_V_SET(1 << 9);
+	MOON0_REG->reset[3] = RF_MASK_V_SET(1 << 11);
 	mdelay(1);
-	MOON0_REG->reset[3] = RF_MASK_V_CLR(1 << 9);	
+	MOON0_REG->reset[3] = RF_MASK_V_CLR(1 << 9);
 	MOON0_REG->reset[3] = RF_MASK_V_CLR(1 << 11);
-			
+
 	dwc3phy_reg = (volatile struct uphy_u3_regs *) UPHY0_U3_REG;
 	dwc3phy_reg->cfg[1] |= 0x03;
 	for (;;)
@@ -141,20 +139,21 @@ static void uphy_init(void)
 		result = dwc3phy_reg->cfg[2] & 0x3;
 		if (result == 0x01)
 			break;
-		
+
 		if (i++ > 10) {
 			debug("PHY0_TIMEOUT_ERR0 ");
 			i = 0;
 			break;
 		}
-		mdelay(1);		
+		mdelay(1);
 	}
 
 	dwc3phy_reg->cfg[2] |= 0x01;
-	//if (HAL_GPIO_I_GET(98))
-	//	dwc3phy_reg->cfg[5] = (dwc3phy_reg->cfg[5] & 0xFFE0) | 0x15;
-	//else
-	dwc3phy_reg->cfg[5] = (dwc3phy_reg->cfg[5] & 0xFFE0) | 0x11;
+	if (dm_gpio_get_value(gpiodir))
+		dwc3phy_reg->cfg[5] = (dwc3phy_reg->cfg[5] & 0xFFE0) | 0x15;
+	else
+		dwc3phy_reg->cfg[5] = (dwc3phy_reg->cfg[5] & 0xFFE0) | 0x11;
+
 	for (;;)
 	{
 		result = dwc3phy_reg->cfg[2] & 0x3;
@@ -165,9 +164,10 @@ static void uphy_init(void)
 			debug("PHY0_TIMEOUT_ERR1 ");
 			i = 0;
 			break;
-		}		
+		}
 		mdelay(1);
 	}
+
 #elif defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C)
 // 1. enable UPHY 2/3 */
 	MOON0_REG->clken[2] = RF_MASK_V_SET(1 << 15);
@@ -181,12 +181,12 @@ static void uphy_init(void)
 	mdelay(1);
 	MOON0_REG->reset[2] = RF_MASK_V_CLR(1 << 15);
 	MOON0_REG->reset[2] = RF_MASK_V_CLR(1 << 9);
-	
+
 	mdelay(1);
 
 	// 3. Default value modification
 	UPHY2_RN_REG->gctrl[0] = 0x18888002;
-	
+
 	mdelay(1);
 
 	// 4. PLL power off/on twice
@@ -199,7 +199,7 @@ static void uphy_init(void)
 	UPHY2_RN_REG->gctrl[2] = 0x80;;
 	mdelay(20);
 	UPHY2_RN_REG->gctrl[2] = 0x0;
-	
+
 	// 5. USBC 0/1 reset
 	//MOON0_REG->reset[2] = RF_MASK_V_SET(1 << 12);
 	//mdelay(1);
@@ -214,7 +214,7 @@ static void uphy_init(void)
 
 	// 8. RX SQUELCH LEVEL
 	UPHY2_RN_REG->cfg[25] = 0x4;
-	
+
 	//UPHY2_RN_REG->cfg[16] = 0x19;
 	//UPHY2_RN_REG->cfg[17] = 0x92;
 	//UPHY2_RN_REG->cfg[3]  = 0x17;
@@ -237,7 +237,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0x1f;
 	UPHY3_U3_REG->cfg[79]  = 0x0e;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0x1;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -245,7 +245,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0x1f;
 	UPHY3_U3_REG->cfg[79]  = 0x0e;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0x2;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -253,7 +253,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0x4f;
 	UPHY3_U3_REG->cfg[79]  = 0x0e;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0x3;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -261,7 +261,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0x4f;
 	UPHY3_U3_REG->cfg[79]  = 0x0e;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0x4;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -269,7 +269,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0x7f;
 	UPHY3_U3_REG->cfg[79]  = 0x0e;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0x5;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -277,7 +277,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0x7f;
 	UPHY3_U3_REG->cfg[79]  = 0x0e;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0x6;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -285,7 +285,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0xaf;
 	UPHY3_U3_REG->cfg[79]  = 0x0e;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0x7;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -293,7 +293,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0xaf;
 	UPHY3_U3_REG->cfg[79]  = 0x0e;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0x8;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -301,7 +301,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0xdf;
 	UPHY3_U3_REG->cfg[79]  = 0x0e;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0x9;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -309,7 +309,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0xdf;
 	UPHY3_U3_REG->cfg[79]  = 0x0e;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0xa;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -317,7 +317,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0x0f;
 	UPHY3_U3_REG->cfg[79]  = 0x0f;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0xb;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -325,7 +325,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0x0f;
 	UPHY3_U3_REG->cfg[79]  = 0x0f;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0xc;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -333,7 +333,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0x3f;
 	UPHY3_U3_REG->cfg[79]  = 0x0f;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0xd;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -341,7 +341,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0x3f;
 	UPHY3_U3_REG->cfg[79]  = 0x0f;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0xe;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -349,7 +349,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0x6f;
 	UPHY3_U3_REG->cfg[79]  = 0x0f;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0xf;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -357,7 +357,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0x6f;
 	UPHY3_U3_REG->cfg[79]  = 0x0f;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0x10;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -365,7 +365,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0x9f;
 	UPHY3_U3_REG->cfg[79]  = 0x0f;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0x11;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -373,7 +373,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0x9f;
 	UPHY3_U3_REG->cfg[79]  = 0x0f;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0x12;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -381,7 +381,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0xcf;
 	UPHY3_U3_REG->cfg[79]  = 0x0f;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0x13;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -389,7 +389,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0xcf;
 	UPHY3_U3_REG->cfg[79]  = 0x0f;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0x14;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -397,7 +397,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0xef;
 	UPHY3_U3_REG->cfg[79]  = 0x0f;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0x15;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -405,7 +405,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0xef;
 	UPHY3_U3_REG->cfg[79]  = 0x0f;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0x16;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -413,7 +413,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0xef;
 	UPHY3_U3_REG->cfg[79]  = 0x0f;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0x17;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -421,7 +421,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0xef;
 	UPHY3_U3_REG->cfg[79]  = 0x0f;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0x18;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -429,7 +429,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0xee;
 	UPHY3_U3_REG->cfg[79]  = 0x0f;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0x19;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -437,7 +437,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0xee;
 	UPHY3_U3_REG->cfg[79]  = 0x0f;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0x1a;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -445,7 +445,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0xed;
 	UPHY3_U3_REG->cfg[79]  = 0x0f;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0x1b;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -453,7 +453,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0xed;
 	UPHY3_U3_REG->cfg[79]  = 0x0f;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0x1c;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -461,7 +461,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0xec;
 	UPHY3_U3_REG->cfg[79]  = 0x0f;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0x1d;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -469,7 +469,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0xec;
 	UPHY3_U3_REG->cfg[79]  = 0x0f;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0x1e;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -477,7 +477,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0xec;
 	UPHY3_U3_REG->cfg[79]  = 0x0f;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0x1f;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -485,7 +485,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0xec;
 	UPHY3_U3_REG->cfg[79]  = 0x0f;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0x20;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -493,7 +493,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0xeb;
 	UPHY3_U3_REG->cfg[79]  = 0x0f;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0x21;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -501,7 +501,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0xeb;
 	UPHY3_U3_REG->cfg[79]  = 0x0f;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0x22;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -509,7 +509,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0xea;
 	UPHY3_U3_REG->cfg[79]  = 0x0f;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0x23;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -517,7 +517,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0xea;
 	UPHY3_U3_REG->cfg[79]  = 0x0f;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0x24;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -525,7 +525,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0xe9;
 	UPHY3_U3_REG->cfg[79]  = 0x0f;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0x25;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -533,7 +533,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0xe9;
 	UPHY3_U3_REG->cfg[79]  = 0x0f;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0x26;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -541,7 +541,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0xe9;
 	UPHY3_U3_REG->cfg[79]  = 0x0f;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0x27;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -549,7 +549,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0xe9;
 	UPHY3_U3_REG->cfg[79]  = 0x0f;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0x28;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -557,7 +557,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0xe8;
 	UPHY3_U3_REG->cfg[79]  = 0x0f;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0x29;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -565,7 +565,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0xe8;
 	UPHY3_U3_REG->cfg[79]  = 0x0f;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0x2a;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -573,7 +573,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0xe7;
 	UPHY3_U3_REG->cfg[79]  = 0x0f;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0x2b;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -581,7 +581,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0xe7;
 	UPHY3_U3_REG->cfg[79]  = 0x0f;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0x2c;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -589,7 +589,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0xe6;
 	UPHY3_U3_REG->cfg[79]  = 0x0f;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0x2d;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -597,7 +597,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0xe6;
 	UPHY3_U3_REG->cfg[79]  = 0x0f;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0x2e;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -605,7 +605,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0xe6;
 	UPHY3_U3_REG->cfg[79]  = 0x0f;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0x2f;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -613,7 +613,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0xe6;
 	UPHY3_U3_REG->cfg[79]  = 0x0f;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0x30;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -621,7 +621,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0xe5;
 	UPHY3_U3_REG->cfg[79]  = 0x0f;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0x31;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -629,7 +629,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0xe5;
 	UPHY3_U3_REG->cfg[79]  = 0x0f;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0x32;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -637,7 +637,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0xe4;
 	UPHY3_U3_REG->cfg[79]  = 0x0f;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0x33;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -645,7 +645,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0xe4;
 	UPHY3_U3_REG->cfg[79]  = 0x0f;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0x34;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -653,7 +653,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0xe3;
 	UPHY3_U3_REG->cfg[79]  = 0x0f;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0x35;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -661,7 +661,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0xe3;
 	UPHY3_U3_REG->cfg[79]  = 0x0f;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0x36;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -669,7 +669,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0xe3;
 	UPHY3_U3_REG->cfg[79]  = 0x0f;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0x37;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -677,7 +677,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0xe3;
 	UPHY3_U3_REG->cfg[79]  = 0x0f;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0x38;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -685,7 +685,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0xe2;
 	UPHY3_U3_REG->cfg[79]  = 0x0f;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0x39;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -693,7 +693,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0xe2;
 	UPHY3_U3_REG->cfg[79]  = 0x0f;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0x3a;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -701,7 +701,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0xe1;
 	UPHY3_U3_REG->cfg[79]  = 0x0f;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0x3b;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -709,7 +709,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0xe1;
 	UPHY3_U3_REG->cfg[79]  = 0x0f;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0x3c;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -717,7 +717,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0xe0;
 	UPHY3_U3_REG->cfg[79]  = 0x0f;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0x3d;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -725,7 +725,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0xe0;
 	UPHY3_U3_REG->cfg[79]  = 0x0f;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0x3e;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -733,7 +733,7 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0xe0;
 	UPHY3_U3_REG->cfg[79]  = 0x0f;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-	
+
 	UPHY3_U3_REG->cfg[80]  = 0x00;
 	UPHY3_U3_REG->cfg[75]  = 0x3f;
 	UPHY3_U3_REG->cfg[76]  = 0xbe;
@@ -741,9 +741,10 @@ static void uphy_init(void)
 	UPHY3_U3_REG->cfg[78]  = 0xe0;
 	UPHY3_U3_REG->cfg[79]  = 0x0f;
 	UPHY3_U3_REG->cfg[80]  = 0x01;
-#endif	
+#endif
 }
 #endif
+
 void dwc3_set_mode(struct dwc3 *dwc3_reg, u32 mode)
 {
 	clrsetbits_le32(&dwc3_reg->g_ctl,
@@ -824,12 +825,6 @@ int dwc3_core_init(struct dwc3 *dwc3_reg)
 	return 0;
 }
 
-void dwc3_set_fladj(struct dwc3 *dwc3_reg, u32 val)
-{
-	setbits_le32(&dwc3_reg->g_fladj, GFLADJ_30MHZ_REG_SEL |
-			GFLADJ_30MHZ(val));
-}
-
 #if CONFIG_IS_ENABLED(DM_USB)
 static int xhci_dwc3_probe(struct udevice *dev)
 {
@@ -840,15 +835,22 @@ static int xhci_dwc3_probe(struct udevice *dev)
 	//struct xhci_dwc3_plat *plat = dev_get_plat(dev);
 	const char *phy;
 	u32 reg;
-	//int ret;
-
+#if defined(CONFIG_TARGET_PENTAGRAM_Q645) || defined(CONFIG_TARGET_PENTAGRAM_SP7350)
+	ofnode node;
+	int ret = 0;
+#endif
 	hccr = (struct xhci_hccr *)((uintptr_t)dev_remap_addr(dev));
 	hcor = (struct xhci_hcor *)((uintptr_t)hccr +
 			HC_LENGTH(xhci_readl(&(hccr)->cr_capbase)));
+#if defined(CONFIG_TARGET_PENTAGRAM_Q645) || defined(CONFIG_TARGET_PENTAGRAM_SP7350)
+	node = ofnode_by_compatible(ofnode_null(), "sunplus,usb3-phy");
+	if (!ofnode_valid(node))
+		debug("%s phy node failed\n", __func__);
 
-	//ret = dwc3_setup_phy(dev, &plat->phys);
-	//if (ret && (ret != -ENOTSUPP))
-	//	return ret;
+	ret = uclass_get_device_by_ofnode(UCLASS_PHY, node, &phydev);
+
+	gpiodir = devm_gpiod_get(phydev, "typec", GPIOD_IS_IN);
+#endif
 	uphy_init();
 
 	dwc3_reg = (struct dwc3 *)((char *)(hccr) + DWC3_REG_OFFSET);
@@ -888,10 +890,12 @@ static int xhci_dwc3_probe(struct udevice *dev)
 
 static int xhci_dwc3_remove(struct udevice *dev)
 {
-	struct xhci_dwc3_plat *plat = dev_get_plat(dev);
+	//struct xhci_dwc3_plat *plat = dev_get_plat(dev);
 
-	dwc3_shutdown_phy(dev, &plat->phys);
-
+	//dwc3_shutdown_phy(dev, &plat->phys);
+#if defined(CONFIG_TARGET_PENTAGRAM_Q645) || defined(CONFIG_TARGET_PENTAGRAM_SP7350)
+	dm_gpio_free(phydev, gpiodir);
+#endif
 	return xhci_deregister(dev);
 }
 
