@@ -10,6 +10,7 @@
  *  spi nand platform related configs
  */
 //#define CONFIG_SPINAND_USE_SRAM
+//#define CONFIG_SPINAND_MEASURE_TIMIMNG
 #ifdef  CONFIG_SPINAND_USE_SRAM
 #define CONFIG_SPINAND_SRAM_ADDR    0xfa200000
 #endif
@@ -22,7 +23,32 @@
 /*
  *  spi nand functional related configs
  */
-#define CONFIG_SPINAND_CLK_DIV               (4)
+#ifdef CONFIG_SPINAND_MEASURE_TIMIMNG
+	#if 0 // CLK freq is 150MHz
+#define CONFIG_SPINAND_CLK_DIV               (2)	// CLK_SPI/4. 600/4 = 150 MHz
+#define CONFIG_SPINAND_CLK_SRC               (14)
+#define CONFIG_SPINAND_READ_BITMODE          SPINAND_4BIT_MODE
+#define CONFIG_SPINAND_WRITE_BITMODE         SPINAND_4BIT_MODE
+#define CONFIG_SPINAND_BUF_SZ                (8 << 10)
+#define CONFIG_SPINAND_TIMEOUT               (100)   /* unit: ms */
+#define CONFIG_SPINAND_READ_TIMING_SEL       (3)
+#define CONFIG_SPINAND_TRSMODE               SPINAND_TRS_DMA_AUTOBCH
+#define CONFIG_SPINAND_TRSMODE_RAW           SPINAND_TRS_DMA
+#define CONFIG_SPINAND_AUTOBCH_DECSRC        0 /* 0:spi-nand ctrl, 1:system memory */
+	#else // CLK freq is 100MHz
+#define CONFIG_SPINAND_CLK_DIV               (3)	// CLK_SPI/6. 600/6 = 100 MHz
+#define CONFIG_SPINAND_CLK_SRC               (14)
+#define CONFIG_SPINAND_READ_BITMODE          SPINAND_4BIT_MODE
+#define CONFIG_SPINAND_WRITE_BITMODE         SPINAND_4BIT_MODE
+#define CONFIG_SPINAND_BUF_SZ                (8 << 10)
+#define CONFIG_SPINAND_TIMEOUT               (100)   /* unit: ms */
+#define CONFIG_SPINAND_READ_TIMING_SEL       (2)
+#define CONFIG_SPINAND_TRSMODE               SPINAND_TRS_DMA_AUTOBCH
+#define CONFIG_SPINAND_TRSMODE_RAW           SPINAND_TRS_DMA
+#define CONFIG_SPINAND_AUTOBCH_DECSRC        0 /* 0:spi-nand ctrl, 1:system memory */
+	#endif
+#else
+#define CONFIG_SPINAND_CLK_DIV               (4)	// CLK_SPI/8. 600/8 = 75 MHz
 #define CONFIG_SPINAND_CLK_SRC               (14)
 #define CONFIG_SPINAND_READ_BITMODE          SPINAND_4BIT_MODE
 #define CONFIG_SPINAND_WRITE_BITMODE         SPINAND_4BIT_MODE
@@ -37,6 +63,7 @@
 #endif
 #define CONFIG_SPINAND_TRSMODE_RAW           SPINAND_TRS_DMA
 #define CONFIG_SPINAND_AUTOBCH_DECSRC        0 /* 0:spi-nand ctrl, 1:system memory */
+#endif
 
 #define SPINAND_DEBUG_ON
 #ifdef SPINAND_DEBUG_ON

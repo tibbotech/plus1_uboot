@@ -1647,6 +1647,35 @@ void board_spinand_init(void)
 		SPINAND_LOGW("initialize sunplus SPI NAND controller fail!\n");
 }
 
+#ifdef CONFIG_SPINAND_MEASURE_TIMIMNG
+void pattern_generate(u32 data, u8 *buf, u32 size)
+{
+	u32 i = 0;
+	u8 *p = (u8 *)&data;
+
+	printk("%s, data: 0x%08x, size: 0x%08x\n", __FUNCTION__, data, size);
+
+	for(i=0; i<size; i++) {
+		buf[i] = *(p+(i&0x03));
+	}
+}
+
+int pattern_check(u32 data, u8 *buf, u32 size)
+{
+	int i = 0;
+	u8 *p = (u8*)&data;
+
+	printk("%s, data: 0x%08x, size: 0x%08x\n", __FUNCTION__, data, size);
+
+	for(i=0; i<size; i++) {
+		if(buf[i] != *(p+(i&0x03))) {
+			printk("\rdata mis-match. i: %d, buf[i]: 0x%02x, *(p+(i&0x03): 0x%02x\n", i, buf[i], *(p+(i&0x03)));
+			return -1;
+		}
+	}
+	return 0;
+}
+#else
 void pattern_generate(u32 data, u8 *buf, u32 size)
 {
 	u32 i = 0;
@@ -1664,7 +1693,7 @@ int pattern_check(u32 data, u8 *buf, u32 size)
 	u8 *p = (u8*)&data;
 	for(i=0; i<size; i++) {
 		if(buf[i] != *(p+(i&0x03))) {
-			printk("data mis-match at :0x%08x\n", data);
+			printk("\rdata mis-match at :0x%08x\n", data);
 			return -1;
 		}
 		if((i&0x03) == 0x03)
@@ -1672,7 +1701,7 @@ int pattern_check(u32 data, u8 *buf, u32 size)
 	}
 	return 0;
 }
-
+#endif
 
 static int sp_spinand_test_rw(u32 addr, u32 size, u32 seed)
 {
@@ -2193,6 +2222,348 @@ func_out:
 	return sum;
 }
 
+#ifdef CONFIG_SPINAND_MEASURE_TIMIMNG
+static int sp_spinand_test_rw2(u32 addr, u32 size, u32 seed, u8 action)
+{
+	struct sp_spinand_info *info = get_spinand_info();
+	struct mtd_info *mtd = info->mtd;
+	nand_erase_options_t erase_opts;
+	u32 block_size = mtd->erasesize;
+	u32 block_num = (size + block_size - 1) / block_size;
+	u32 start_block = addr / block_size;
+	size_t actual_size;
+	u32 now_seed;
+	u32 i, j;
+	int ret;
+	u8 *buf;
+
+	buf = (u8 *)malloc(block_size);
+	if (!buf) {
+		printk("no memory!\n");
+		goto err_out;
+	}
+
+	printk("start block:%d, block_num:%d, seed:0x%x\n", start_block, block_num, seed);
+
+	switch (action)
+	{
+		case 0: 
+			/* Erase blocks */
+			for (i=0,j=start_block; i<block_num; i++,j++) {
+				while (nand_block_isbad(mtd, (loff_t)j*block_size))
+					j++;
+			
+				printk("\rerase block:%d\n", j);
+			
+				memset(&erase_opts, 0, sizeof(erase_opts));
+				erase_opts.quiet = 1;
+				erase_opts.offset = (loff_t)j * block_size;
+				erase_opts.length = block_size;
+				ret = nand_erase_opts(mtd, &erase_opts);
+				if (ret) {
+					printk("\rerase blocks => fail\n");
+					goto err_out;
+				}
+			}
+			printk("\rerase blocks => success\n");
+			break;
+
+		case 1:
+			/* Write blocks */
+			now_seed = seed;
+			for (i=0,j=start_block; i<block_num; i++,j++) {
+				/* skip bad block */
+				while (nand_block_isbad(mtd, (loff_t)j*block_size))
+					j++;
+			
+				printk("\rwrite block:%d\n",j);
+			
+				/* prepare the pattern */
+				now_seed += (i * block_size) / 4;
+				pattern_generate(now_seed, buf, block_size);
+			
+				/* write block */
+				actual_size = block_size;
+				ret = nand_write(mtd, (loff_t)j*block_size, &actual_size, buf);
+				if (ret) {
+					printk("\rwrite blocks => fail\n");
+					goto err_out;
+				}
+			}
+			printk("\rwrite blocks => success\n");
+			break;
+
+		case 2:
+			/* Read blocks */
+			now_seed = seed;
+			for (i=0,j=start_block; i<block_num; i++,j++) {
+				now_seed += (i * block_size) / 4;
+			
+				/* skip bad block */
+				while (nand_block_isbad(mtd, (loff_t)j*block_size))
+					j++;
+			
+				printk("\rread block:%d\n",j);
+			
+				actual_size = block_size;
+				ret = nand_read(mtd, (loff_t)j*block_size, &actual_size, buf);
+				if (ret) {
+					printk("\rread blocks => fail\n");
+					goto err_out;
+				}
+			
+				if (pattern_check(now_seed, buf, block_size) == -1) {
+					printk("\rread blocks => data mis-match\n");
+					goto err_out;
+				}
+			}
+			printk("\rread blocks => success\n");
+			break;
+
+			default:
+				ret = CMD_RET_USAGE;
+		}
+
+	err_out:
+		if (buf)
+			free(buf);
+
+	return ret;
+}
+
+static int read_mod_write(u32 *addr, u32 mask, u32 val)
+{
+	u32 reg_val = 0;
+
+	reg_val = readl(addr);
+	reg_val = (reg_val & (~mask)) | val;
+	writel(reg_val, addr); 
+
+	return 0;
+}
+
+static int sp_spinand_test_softpad(int argc, char * const argv[])
+{
+	u32 *pad_ctl2_reg = (u32 *)0xF8003300;
+	u32 i, val, *addr;
+	u32 ret = 0;
+
+	if (argc == 3) {
+		/* Show all SPI-NAND Softpad Control registers' value. */
+		for (i = 0; i < 3; i++) {
+			addr = &pad_ctl2_reg[i]; 
+			val = pad_ctl2_reg[i];
+			printk("SC #%d, addr: 0x%p, val: 0x%08x\n", i, addr, val);
+		}
+	} else if (argc == 4) {
+		/* Set SPI-NAND Softpad Control registers for case. */
+		u32 mask;
+
+		val = simple_strtoul(argv[3],NULL,16);
+
+		switch(val)
+		{
+			case 1:
+				printk("Softpad setting: Case 1\n");
+				val  = (0<<0);		// G102.0[0] - CLK
+				mask = (1<<0);
+				read_mod_write(&pad_ctl2_reg[0], mask, val);
+
+				val  = (0<<29)|		// G102.1[29] - D3
+					   (0<<24)|		// G102.1[24] - D1
+					   (0<<23)|		// G102.1[23] - D2
+					   (0<<22)|		// G102.1[22] - DO/D1
+					   (1<<20);		// G102.1[20] - DI
+				mask = (1<<29)|(1<<24)|(1<<23)|(1<<22)|(1<<20);
+				read_mod_write(&pad_ctl2_reg[1], mask, val);
+				break;
+
+			case 2:
+				printk("Softpad setting: Case 2\n");
+				val  = (0<<0);		// G102.0[0] - CLK
+				mask = (1<<0);
+				read_mod_write(&pad_ctl2_reg[0], mask, val);
+
+				val  = (1<<29)|		// G102.1[29] - D3
+					   (1<<24)|		// G102.1[24] - D1
+					   (1<<23)|		// G102.1[23] - D2
+					   (1<<22)|		// G102.1[22] - DO/D1
+					   (1<<20);		// G102.1[20] - DI
+				mask = (1<<29)|(1<<24)|(1<<23)|(1<<22)|(1<<20);
+				read_mod_write(&pad_ctl2_reg[1], mask, val);
+				break;
+
+			case 3:
+				printk("Softpad setting: Case 3\n");
+				val  = (1<<0);		// G102.0[0] - CLK
+				mask = (1<<0);
+				read_mod_write(&pad_ctl2_reg[0], mask, val);
+
+				val  = (0<<29)|		// G102.1[29] - D3
+					   (0<<24)|		// G102.1[24] - D1
+					   (0<<23)|		// G102.1[23] - D2
+					   (0<<22)|		// G102.1[22] - DO/D1
+					   (1<<20);		// G102.1[20] - DI
+				mask = (1<<29)|(1<<24)|(1<<23)|(1<<22)|(1<<20);
+				read_mod_write(&pad_ctl2_reg[1], mask, val);
+				break;
+
+			case 4:
+				printk("Softpad setting: Case 4\n");
+				val  = (1<<0);		// G102.0[0] - CLK
+				mask = (1<<0);
+				read_mod_write(&pad_ctl2_reg[0], mask, val);
+
+				val  = (1<<29)|		// G102.1[29] - D3
+					   (1<<24)|		// G102.1[24] - D1
+					   (1<<23)|		// G102.1[23] - D2
+					   (1<<22)|		// G102.1[22] - DO/D1
+					   (1<<20);		// G102.1[20] - DI
+				mask = (1<<29)|(1<<24)|(1<<23)|(1<<22)|(1<<20);
+				read_mod_write(&pad_ctl2_reg[1], mask, val);
+				break;
+
+			case 5:
+				printk("Softpad setting: Case 5\n");
+				val  = (0<<0);		// G102.0[0] - CLK
+				mask = (1<<0);
+				read_mod_write(&pad_ctl2_reg[0], mask, val);
+
+				val  = (0<<29)|		// G102.1[29] - D3
+					   (0<<24)|		// G102.1[24] - D1
+					   (0<<23)|		// G102.1[23] - D2
+					   (0<<22)|		// G102.1[22] - DO/D1
+					   (1<<20);		// G102.1[20] - DI
+				mask = (1<<29)|(1<<24)|(1<<23)|(1<<22)|(1<<20);
+				read_mod_write(&pad_ctl2_reg[1], mask, val);
+
+				break;
+
+			case 6:
+				printk("Softpad setting: Case 6\n");
+				val  = (0<<0);		// G102.0[0] - CLK
+				mask = (1<<0);
+				read_mod_write(&pad_ctl2_reg[0], mask, val);
+
+				val  = (1<<29)|		// G102.1[29] - D3
+					   (1<<24)|		// G102.1[24] - D1
+					   (1<<23)|		// G102.1[23] - D2
+					   (1<<22)|		// G102.1[22] - DO/D1
+					   (0<<20);		// G102.1[20] - DI
+				mask = (1<<29)|(1<<24)|(1<<23)|(1<<22)|(1<<20);
+				read_mod_write(&pad_ctl2_reg[1], mask, val);
+				break;
+
+			default:
+				ret = CMD_RET_USAGE;
+		}
+	}
+
+	return ret;
+}
+
+static void set_pad_driving_strength(u32 *base, u32 pin, u32 strength)
+{
+	int reg_off = pin / 32;
+	int bit_mask = 1 << (pin % 32);
+
+	strength = (strength > 15) ? 15 : strength;
+
+	/* Set Pad Driving Select0 registers, DS0 #0~3*/
+	if (strength & 1)
+		base[reg_off] |= bit_mask;
+	else
+		base[reg_off] &= ~bit_mask;
+
+	/* Set Pad Driving Select1 registers, DS1 #0~3*/
+	if (strength & 2)
+		base[4+reg_off] |= bit_mask;
+	else
+		base[4+reg_off] &= ~bit_mask;
+
+	/* Set Pad Driving Select2 registers, DS2 #0~3*/
+	if (strength & 4)
+		base[8+reg_off] |= bit_mask;
+	else
+		base[8+reg_off] &= ~bit_mask;
+
+	/* Set Pad Driving Select3 registers, DS3 #0~3*/
+	if (strength & 8)
+		base[12+reg_off] |= bit_mask;
+	else
+		base[12+reg_off] &= ~bit_mask;
+}
+
+static int sp_spinand_test_driving(int argc, char * const argv[])
+{
+	u32 *pad_ctl1_reg = (u32 *)0xF8003280;
+	u32 i, val, *addr;
+	u32 ret = 0;
+
+	/* For pad driving strength, there are 4 selector, DS0~3.
+	 * Each DS has 4 registers, DSx#0~4, to set for G_MXxx pins.
+	 * The pin range of DSx#0 is G_MX00~31.
+	 * The pin range of DSx#1 is G_MX32~63. 
+	 * The pin range of DSx#2 is G_MX64~95.
+	 * The pin range of DSx#3 is G_MX96~127.
+	 */
+
+	if (argc == 3) {
+		/* Show all Pad Driving Strength registers' value, DS0~3. */
+		for (i = 0; i < 16; i++) {
+			addr = &pad_ctl1_reg[4+i]; 
+			val = pad_ctl1_reg[4+i];
+			printk("DS%d #%d, addr: 0x%p, val: 0x%08x\n", i/4, i%4, addr, val);
+		}
+	} else if (argc == 4) {
+		/* Set Pad Driving Strength registers. */
+		addr = &pad_ctl1_reg[4]; 
+		val = simple_strtoul(argv[3],NULL,16);
+
+		if (val > 15) {
+			printk("Warning! The DS value exceeds 15. (val: %d)\n", val);
+			val = 15;
+		}
+
+		printk("reg base: 0x%p, val: %d\n", addr, val);
+
+		/* SPI-NAND use 6 pins, G_MX16~21. */
+		for (i = 0; i < 6; i++) {
+			set_pad_driving_strength(addr, i+16, val);
+		}
+	} else {
+		ret = CMD_RET_USAGE;
+	}
+
+	return ret;
+}
+
+#define SPINAND_TEST_ADDR	0x500000
+#define SPINAND_TEST_SIZE	0x20000
+#define SPINAND_TEST_SEED	0x3c3c3c3c
+static int sp_spinand_test2(int argc, char * const argv[])
+{
+	char *cmd = argv[2];
+	int ret = 0;
+
+	if (strncmp(cmd, "erase", 5) == 0) {
+		sp_spinand_test_rw2(SPINAND_TEST_ADDR, SPINAND_TEST_SIZE, SPINAND_TEST_SEED, 0);
+	} else if (strncmp(cmd, "write", 5) == 0) {
+		sp_spinand_test_rw2(SPINAND_TEST_ADDR, SPINAND_TEST_SIZE, SPINAND_TEST_SEED, 1);
+	} else if (strncmp(cmd, "read", 4) == 0) {
+		sp_spinand_test_rw2(SPINAND_TEST_ADDR, SPINAND_TEST_SIZE, SPINAND_TEST_SEED, 2);
+	} else if (strncmp(cmd, "driving", 7) == 0) {
+			sp_spinand_test_driving(argc, argv);
+	} else if (strncmp(cmd, "softpad", 7) == 0) {
+		sp_spinand_test_softpad(argc, argv);
+	} else {
+		ret = CMD_RET_USAGE;
+	}
+
+	return ret;
+}
+#endif
+
 __attribute__ ((unused))
 static int sp_spinand_test(struct cmd_tbl *cmdtp, int flag, int argc, char * const argv[])
 {
@@ -2353,6 +2724,14 @@ static int sp_spinand_test(struct cmd_tbl *cmdtp, int flag, int argc, char * con
 			rts = readl(&regs->spi_timing);
 			printk("rts = %d\n",(rts>>1)&0x07);
 		}
+#ifdef CONFIG_SPINAND_MEASURE_TIMIMNG
+	} else if (strncmp(cmd, "test", 4) == 0) {
+		if (argc >= 3) {
+			ret = sp_spinand_test2(argc, argv);
+		} else {
+			ret = CMD_RET_USAGE;
+		}
+#endif
 	} else {
 		ret = CMD_RET_USAGE;
 	}
@@ -2362,13 +2741,13 @@ static int sp_spinand_test(struct cmd_tbl *cmdtp, int flag, int argc, char * con
 
 U_BOOT_CMD(ssnand, CONFIG_SYS_MAXARGS, 1, sp_spinand_test,
 	"sunplus spi-nand tests",
-	"reset  - send reset cmd to device.\n"
-	"ssnand regs  - dump spi-nand registers.\n"
-	"ssnand id  - send ReadId cmd to device to achieve device id.\n"
-	"ssnand feature [addr] [value]- get/set the device's feature values.\n"
-	"\t if 'addr' is not set, it shows all feature values.\n"
-	"\t if 'value' is not set, it shows the feature value of 'addr'.\n"
-	"\t if 'value' is set, it sets 'value' to feature of 'addr'.\n"
+	"reset - send reset cmd to device.\n"
+	"ssnand regs - dump spi-nand registers.\n"
+	"ssnand id - send ReadId cmd to device to achieve device id.\n"
+	"ssnand feature [addr] [value] - get/set the device's feature values.\n"
+	"\tif 'addr' is not set, it shows all feature values.\n"
+	"\tif 'value' is not set, it shows the feature value of 'addr'.\n"
+	"\tif 'value' is set, it sets 'value' to feature of 'addr'.\n"
 	"ssnand rw [addr] [size] [seed] - write and read 'size' of sequenced data to 'addr'.\n"
 	"\t then check if the data is the same, the 'seed' is the start code of the sequence.\n"
 	"ssnand speed - test erase,write,read the speed.\n"
@@ -2381,7 +2760,15 @@ U_BOOT_CMD(ssnand, CONFIG_SYS_MAXARGS, 1, sp_spinand_test,
 	"ssnand rio [value] - set/show read_bitmode, 0/1/2 are allowed.\n"
 	"ssnand clksel [value] - set/show spi_clk_sel, 4~15 are allowed.\n"
 	"ssnand clkdiv [value] - set/show spi_clk_div, 1~7 are allowed.\n"
-	"ssnand rts [value] - set/show rts(read timing select). 0~7 are allowed.\n "
+	"ssnand rts [value] - set/show rts(read timing select). 0~7 are allowed.\n"
+#ifdef CONFIG_SPINAND_MEASURE_TIMIMNG
+	"ssnand test - timing measurement command.\n"
+	"\terase - erase a block.\n"
+	"\twrite - write a block.\n"
+	"\tread - read a block.\n"
+	"\tdriving - set driving strength. The range is 0~15.\n"
+	"\tsoftpad - set sofpad. The range is 1~6.\n"
+#endif
 );
 
 
