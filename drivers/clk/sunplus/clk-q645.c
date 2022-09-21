@@ -213,6 +213,12 @@ struct {
 	},
 };
 
+static ulong plla_get_rate(struct sp_pll *pll)
+{
+	pll->idiv = (readl(pll->reg + 8) == pa[1].regs[2]);
+	return pa[pll->idiv].rate;
+}
+
 static void plla_set_rate(struct sp_pll *pll)
 {
 	const u32 *pp = pa[pll->idiv].regs;
@@ -316,7 +322,7 @@ static ulong sp_pll_round_rate(struct clk *clk, ulong rate)
 	return ret;
 }
 
-static ulong sp_pll_get_rate(struct clk *clk)
+static ulong sp_pll_recalc_rate(struct clk *clk)
 {
 	struct sp_pll *pll = to_sp_pll(clk);
 	u32 reg = readl(pll->reg);
@@ -327,7 +333,7 @@ static ulong sp_pll_get_rate(struct clk *clk)
 	if (readl(pll->reg + (bp / 16) * 4) & BIT(bp % 16)) // bypass ?
 		ret = XTAL;
 	else if (IS_PLLA())
-		ret = pa[pll->idiv].rate;
+		ret = plla_get_rate(pll);
 	else {
 		u32 fbkdiv = MASK_GET(FBKDIV, FBKDIV_WIDTH, reg) + 64;
 		u32 prediv = MASK_GET(PREDIV, 2, reg) + 1;
@@ -366,7 +372,7 @@ static ulong sp_pll_set_rate(struct clk *clk, ulong rate)
 
 	return 0;
 }
-
+#if 0
 static int sp_pll_enable(struct clk *clk)
 {
 	struct sp_pll *pll = to_sp_pll(clk);
@@ -384,42 +390,39 @@ static int sp_pll_disable(struct clk *clk)
 
 	return 0;
 }
-
-const struct clk_ops sp_pll_ops = {
+#endif
+static const struct clk_ops sp_pll_ops = {
+#if 0
 	.enable = sp_pll_enable,
 	.disable = sp_pll_disable,
+#endif
 	.round_rate = sp_pll_round_rate,
-	.get_rate = sp_pll_get_rate,
+	.get_rate = sp_pll_recalc_rate,
 	.set_rate = sp_pll_set_rate,
 };
 
-struct clk *sp_register_pll_struct(const char *name, const char *parent_name,
-				     struct sp_pll *pll)
+struct clk *clk_register_sp_pll(const char *name, void __iomem *reg, u32 bp)
 {
-	int ret;
-	struct clk *clk = &pll->clk;
-
-	ret = clk_register(clk, CLK_SP_PLL, name, parent_name);
-	if (ret)
-		return ERR_PTR(ret);
-	return clk;
-}
-
-struct clk *clk_register_sp_pll(const char *name, void *reg, u32 bp)
-{
-	struct clk *clk;
 	struct sp_pll *pll;
+	struct clk *clk;
+	int ret;
 
 	pll = kzalloc(sizeof(*pll), GFP_KERNEL);
 	if (!pll)
 		return ERR_PTR(-ENOMEM);
+
 	pll->reg = reg;
 	pll->brate = (reg == PLLN_CTL) ? (XTAL / 2) : XTAL;
 	pll->bp = bp;
 
-	clk = sp_register_pll_struct(name, EXT_CLK, pll);
-	if (IS_ERR(clk))
+	clk = &pll->clk;
+	clk->flags |= CLK_GET_RATE_NOCACHE;
+	ret = clk_register(clk, CLK_SP_PLL, name, EXT_CLK);
+	if (ret) {
+		clk = ERR_PTR(ret);
 		kfree(pll);
+	}
+
 	return clk;
 }
 
@@ -446,6 +449,7 @@ static struct clk *clk_register_sp_clk(struct sp_clk *sp_clk)
 		mux->mask = BIT(sp_clk->width) - 1;
 		mux->table = mux_table;
 		mux->flags = CLK_MUX_HIWORD_MASK | CLK_MUX_ROUND_CLOSEST;
+		mux->parent_names = parent_names;
 		mux->num_parents = num_parents;
 	}
 
@@ -522,6 +526,9 @@ void sp_plls_dump(void)
 		sp_clk_dump(clks[i]);
 }
 
+#define SP_REGISTER(pll, bp)	\
+	clks[pll] = clk_register_sp_pll(#pll, pll##_CTL, bp)
+
 int sp_clkc_init(void)
 {
 	int i;
@@ -529,35 +536,34 @@ int sp_clkc_init(void)
 	pr_info("sp-clkc init\n");
 
 	/* PLLs */
-	clks[PLLS] = clk_register_sp_pll("PLLS", PLLS_CTL, 14);
-	clks[PLLC] = clk_register_sp_pll("PLLC", PLLC_CTL, 14);
-	clks[PLLN] = clk_register_sp_pll("PLLN", PLLN_CTL, 14);
-	clks[PLLH] = clk_register_sp_pll("PLLH", PLLH_CTL, 24); // BP: 16 + 8
-	clks[PLLD] = clk_register_sp_pll("PLLD", PLLD_CTL, 14);
-	clks[PLLA] = clk_register_sp_pll("PLLA", PLLA_CTL, 2);
+	SP_REGISTER(PLLS, 14);
+	SP_REGISTER(PLLC, 14);
+	SP_REGISTER(PLLN, 14);
+	SP_REGISTER(PLLH, 24); // BP: 16 + 8
+	SP_REGISTER(PLLD, 14);
+	SP_REGISTER(PLLA, 2);
 
 	pr_info("sp-clkc: register fixed_rate/factor\n");
 	/* fixed frequency & fixed factor */
-	clk_register_fixed_factor(NULL, "f_1200m", "PLLS", 0, 1, 2);
-	clk_register_fixed_factor(NULL, "f_600m",  "PLLS", 0, 1, 4);
-	clk_register_fixed_factor(NULL, "f_300m",  "PLLS", 0, 1, 8);
-	clk_register_fixed_factor(NULL, "f_750m",  "PLLC", 0, 1, 2);
-	clk_register_fixed_factor(NULL, "f_1000m", "PLLN", 0, 1, 1);
-	clk_register_fixed_factor(NULL, "f_500m",  "PLLN", 0, 1, 2);
-	clk_register_fixed_factor(NULL, "f_250m",  "PLLN", 0, 1, 4);
-	clk_register_fixed_factor(NULL, "f_125m",  "PLLN", 0, 1, 8);
-	clk_register_fixed_factor(NULL, "f_1080m", "PLLH", 0, 1, 2);
-	clk_register_fixed_factor(NULL, "f_540m",  "PLLH", 0, 1, 4);
-	clk_register_fixed_factor(NULL, "f_360m",  "PLLH", 0, 1, 6);
-	clk_register_fixed_factor(NULL, "f_216m",  "PLLH", 0, 1, 10);
-	clk_register_fixed_factor(NULL, "f_800m",  "PLLD", 0, 1, 2);
-	clk_register_fixed_factor(NULL, "f_400m",  "PLLD", 0, 1, 4);
-	clk_register_fixed_factor(NULL, "f_200m",  "PLLD", 0, 1, 8);
-	clk_register_fixed_factor(NULL, "f_100m", EXT_CLK, 0, 4, 1);
-	clk_register_fixed_factor(NULL, "f_50m",  EXT_CLK, 0, 2, 1);
+	clk_register_fixed_factor(NULL, "f_1200m", "PLLS", CLK_GET_RATE_NOCACHE, 1, 2);
+	clk_register_fixed_factor(NULL, "f_600m",  "PLLS", CLK_GET_RATE_NOCACHE, 1, 4);
+	clk_register_fixed_factor(NULL, "f_300m",  "PLLS", CLK_GET_RATE_NOCACHE, 1, 8);
+	clk_register_fixed_factor(NULL, "f_750m",  "PLLC", CLK_GET_RATE_NOCACHE, 1, 2);
+	clk_register_fixed_factor(NULL, "f_1000m", "PLLN", CLK_GET_RATE_NOCACHE, 1, 1);
+	clk_register_fixed_factor(NULL, "f_500m",  "PLLN", CLK_GET_RATE_NOCACHE, 1, 2);
+	clk_register_fixed_factor(NULL, "f_250m",  "PLLN", CLK_GET_RATE_NOCACHE, 1, 4);
+	clk_register_fixed_factor(NULL, "f_125m",  "PLLN", CLK_GET_RATE_NOCACHE, 1, 8);
+	clk_register_fixed_factor(NULL, "f_1080m", "PLLH", CLK_GET_RATE_NOCACHE, 1, 2);
+	clk_register_fixed_factor(NULL, "f_540m",  "PLLH", CLK_GET_RATE_NOCACHE, 1, 4);
+	clk_register_fixed_factor(NULL, "f_360m",  "PLLH", CLK_GET_RATE_NOCACHE, 1, 6);
+	clk_register_fixed_factor(NULL, "f_216m",  "PLLH", CLK_GET_RATE_NOCACHE, 1, 10);
+	clk_register_fixed_factor(NULL, "f_800m",  "PLLD", CLK_GET_RATE_NOCACHE, 1, 2);
+	clk_register_fixed_factor(NULL, "f_400m",  "PLLD", CLK_GET_RATE_NOCACHE, 1, 4);
+	clk_register_fixed_factor(NULL, "f_200m",  "PLLD", CLK_GET_RATE_NOCACHE, 1, 8);
+	clk_register_fixed_factor(NULL, "f_100m", EXT_CLK, CLK_GET_RATE_NOCACHE, 4, 1);
+	clk_register_fixed_factor(NULL, "f_50m",  EXT_CLK, CLK_GET_RATE_NOCACHE, 2, 1);
 
-	pr_info("sp-clkc: register sp_clks\n");
-
+	pr_debug("sp-clkc: register sp_clks\n");
 	/* sp_clks */
 	for (i = 0; i < ARRAY_SIZE(sp_clks); i++) {
 		struct sp_clk *sp_clk = &sp_clks[i];
@@ -566,14 +572,43 @@ int sp_clkc_init(void)
 		clks[j] = clk_register_sp_clk(sp_clk);
 		if (IS_ERR(clks[j]))
 			return PTR_ERR(clks[j]);
-
 		//sp_clk_dump(clks[j]);
 		if (i == 0) {
 			// SYSTEM_D2/D4's parent is clks[0]:SYSTEM
-			clk_register_fixed_factor(NULL, "SYSTEM_D2", "SYSTEM", 0, 1, 2); // SYS_CLK/2
-			clk_register_fixed_factor(NULL, "SYSTEM_D4", "SYSTEM", 0, 1, 4); // SYS_CLK/4
+			clk_register_fixed_factor(NULL, "SYSTEM_D2", "SYSTEM", CLK_GET_RATE_NOCACHE, 1, 2); // SYS_CLK/2
+			clk_register_fixed_factor(NULL, "SYSTEM_D4", "SYSTEM", CLK_GET_RATE_NOCACHE, 1, 4); // SYS_CLK/4
 		}
 	}
-	pr_info("sp-clkc init done!\n");
+
+#if 0 // test
+	printk("TEST:\n");
+	clk_set_rate(clks[UA2], 250);
+	sp_clk_dump(clks[UA2]);
+	clk_set_rate(clks[UA3], 260000000);
+	sp_clk_dump(clks[UA3]);
+
+	sp_clk_dump(clks[PLLC]);
+	sp_clk_dump(clks[CA55CORE3]);
+	sp_clk_dump(clks[CA55CORE2]);
+	sp_clk_dump(clks[CA55CORE1]);
+	sp_clk_dump(clks[CA55CORE0]);
+#if 0
+	clk_set_rate(clks[CA55CORE3], 250000000);
+	clk_set_rate(clks[CA55CORE2], 250000000);
+	clk_set_rate(clks[CA55CORE1], 250000000);
+	//clk_set_rate(clks[CA55CORE0], 250000000);
+	sp_clk_dump(clks[CA55CORE3]);
+	sp_clk_dump(clks[CA55CORE2]);
+	sp_clk_dump(clks[CA55CORE1]);
+	sp_clk_dump(clks[CA55CORE0]);
+#endif
+	clk_set_rate(clks[PLLC], 800000000);
+	sp_clk_dump(clks[PLLC]);
+	sp_clk_dump(clks[CA55CORE3]);
+	sp_clk_dump(clks[CA55CORE2]);
+	sp_clk_dump(clks[CA55CORE1]);
+	sp_clk_dump(clks[CA55CORE0]);
+#endif
+
 	return 0;
 }
