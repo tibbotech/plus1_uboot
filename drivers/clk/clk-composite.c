@@ -10,6 +10,7 @@
 #include <clk-uclass.h>
 #include <dm/device.h>
 #include <dm/devres.h>
+#include <dm/device-internal.h>
 #include <linux/clk-provider.h>
 #include <clk.h>
 #include <linux/err.h>
@@ -62,10 +63,17 @@ static ulong clk_composite_set_rate(struct clk *clk, unsigned long rate)
 		(struct clk *)dev_get_clk_ptr(clk->dev) : clk);
 	const struct clk_ops *rate_ops = composite->rate_ops;
 	struct clk *clk_rate = composite->rate;
+	const struct clk_ops *mux_ops = composite->mux_ops;
+	struct clk *mux = composite->mux;
 
-	if (rate && rate_ops)
+	if (clk_rate && rate_ops)
 		return rate_ops->set_rate(clk_rate, rate);
-	else
+	else if (mux && mux_ops) {
+		ulong ret = mux_ops->set_rate(mux, rate);
+		//clk_set_parent(clk, clk_get_parent(mux));
+		device_reparent(clk->dev, dev_get_parent(mux->dev));
+		return ret;
+	} else
 		return clk_get_rate(clk);
 }
 

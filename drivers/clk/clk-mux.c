@@ -150,8 +150,62 @@ static int clk_mux_set_parent(struct clk *clk, struct clk *parent)
 	return 0;
 }
 
+struct clk *clk_get(const char *name)
+{
+	struct udevice *dev;
+	struct uclass *uc;
+	struct clk *clk;
+
+	uclass_get(UCLASS_CLK, &uc);
+	uclass_foreach_dev(dev, uc) {
+		clk = dev_get_clk_ptr(dev);
+		if (clk && !strcmp(clk->dev->name, name))
+			return clk;
+	}
+
+	return NULL;
+}
+
+static ulong clk_mux_set_rate(struct clk *clk, unsigned long rate)
+{
+	struct clk_mux *mux = to_clk_mux(clk);
+	struct clk *pclk, *mp = NULL;
+	ulong r, d, md = -1;
+	int i;
+
+	for (i = 0; i < mux->num_parents; i++) {
+		pclk = clk_get(mux->parent_names[i]);
+		if (pclk) {
+			r = clk_get_rate(pclk);
+			if (r == rate) {
+				mp = pclk;
+				break;
+			}
+
+			/* find closest */
+			if (mux->flags & CLK_MUX_ROUND_CLOSEST) {
+				if (r > rate)
+					d = r - rate;
+				else
+					d = rate - r;
+
+				if (d < md) {
+					mp = pclk;
+					md = d;
+				}
+			}
+		}
+	}
+
+	if (mp)
+		clk_set_parent(clk, mp);
+
+	return clk_get_rate(clk);
+}
+
 const struct clk_ops clk_mux_ops = {
 	.get_rate = clk_generic_get_rate,
+	.set_rate = clk_mux_set_rate,
 	.set_parent = clk_mux_set_parent,
 };
 
