@@ -31,7 +31,7 @@
 #define CONFIG_SPINAND_WRITE_BITMODE         SPINAND_4BIT_MODE
 #define CONFIG_SPINAND_BUF_SZ                (8 << 10)
 #define CONFIG_SPINAND_TIMEOUT               (100)   /* unit: ms */
-#define CONFIG_SPINAND_READ_TIMING_SEL       (3)
+#define CONFIG_SPINAND_READ_TIMING_SEL       (4)
 #define CONFIG_SPINAND_TRSMODE               SPINAND_TRS_DMA_AUTOBCH
 #define CONFIG_SPINAND_TRSMODE_RAW           SPINAND_TRS_DMA
 #define CONFIG_SPINAND_AUTOBCH_DECSRC        0 /* 0:spi-nand ctrl, 1:system memory */

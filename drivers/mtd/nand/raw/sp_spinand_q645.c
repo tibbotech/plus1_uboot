@@ -106,7 +106,7 @@ static int get_iomode_cfg(u32 io_mode)
 		cfg = SPINAND_CMD_BITMODE(1)
 			| SPINAND_CMD_DQ(1)
 			| SPINAND_ADDR_BITMODE(1)
-			| SPINAND_ADDR_DQ(1)
+			| SPINAND_ADDR_DQ(2)		// 1->2. Solve D1 delay issue
 			| SPINAND_DATA_BITMODE(3);
 	} else if (io_mode == SPINAND_DUAL_MODE) {
 		cfg = SPINAND_CMD_BITMODE(1)
@@ -2262,6 +2262,7 @@ static int sp_spinand_test_rw2(u32 addr, u32 size, u32 seed, u8 action)
 				ret = nand_erase_opts(mtd, &erase_opts);
 				if (ret) {
 					printk("\rerase blocks => fail\n");
+					ret = CMD_RET_FAILURE;
 					goto err_out;
 				}
 			}
@@ -2287,6 +2288,7 @@ static int sp_spinand_test_rw2(u32 addr, u32 size, u32 seed, u8 action)
 				ret = nand_write(mtd, (loff_t)j*block_size, &actual_size, buf);
 				if (ret) {
 					printk("\rwrite blocks => fail\n");
+					ret = CMD_RET_FAILURE;
 					goto err_out;
 				}
 			}
@@ -2309,6 +2311,7 @@ static int sp_spinand_test_rw2(u32 addr, u32 size, u32 seed, u8 action)
 				ret = nand_read(mtd, (loff_t)j*block_size, &actual_size, buf);
 				if (ret) {
 					printk("\rread blocks => fail\n");
+					ret = CMD_RET_FAILURE;
 					goto err_out;
 				}
 			
@@ -2359,14 +2362,15 @@ static int sp_spinand_test_softpad(int argc, char * const argv[])
 		/* Set SPI-NAND Softpad Control registers for case. */
 		u32 mask;
 
-		val = simple_strtoul(argv[3],NULL,16);
+		val = simple_strtoul(argv[3], NULL, 10);
 
 		switch(val)
 		{
 			case 1:
 				printk("Softpad setting: Case 1\n");
-				val  = (0<<0);		// G102.0[0] - CLK
-				mask = (1<<0);
+				val   = (0<<20); 	// G102.0[20] - EMMC PAD test mode enable
+				val  |= (0<<0);		// G102.0[0]  - Select EMMC Clock output polarity
+				mask  = (1<<20)|(1<<0);
 				read_mod_write(&pad_ctl2_reg[0], mask, val);
 
 				val  = (0<<29)|		// G102.1[29] - D3
@@ -2380,8 +2384,9 @@ static int sp_spinand_test_softpad(int argc, char * const argv[])
 
 			case 2:
 				printk("Softpad setting: Case 2\n");
-				val  = (0<<0);		// G102.0[0] - CLK
-				mask = (1<<0);
+				val   = (0<<20); 	// G102.0[20] - EMMC PAD test mode enable
+				val  |= (0<<0);		// G102.0[0]  - Select EMMC Clock output polarity
+				mask  = (1<<20)|(1<<0);
 				read_mod_write(&pad_ctl2_reg[0], mask, val);
 
 				val  = (1<<29)|		// G102.1[29] - D3
@@ -2395,8 +2400,9 @@ static int sp_spinand_test_softpad(int argc, char * const argv[])
 
 			case 3:
 				printk("Softpad setting: Case 3\n");
-				val  = (1<<0);		// G102.0[0] - CLK
-				mask = (1<<0);
+				val   = (1<<20); 	// G102.0[20] - EMMC PAD test mode enable
+				val  |= (0<<0);		// G102.0[0]  - Select EMMC Clock output polarity
+				mask  = (1<<20)|(1<<0);
 				read_mod_write(&pad_ctl2_reg[0], mask, val);
 
 				val  = (0<<29)|		// G102.1[29] - D3
@@ -2410,8 +2416,9 @@ static int sp_spinand_test_softpad(int argc, char * const argv[])
 
 			case 4:
 				printk("Softpad setting: Case 4\n");
-				val  = (1<<0);		// G102.0[0] - CLK
-				mask = (1<<0);
+				val   = (1<<20); 	// G102.0[20] - EMMC PAD test mode enable
+				val  |= (0<<0);		// G102.0[0]  - Select EMMC Clock output polarity
+				mask  = (1<<20)|(1<<0);
 				read_mod_write(&pad_ctl2_reg[0], mask, val);
 
 				val  = (1<<29)|		// G102.1[29] - D3
@@ -2425,8 +2432,9 @@ static int sp_spinand_test_softpad(int argc, char * const argv[])
 
 			case 5:
 				printk("Softpad setting: Case 5\n");
-				val  = (0<<0);		// G102.0[0] - CLK
-				mask = (1<<0);
+				val   = (0<<20); 	// G102.0[20] - EMMC PAD test mode enable
+				val  |= (0<<0);		// G102.0[0]  - Select EMMC Clock output polarity
+				mask  = (1<<20)|(1<<0);
 				read_mod_write(&pad_ctl2_reg[0], mask, val);
 
 				val  = (0<<29)|		// G102.1[29] - D3
@@ -2441,8 +2449,9 @@ static int sp_spinand_test_softpad(int argc, char * const argv[])
 
 			case 6:
 				printk("Softpad setting: Case 6\n");
-				val  = (0<<0);		// G102.0[0] - CLK
-				mask = (1<<0);
+				val   = (0<<20); 	// G102.0[20] - EMMC PAD test mode enable
+				val  |= (0<<0);		// G102.0[0]  - Select EMMC Clock output polarity
+				mask  = (1<<20)|(1<<0);
 				read_mod_write(&pad_ctl2_reg[0], mask, val);
 
 				val  = (1<<29)|		// G102.1[29] - D3
@@ -2518,7 +2527,7 @@ static int sp_spinand_test_driving(int argc, char * const argv[])
 	} else if (argc == 4) {
 		/* Set Pad Driving Strength registers. */
 		addr = &pad_ctl1_reg[4]; 
-		val = simple_strtoul(argv[3],NULL,16);
+		val = simple_strtoul(argv[3], NULL, 10);
 
 		if (val > 15) {
 			printk("Warning! The DS value exceeds 15. (val: %d)\n", val);
@@ -2538,6 +2547,40 @@ static int sp_spinand_test_driving(int argc, char * const argv[])
 	return ret;
 }
 
+static int sp_spinand_test_clkdly(int argc, char * const argv[])
+{
+	u32 *pad_ctl2_reg = (u32 *)0xF8003300;
+	u32 val, *addr;
+	u32 ret = 0;
+
+	if (argc == 3) {
+		/* Show CLK softpad setting. */
+			addr = &pad_ctl2_reg[0];
+			val = pad_ctl2_reg[0];
+			printk("SC #%d, addr: 0x%p, val: 0x%08x\n", 0, addr, val);
+			printk("CLK softpad status, enable: %d,  delay: %d\n", ((val&0x00000001)>>0), ((val&0x0000001E)>>1));
+	} else if (argc == 4) {
+		/* Set CLK Softpad delay. */
+		u32 mask;
+
+		val = simple_strtoul(argv[3], NULL, 10);
+		if (val > 15){
+			printk("Warning! The softpad delay value exceeds 15. (val: %d)\n", val);
+			val = 15;
+		}
+
+		printk("CLK softpad delay: %d\n", val);
+
+		val = (val<<1);	// G102.0[4:1] - CLK softpad delay
+		val |= (0<<0);	// G102.0[0]   - Select EMMC Clock output polarity
+		val |= (1<<20);	// G102.0[20]  - EMMC PAD test mode enable
+		mask = (0x1<<20)|(0xF<<1)|(0x1<<0);
+		read_mod_write(&pad_ctl2_reg[0], mask, val);
+	}
+
+	return ret;
+}
+
 #define SPINAND_TEST_ADDR	0x500000
 #define SPINAND_TEST_SIZE	0x20000
 #define SPINAND_TEST_SEED	0x3c3c3c3c
@@ -2547,15 +2590,17 @@ static int sp_spinand_test2(int argc, char * const argv[])
 	int ret = 0;
 
 	if (strncmp(cmd, "erase", 5) == 0) {
-		sp_spinand_test_rw2(SPINAND_TEST_ADDR, SPINAND_TEST_SIZE, SPINAND_TEST_SEED, 0);
+		ret = sp_spinand_test_rw2(SPINAND_TEST_ADDR, SPINAND_TEST_SIZE, SPINAND_TEST_SEED, 0);
 	} else if (strncmp(cmd, "write", 5) == 0) {
-		sp_spinand_test_rw2(SPINAND_TEST_ADDR, SPINAND_TEST_SIZE, SPINAND_TEST_SEED, 1);
+		ret = sp_spinand_test_rw2(SPINAND_TEST_ADDR, SPINAND_TEST_SIZE, SPINAND_TEST_SEED, 1);
 	} else if (strncmp(cmd, "read", 4) == 0) {
-		sp_spinand_test_rw2(SPINAND_TEST_ADDR, SPINAND_TEST_SIZE, SPINAND_TEST_SEED, 2);
+		ret = sp_spinand_test_rw2(SPINAND_TEST_ADDR, SPINAND_TEST_SIZE, SPINAND_TEST_SEED, 2);
 	} else if (strncmp(cmd, "driving", 7) == 0) {
-			sp_spinand_test_driving(argc, argv);
+		ret = sp_spinand_test_driving(argc, argv);
 	} else if (strncmp(cmd, "softpad", 7) == 0) {
-		sp_spinand_test_softpad(argc, argv);
+		ret = sp_spinand_test_softpad(argc, argv);
+	} else if (strncmp(cmd, "clkdly", 6) == 0) {
+		ret = sp_spinand_test_clkdly(argc, argv);
 	} else {
 		ret = CMD_RET_USAGE;
 	}
@@ -2767,7 +2812,8 @@ U_BOOT_CMD(ssnand, CONFIG_SYS_MAXARGS, 1, sp_spinand_test,
 	"\twrite - write a block.\n"
 	"\tread - read a block.\n"
 	"\tdriving - set driving strength. The range is 0~15.\n"
-	"\tsoftpad - set sofpad. The range is 1~6.\n"
+	"\tsoftpad - set softpad. The range is 1~6.\n"
+	"\tclkdly - set CLK softpad delay. The range is 0~15.\n"
 #endif
 );
 
