@@ -85,7 +85,7 @@ struct sp_spinand_info* get_spinand_info(void)
 	return our_spinfc;
 }
 
-static int get_iomode_cfg(u32 io_mode)
+static int get_iomode_cfg(u32 io_mode, u32 write)
 {
 	int cfg = -1;
 	if (io_mode == SPINAND_1BIT_MODE) {
@@ -106,7 +106,7 @@ static int get_iomode_cfg(u32 io_mode)
 		cfg = SPINAND_CMD_BITMODE(1)
 			| SPINAND_CMD_DQ(1)
 			| SPINAND_ADDR_BITMODE(1)
-			| SPINAND_ADDR_DQ(2)		// 1->2. Solve D1 delay issue
+			| SPINAND_ADDR_DQ(write? 2:1)		// 1->2. Solve D1 delay issue for write
 			| SPINAND_DATA_BITMODE(3);
 	} else if (io_mode == SPINAND_DUAL_MODE) {
 		cfg = SPINAND_CMD_BITMODE(1)
@@ -530,7 +530,7 @@ static int spi_nand_program_load(struct sp_spinand_info *info, u32 io_mode,
 				u32 col, u8 *buf, u32 size)
 {
 	struct sp_spinand_regs *regs = info->regs;
-	int cfg = get_iomode_cfg(io_mode);
+	int cfg = get_iomode_cfg(io_mode, 1);
 	int cmd = get_iomode_writecmd(io_mode);
 	u32 value = 0;
 	u32 i;
@@ -627,7 +627,7 @@ static int spi_nand_readcache(struct sp_spinand_info *info, u32 io_mode,
 				u32 col, u8 *buf, u32 size)
 {
 	struct sp_spinand_regs *regs = info->regs;
-	int cfg = get_iomode_cfg(io_mode);
+	int cfg = get_iomode_cfg(io_mode, 0);
 	int cmd = get_iomode_readcmd(io_mode);
 	u32 value = 0;
 	u32 i;
@@ -756,7 +756,7 @@ static int spi_nand_read_by_pio_auto(struct sp_spinand_info *info, u32 io_mode,
 	struct sp_spinand_regs *regs = info->regs;
 	u32 plane_sel_mode = info->plane_sel_mode;
 	u32 page_size = info->page_size;
-	int cfg = get_iomode_cfg(io_mode);
+	int cfg = get_iomode_cfg(io_mode, 0);
 	int cmd = get_iomode_readcmd(io_mode);
 	u32 value;
 	u32 i;
@@ -819,7 +819,7 @@ static int spi_nand_write_by_pio_auto(struct sp_spinand_info *info, u32 io_mode,
 	struct sp_spinand_regs *regs = info->regs;
 	u32 plane_sel_mode = info->plane_sel_mode;
 	u32 page_size = info->page_size;
-	int cfg = get_iomode_cfg(io_mode);
+	int cfg = get_iomode_cfg(io_mode, 1);
 	int cmd = get_iomode_writecmd(io_mode);
 	u32 value;
 	u32 i;
@@ -896,7 +896,7 @@ static int spi_nand_read_by_dma(struct sp_spinand_info *info, u32 io_mode,
 	u32 plane_sel_mode = info->plane_sel_mode;
 	u32 page_size = info->page_size;
 	int cmd = get_iomode_readcmd(io_mode);
-	int cfg = get_iomode_cfg(io_mode);
+	int cfg = get_iomode_cfg(io_mode, 0);
 	u32 value = 0;
 
 	if (cmd < 0 || cfg < 0)
@@ -946,7 +946,7 @@ static int spi_nand_write_by_dma(struct sp_spinand_info *info, u32 io_mode,
 	u32 plane_sel_mode = info->plane_sel_mode;
 	u32 page_size = info->page_size;
 	int cmd = get_iomode_writecmd(io_mode);
-	int cfg = get_iomode_cfg(io_mode);
+	int cfg = get_iomode_cfg(io_mode, 1);
 	u32 value = 0;
 	int ret;
 
@@ -1008,7 +1008,7 @@ static int spi_nand_pageread_autobch(struct sp_spinand_info *info, u32 io_mode,
 	u32 plane_sel_mode = info->plane_sel_mode;
 	u32 page_size = info->page_size;
 	int cmd = get_iomode_readcmd(io_mode);
-	int cfg = get_iomode_cfg(io_mode);
+	int cfg = get_iomode_cfg(io_mode, 0);
 	u32 value = 0;
 	int ret;
 
@@ -1082,7 +1082,7 @@ static int spi_nand_pagewrite_autobch(struct sp_spinand_info *info, u32 io_mode,
 	u32 plane_sel_mode = info->plane_sel_mode;
 	u32 page_size = info->page_size;
 	int cmd = get_iomode_writecmd(io_mode);
-	int cfg = get_iomode_cfg(io_mode);
+	int cfg = get_iomode_cfg(io_mode, 1);
 	u32 value = 0;
 	int ret = 0;
 
