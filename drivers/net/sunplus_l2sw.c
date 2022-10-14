@@ -775,10 +775,9 @@ static void check_mac_vendor_id_and_convert(u8 *mac_addr)
 	// Check vendor id and convert byte order if it is wrong.
 	if ((mac_addr[5] == 0xFC) && (mac_addr[4] == 0x4B) && (mac_addr[3] == 0xBC) &&
 		((mac_addr[0] != 0xFC) || (mac_addr[1] != 0x4B) || (mac_addr[2] != 0xBC))) {
-		char tmp;
-		tmp = mac_addr[0]; mac_addr[0] = mac_addr[5]; mac_addr[5] = tmp;
-		tmp = mac_addr[1]; mac_addr[1] = mac_addr[4]; mac_addr[4] = tmp;
-		tmp = mac_addr[2]; mac_addr[2] = mac_addr[3]; mac_addr[3] = tmp;
+		swap(mac_addr[0], mac_addr[5]);
+		swap(mac_addr[1], mac_addr[4]);
+		swap(mac_addr[2], mac_addr[3]);
 	}
 }
 
@@ -844,6 +843,13 @@ static int l2sw_emac_eth_ofdata_to_platdata(struct udevice *dev)
 		for (i = 0; i < ARP_HLEN; i++) {
 			read_otp_data(HB_GP_REG, SP_OTPRX_REG, priv->otp_mac_addr+i, (char*)&otp_mac[i]);
 		}
+
+		// Byte-order of MAC address stored in OTP is reverse.
+		// Convert them to correct order.
+		swap(otp_mac[0], otp_mac[5]);
+		swap(otp_mac[1], otp_mac[4]);
+		swap(otp_mac[2], otp_mac[3]);
+
 		//eth_info("mac address = %pM\n", otp_mac);
 		check_mac_vendor_id_and_convert(otp_mac);
 
