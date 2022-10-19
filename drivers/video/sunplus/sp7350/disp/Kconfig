@@ -1,0 +1,87 @@
+# SPDX-License-Identifier: GPL-2.0+
+#
+# Copyright (C) 2022 Sunplus - All Rights Reserved
+#
+# Authors: Hammer Hsieh <hammer.hsieh@sunplus.com>
+#
+
+menuconfig VIDEO_SP7350
+	bool "Enable SP7350 video support"
+	select DM_VIDEO
+	select DM_GPIO
+	select CMD_BMP
+	select CMD_CLS
+	# depends on DM_VIDEO
+	# default y
+	help
+	  SP7350 supports MIPI DSI video output. This option enables
+	  display function.
+
+config EN_SP7350_MIPITX_SW
+	bool "Enable SP7350 MIPITX switch to MIPI CSI TX"
+	depends on DM_VIDEO && VIDEO_SP7350
+	default n
+	help
+		Enable the will switch video output to MIPI CSI TX.
+
+config VIDEO_SP7350_MAX_XRES
+	int "Maximum horizontal resolution (for memory allocation purposes)"
+	depends on VIDEO_SP7350
+	default 720
+	help
+	  The maximum horizontal resolution to support for the framebuffer.
+	  This configuration is used for reserving/allocating memory for the
+	  framebuffer during device-model binding/probing.
+
+config VIDEO_SP7350_MAX_YRES
+	int "Maximum vertical resolution (for memory allocation purposes)"
+	depends on VIDEO_SP7350
+	default 480
+	help
+	  The maximum vertical resolution to support for the framebuffer.
+	  This configuration is used for reserving/allocating memory for the
+	  framebuffer during device-model binding/probing.
+
+config VIDEO_SP7350_MAX_BPP
+	int "Maximum bits per pixel (for memory allocation purposes)"
+	depends on VIDEO_SP7350
+	default 8
+	help
+	  The maximum bits per pixel to support for the framebuffer.
+	  This configuration is used for reserving/allocating memory for the
+	  framebuffer during device-model binding/probing.
+
+config VIDEO_SP7350_ROTATE
+	int "Console Text Rotate Angle Setting"
+	depends on VIDEO_SP7350
+	default 0
+	help
+	  Rotate angle 0: 0 degree / 1: 90 degree / 2: 180 degree / 3: 270 degree.
+
+config BMP_8BPP_UPDATE_CMAP
+	bool "Enable SP7350 Update Palette for 8BPP"
+	depends on DM_VIDEO && VIDEO_SP7350
+	default y
+	help
+		Allow 8BPP format update palette.
+
+config DM_VIDEO_SP7350_LOGO
+	bool "Enable SP7350 video LOGO support"
+	depends on DM_VIDEO && VIDEO_SP7350
+	default n
+	help
+		Logo display support
+
+config DM_VIDEO_SP7350_LOGO_ALIGN
+	bool "Align SP7350 video LOGO to center"
+	depends on DM_VIDEO && VIDEO_SP7350
+	default n
+	help
+		Logo display support , align to center
+
+config VIDEO_BMP_LOGO_MANUAL
+	bool "LOGO display by manual"
+	depends on DM_VIDEO && VIDEO_SP7350
+	default n
+	help
+		Logo display by manual
