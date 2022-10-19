@@ -32,6 +32,8 @@ ext_dtb
 *.bak
 # Build tree
 /build-*
+/tools/dm_video_bmp_logo
+/tools/dm_video_bmp_logo_sp7350
 
 #
 # Top-level generic files

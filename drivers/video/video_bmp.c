@@ -33,7 +33,7 @@
 #define BMP_RLE8_EOBMP		1
 #define BMP_RLE8_DELTA		2
 
-#if defined(CONFIG_VIDEO_SP7021)
+#if defined(CONFIG_VIDEO_SP7021) || defined(CONFIG_VIDEO_SP7350)
 static void draw_unencoded_bitmap(uchar **fbp, uchar *bmap, u32 *cmap,
 #else
 static void draw_unencoded_bitmap(ushort **fbp, uchar *bmap, ushort *cmap,
@@ -41,7 +41,7 @@ static void draw_unencoded_bitmap(ushort **fbp, uchar *bmap, ushort *cmap,
 				  int cnt)
 {
 	while (cnt > 0) {
-		#if defined(CONFIG_VIDEO_SP7021)
+		#if defined(CONFIG_VIDEO_SP7021) || defined(CONFIG_VIDEO_SP7350)
 		//*(*fbp)++ = *bmap++;
 		*(*fbp) = (*bmap) + VIDEO_CMAP_OFFSET;
 		(*fbp)++;
@@ -53,20 +53,20 @@ static void draw_unencoded_bitmap(ushort **fbp, uchar *bmap, ushort *cmap,
 	}
 }
 
-#if defined(CONFIG_VIDEO_SP7021)
+#if defined(CONFIG_VIDEO_SP7021) || defined(CONFIG_VIDEO_SP7350)
 static void draw_encoded_bitmap(uchar **fbp, uchar col, int cnt)
 #else
 static void draw_encoded_bitmap(ushort **fbp, ushort col, int cnt)
 #endif
 {
-#if defined(CONFIG_VIDEO_SP7021)
+#if defined(CONFIG_VIDEO_SP7021) || defined(CONFIG_VIDEO_SP7350)
 	uchar *fb = *fbp;
 #else	
 	ushort *fb = *fbp;
 #endif
 
 	while (cnt > 0) {
-		#if defined(CONFIG_VIDEO_SP7021)
+		#if defined(CONFIG_VIDEO_SP7021) || defined(CONFIG_VIDEO_SP7350)
 		*fb++ = col + VIDEO_CMAP_OFFSET;
 		#else
 		*fb++ = col;
@@ -77,7 +77,7 @@ static void draw_encoded_bitmap(ushort **fbp, ushort col, int cnt)
 }
 
 static void video_display_rle8_bitmap(struct udevice *dev,
-	#if defined(CONFIG_VIDEO_SP7021)
+	#if defined(CONFIG_VIDEO_SP7021) || defined(CONFIG_VIDEO_SP7350)
 				      struct bmp_image *bmp, u32 *cmap,
 	#else	
 				      struct bmp_image *bmp, ushort *cmap,
@@ -105,7 +105,7 @@ static void video_display_rle8_bitmap(struct udevice *dev,
 				bmap += 2;
 				x = 0;
 				y--;
-		#if defined(CONFIG_VIDEO_SP7021)
+		#if defined(CONFIG_VIDEO_SP7021) || defined(CONFIG_VIDEO_SP7350)
 				/* 8bpix, 1-byte per pixel, width should *1 */
 				fb -= (width * 1 + priv->line_length);	
 		#else
@@ -121,7 +121,7 @@ static void video_display_rle8_bitmap(struct udevice *dev,
 				/* delta run */
 				x += bmap[2];
 				y -= bmap[3];
-		#if defined(CONFIG_VIDEO_SP7021)
+		#if defined(CONFIG_VIDEO_SP7021) || defined(CONFIG_VIDEO_SP7350)
 				/* 8bpix, 1-byte per pixel, x should *1 */
 				fb = (uchar *)(priv->fb + (y + y_off - 1)
 					* priv->line_length + (x + x_off) * 1);
@@ -143,7 +143,7 @@ static void video_display_rle8_bitmap(struct udevice *dev,
 						else
 							cnt = runlen;
 						draw_unencoded_bitmap(
-			#if defined(CONFIG_VIDEO_SP7021)
+			#if defined(CONFIG_VIDEO_SP7021) || defined(CONFIG_VIDEO_SP7350)
 							(uchar **)&fb,
 			#else
 							(ushort **)&fb,
@@ -172,7 +172,7 @@ static void video_display_rle8_bitmap(struct udevice *dev,
 						cnt = width - x;
 					else
 						cnt = runlen;
-			#if defined(CONFIG_VIDEO_SP7021)
+			#if defined(CONFIG_VIDEO_SP7021) || defined(CONFIG_VIDEO_SP7350)
 					draw_encoded_bitmap((uchar **)&fb,
 			#else
 					draw_encoded_bitmap((ushort **)&fb,
@@ -189,7 +189,7 @@ static void video_display_rle8_bitmap(struct udevice *dev,
 
 __weak void fb_put_byte(uchar **fb, uchar **from)
 {
-#if defined(CONFIG_VIDEO_SP7021)
+#if defined(CONFIG_VIDEO_SP7021) || defined(CONFIG_VIDEO_SP7350)
 	*(*fb) = *(*from) + VIDEO_CMAP_OFFSET;
 	(*fb)++;
 	(*from)++;
@@ -236,7 +236,7 @@ static void video_splash_align_axis(int *axis, unsigned long panel_size,
 }
 
 static void video_set_cmap(struct udevice *dev,
-#if defined(CONFIG_VIDEO_SP7021)
+#if defined(CONFIG_VIDEO_SP7021) || defined(CONFIG_VIDEO_SP7350)
 			   struct bmp_color_table_entry *cte, unsigned colours, int color_used, int pal_sel)
 #else
 			   struct bmp_color_table_entry *cte, unsigned colours)
@@ -244,13 +244,13 @@ static void video_set_cmap(struct udevice *dev,
 {
 	struct video_priv *priv = dev_get_uclass_priv(dev);
 	int i;
-#if defined(CONFIG_VIDEO_SP7021)
+#if defined(CONFIG_VIDEO_SP7021) || defined(CONFIG_VIDEO_SP7350)
 	u32 *cmap = priv->cmap;
 #else
 	ushort *cmap = priv->cmap;
 #endif
 
-#if defined(CONFIG_VIDEO_SP7021)
+#if defined(CONFIG_VIDEO_SP7021) || defined(CONFIG_VIDEO_SP7350)
 	debug("%s: colours=%d, color_used=%d\n", __func__, colours, color_used);
 	
 	if (pal_sel) {
@@ -263,7 +263,7 @@ static void video_set_cmap(struct udevice *dev,
 	debug("%s: colours=%d\n", __func__, colours);
 #endif
 
-#if defined(CONFIG_VIDEO_SP7021)
+#if defined(CONFIG_VIDEO_SP7021) || defined(CONFIG_VIDEO_SP7350)
 	cmap += VIDEO_CMAP_OFFSET;
 	for (i = VIDEO_CMAP_OFFSET; i < colours; ++i) {
 		if (pal_sel) {
@@ -322,7 +322,7 @@ int video_bmp_display(struct udevice *dev, ulong bmp_image, int x, int y,
 		      bool align)
 {
 	struct video_priv *priv = dev_get_uclass_priv(dev);
-#if defined(CONFIG_VIDEO_SP7021)
+#if defined(CONFIG_VIDEO_SP7021) || defined(CONFIG_VIDEO_SP7350)
 	u32 *cmap_base = NULL;
 #else
 	ushort *cmap_base = NULL;
@@ -336,7 +336,7 @@ int video_bmp_display(struct udevice *dev, ulong bmp_image, int x, int y,
 	unsigned long pwidth = priv->xsize;
 	unsigned colours, bpix, bmp_bpix;
 	struct bmp_color_table_entry *palette;
-#if defined(CONFIG_VIDEO_SP7021)
+#if defined(CONFIG_VIDEO_SP7021) || defined(CONFIG_VIDEO_SP7350)
 	int hdr_size, color_used, data_offset;
 #else
 	int hdr_size;
@@ -354,7 +354,7 @@ int video_bmp_display(struct udevice *dev, ulong bmp_image, int x, int y,
 	height = get_unaligned_le32(&bmp->header.height);
 	bmp_bpix = get_unaligned_le16(&bmp->header.bit_count);
 	hdr_size = get_unaligned_le16(&bmp->header.size);
-#if defined(CONFIG_VIDEO_SP7021)
+#if defined(CONFIG_VIDEO_SP7021) || defined(CONFIG_VIDEO_SP7350)
 	data_offset = get_unaligned_le16(&bmp->header.data_offset);
 	color_used = get_unaligned_le16(&bmp->header.colors_used);
 	if( (bmp_bpix == 8) && (color_used == 0) && (data_offset > 54) )
@@ -369,11 +369,11 @@ int video_bmp_display(struct udevice *dev, ulong bmp_image, int x, int y,
 
 	bpix = VNBITS(priv->bpix);
 
-#if defined(CONFIG_VIDEO_SP7021)
+#if defined(CONFIG_VIDEO_SP7021) || defined(CONFIG_VIDEO_SP7350)
 	debug("bmp_bpix: %d , bpix %d \n",bmp_bpix, bpix);
 #endif
 
-#if defined(CONFIG_VIDEO_SP7021)
+#if defined(CONFIG_VIDEO_SP7021) || defined(CONFIG_VIDEO_SP7350)
 	if (bpix != 8 && bpix != 16 && bpix != 32) {
 #else
 	if (bpix != 1 && bpix != 8 && bpix != 16 && bpix != 32) {
@@ -385,7 +385,7 @@ int video_bmp_display(struct udevice *dev, ulong bmp_image, int x, int y,
 	}
 
 
-#if defined(CONFIG_VIDEO_SP7021)
+#if defined(CONFIG_VIDEO_SP7021) || defined(CONFIG_VIDEO_SP7350)
 	/*
 	 * We support displaying 8bpp/24bpp/32bpp BMPs transfer to SP7021 display engine
 	 * and SP7021 display engine can select 8bpp(palette=ARGB),RGB565,ARGB8888
@@ -419,7 +419,7 @@ int video_bmp_display(struct udevice *dev, ulong bmp_image, int x, int y,
 	debug("Display-bmp: %d x %d  with %d colours, display %d\n",
 	      (int)width, (int)height, (int)colours, 1 << bpix);
 
-#if defined(CONFIG_VIDEO_SP7021)
+#if defined(CONFIG_VIDEO_SP7021) || defined(CONFIG_VIDEO_SP7350)
 	if (bmp_bpix == 8)
 		video_set_cmap(dev, palette, colours, color_used, 0);
 
@@ -452,12 +452,12 @@ int video_bmp_display(struct udevice *dev, ulong bmp_image, int x, int y,
 	fb = start - priv->line_length;
 
 	switch (bmp_bpix) {
-#if defined(CONFIG_VIDEO_SP7021)
+#if defined(CONFIG_VIDEO_SP7021) || defined(CONFIG_VIDEO_SP7350)
 #else
 	case 1:
 #endif
 	case 8: {
-#if defined(CONFIG_VIDEO_SP7021)
+#if defined(CONFIG_VIDEO_SP7021) || defined(CONFIG_VIDEO_SP7350)
 #else
 		struct bmp_color_table_entry *cte;
 #endif
@@ -466,7 +466,7 @@ int video_bmp_display(struct udevice *dev, ulong bmp_image, int x, int y,
 		u32 compression = get_unaligned_le32(&bmp->header.compression);
 		debug("compressed %d %d\n", compression, BMP_BI_RLE8);
 		if (compression == BMP_BI_RLE8) {
-			#if defined(CONFIG_VIDEO_SP7021)
+			#if defined(CONFIG_VIDEO_SP7021) || defined(CONFIG_VIDEO_SP7350)
 			if (bpix != 8) {
 				printf("Error: only support 8 bpix");
 			#else
@@ -482,7 +482,7 @@ int video_bmp_display(struct udevice *dev, ulong bmp_image, int x, int y,
 		}
 #endif
 
-#if defined(CONFIG_VIDEO_SP7021)
+#if defined(CONFIG_VIDEO_SP7021) || defined(CONFIG_VIDEO_SP7350)
 		if (bpix == 8)
 			byte_width = width;
 		else if (bpix == 16)
@@ -568,7 +568,7 @@ int video_bmp_display(struct udevice *dev, ulong bmp_image, int x, int y,
 #endif /* CONFIG_BMP_16BPP */
 #if defined(CONFIG_BMP_24BPP)
 	case 24:
-#if defined(CONFIG_VIDEO_SP7021)
+#if defined(CONFIG_VIDEO_SP7021) || defined(CONFIG_VIDEO_SP7350)
 		if (bpix == 8) {
 			debug("BMP RGB888 to OSD 8bpp \n");
 		} else if (bpix == 16) {
@@ -642,7 +642,7 @@ int video_bmp_display(struct udevice *dev, ulong bmp_image, int x, int y,
 #endif /* CONFIG_BMP_24BPP */
 #if defined(CONFIG_BMP_32BPP)
 	case 32:
-#if defined(CONFIG_VIDEO_SP7021)
+#if defined(CONFIG_VIDEO_SP7021) || defined(CONFIG_VIDEO_SP7350)
 		for (i = 0; i < height; ++i) {
 			for (j = 0; j < width; j++) {
 				if (bpix == 8) {

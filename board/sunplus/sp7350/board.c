@@ -74,11 +74,13 @@ void board_nand_init(void)
 #endif
 }
 
+__weak int sp7350_video_show_board_info(void);
+
 #ifdef CONFIG_BOARD_LATE_INIT
 int board_late_init(void)
 {
 #ifdef CONFIG_DM_VIDEO
-	sp7021_video_show_board_info();
+	sp7350_video_show_board_info();
 #endif
 	return 0;
 }

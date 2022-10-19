@@ -169,7 +169,7 @@ void video_set_default_colors(struct udevice *dev, bool invert)
 		back = temp;
 	}
 	
-#if defined(CONFIG_VIDEO_SP7021)
+#if defined(CONFIG_VIDEO_SP7021) || defined(CONFIG_VIDEO_SP7350)
 	priv->fg_col_idx = fore;
 	priv->bg_col_idx = back;
 	switch (priv->bpix) {
@@ -325,7 +325,7 @@ int video_sync_copy_all(struct udevice *dev)
 static int video_pre_probe(struct udevice *dev)
 {
 	struct video_priv *priv = dev_get_uclass_priv(dev);
-#if defined(CONFIG_VIDEO_SP7021)
+#if defined(CONFIG_VIDEO_SP7021) || defined(CONFIG_VIDEO_SP7350)
 	priv->cmap = calloc(256, sizeof(u32));
 #else
 	priv->cmap = calloc(256, sizeof(ushort));
