@@ -270,10 +270,9 @@ config PHY_MTK_TPHY
 
 config SUNPLUS_DWC_USB3_PHY
 	bool "SUNPLUS DWC3 USB3 PHY support"
-	depends on PHY
-	depends on TARGET_PENTAGRAM_Q645 || TARGET_PENTAGRAM_SP7350
+	select PHY
 	help
-          Support the DWC3 USB3 PHY in SUNPLUS SoCs
+	  Support the DWC3 USB3 PHY in Sunplus SoCs
 
 source "drivers/phy/rockchip/Kconfig"
 endmenu
