@@ -26,27 +26,19 @@
 #ifdef CONFIG_SPINAND_MEASURE_TIMIMNG
 	#if 0 // CLK freq is 150MHz
 #define CONFIG_SPINAND_CLK_DIV               (2)	// CLK_SPI/4. 600/4 = 150 MHz
-#define CONFIG_SPINAND_CLK_SRC               (14)
-#define CONFIG_SPINAND_READ_BITMODE          SPINAND_4BIT_MODE
-#define CONFIG_SPINAND_WRITE_BITMODE         SPINAND_4BIT_MODE
-#define CONFIG_SPINAND_BUF_SZ                (8 << 10)
-#define CONFIG_SPINAND_TIMEOUT               (100)   /* unit: ms */
-#define CONFIG_SPINAND_READ_TIMING_SEL       (4)
-#define CONFIG_SPINAND_TRSMODE               SPINAND_TRS_DMA_AUTOBCH
-#define CONFIG_SPINAND_TRSMODE_RAW           SPINAND_TRS_DMA
-#define CONFIG_SPINAND_AUTOBCH_DECSRC        0 /* 0:spi-nand ctrl, 1:system memory */
 	#else // CLK freq is 100MHz
 #define CONFIG_SPINAND_CLK_DIV               (3)	// CLK_SPI/6. 600/6 = 100 MHz
+	#endif
 #define CONFIG_SPINAND_CLK_SRC               (14)
 #define CONFIG_SPINAND_READ_BITMODE          SPINAND_4BIT_MODE
 #define CONFIG_SPINAND_WRITE_BITMODE         SPINAND_4BIT_MODE
 #define CONFIG_SPINAND_BUF_SZ                (8 << 10)
 #define CONFIG_SPINAND_TIMEOUT               (100)   /* unit: ms */
 #define CONFIG_SPINAND_READ_TIMING_SEL       (2)
+#define CONFIG_SPINAND_CS_DISACTIVE_CYC      22		/* 55ns = 22 x 1.6ns + 20ns */
 #define CONFIG_SPINAND_TRSMODE               SPINAND_TRS_DMA_AUTOBCH
 #define CONFIG_SPINAND_TRSMODE_RAW           SPINAND_TRS_DMA
-#define CONFIG_SPINAND_AUTOBCH_DECSRC        0 /* 0:spi-nand ctrl, 1:system memory */
-	#endif
+#define CONFIG_SPINAND_AUTOBCH_DECSRC        0		/* 0:spi-nand ctrl, 1:system memory */
 #else
 #define CONFIG_SPINAND_CLK_DIV               (4)	// CLK_SPI/8. 600/8 = 75 MHz
 #define CONFIG_SPINAND_CLK_SRC               (14)
@@ -54,15 +46,17 @@
 #define CONFIG_SPINAND_WRITE_BITMODE         SPINAND_4BIT_MODE
 #define CONFIG_SPINAND_BUF_SZ                (8 << 10)
 #define CONFIG_SPINAND_TIMEOUT               (100)   /* unit: ms */
-#if 0 // For zebu sim
+	#if 0 // For zebu sim
 #define CONFIG_SPINAND_READ_TIMING_SEL       (0)
+#define CONFIG_SPINAND_CS_DISACTIVE_CYC      0		/* 20ns = 0 x 1.6ns + 20ns */
 #define CONFIG_SPINAND_TRSMODE               SPINAND_TRS_DMA_AUTOBCH
-#else
+	#else
 #define CONFIG_SPINAND_READ_TIMING_SEL       (2)
+#define CONFIG_SPINAND_CS_DISACTIVE_CYC      22		/* 55ns = 22 x 1.6ns + 20ns */
 #define CONFIG_SPINAND_TRSMODE               SPINAND_TRS_DMA_AUTOBCH
-#endif
+	#endif
 #define CONFIG_SPINAND_TRSMODE_RAW           SPINAND_TRS_DMA
-#define CONFIG_SPINAND_AUTOBCH_DECSRC        0 /* 0:spi-nand ctrl, 1:system memory */
+#define CONFIG_SPINAND_AUTOBCH_DECSRC        0		/* 0:spi-nand ctrl, 1:system memory */
 #endif
 
 #define SPINAND_DEBUG_ON
@@ -197,7 +191,7 @@
  *  macros for spi_timing register
  */
 #define SPINAND_CS_SH_CYC(x)         (((x)&0x3f)<<22)
-#define SPINAND_CD_DISACTIVE_CYC(x)  (((x)&0x3f)<<16)
+#define SPINAND_CS_DISACTIVE_CYC(x)  (((x)&0x3f)<<16)
 #define SPINAND_READ_TIMING(x)       (((x)&0x07)<<1)  //0~7 are allowed
 #define SPINAND_WRITE_TIMING(x)      (((x)&0x01))     //0~1 are allowed
 
