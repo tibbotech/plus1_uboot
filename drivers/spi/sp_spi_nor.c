@@ -820,8 +820,8 @@ static int sp_spi_nor_xfer(struct udevice *dev, unsigned int bitlen,
 		// read
 		msg_printf("read\n");
 #if (SP_SPINOR_DMA)
-		if (cmd_buf[0] == 0x0B)
-			cmd_buf[0] = 0x3B;
+		if (cmd_buf[0] == 0x03)
+			cmd_buf[0] = 0xB; //winbond 03 command has 50 MHz limitation
 
 		spi_flash_xfer_DMAread(priv, cmd_buf, cmd_len, din, len);
 #else

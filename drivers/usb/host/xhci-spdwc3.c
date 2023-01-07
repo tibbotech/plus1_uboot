@@ -26,12 +26,32 @@ struct xhci_dwc3_plat {
 #if 1
 #define RF_GRP(_grp, _reg) ((((_grp) * 32 + (_reg)) * 4) + REG_BASE)
 #define RF_AMBA(_grp, _reg) ((((_grp) * 1024 + (_reg)) * 4) + REG_BASE)
-
 #define RF_MASK_V(_mask, _val)       (((_mask) << 16) | (_val))
 #define RF_MASK_V_SET(_mask)         (((_mask) << 16) | (_mask))
 #define RF_MASK_V_CLR(_mask)         (((_mask) << 16) | 0)
 #if defined(CONFIG_TARGET_PENTAGRAM_Q645) ||  defined(CONFIG_TARGET_PENTAGRAM_SP7350)
 #define REG_BASE           0xF8000000
+#if defined(CONFIG_TARGET_PENTAGRAM_SP7350)
+#define RF_GRP_AO(_grp, _reg)           ((((_grp) * 32 + (_reg)) * 4) + REG_BASE_AO)
+#define REG_BASE_AO        0xF8800000
+
+struct moon0_regs {
+	unsigned int stamp;            // 0.0
+	unsigned int reset[12];        // 0.1 -  0.12
+	unsigned int rsvd[18];         // 0.13 - 0.30
+	unsigned int hw_cfg;           // 0.31
+};
+#define MOON0_REG ((volatile struct moon0_regs *)RF_GRP_AO(0, 0))
+
+struct moon2_regs {
+	unsigned int rsvd1;            // 2.0
+	unsigned int clken[12];        // 2.1 - 2.12
+	unsigned int rsvd2[2];         // 2.13 - 2.14
+	unsigned int gclken[12];       // 2.15 - 2.26
+	unsigned int rsvd3[5];         // 2.27 - 2.31
+};
+#define MOON2_REG ((volatile struct moon2_regs *)RF_GRP_AO(2, 0))
+#else
 struct moon0_regs {
 	unsigned int stamp;            // 0.0
 	unsigned int clken[5];         // 0.1 - 0.5
@@ -43,7 +63,7 @@ struct moon0_regs {
 	unsigned int hw_cfg;           // 0.31
 };
 #define MOON0_REG ((volatile struct moon0_regs *)RF_GRP(0, 0))
-
+#endif
 /* start of xhci */
 struct uphy_u3_regs {
 	unsigned int cfg[32];		       // 189.0
@@ -123,7 +143,16 @@ static void uphy_init(void)
 #if defined(CONFIG_TARGET_PENTAGRAM_Q645) || defined(CONFIG_TARGET_PENTAGRAM_SP7350)
 	volatile struct uphy_u3_regs *dwc3phy_reg;
 	u32 result, i = 0;
+	
+#if defined(CONFIG_TARGET_PENTAGRAM_SP7350)
+	MOON2_REG->clken[5] = RF_MASK_V_SET(1 << 14); // U3PHY0_CLKEN=1
 
+	MOON0_REG->reset[5] = RF_MASK_V_SET(1 << 14); // U3PHY0_RESET=1
+	MOON0_REG->reset[5] = RF_MASK_V_SET(1 << 13); // USB30C0_RESET=1
+	mdelay(1);
+	MOON0_REG->reset[5] = RF_MASK_V_CLR(1 << 14); // U3PHY0_RESET=0
+	MOON0_REG->reset[5] = RF_MASK_V_CLR(1 << 13); // USB30C0_RESET=0
+#else
 	MOON0_REG->clken[3] = RF_MASK_V_SET(1 << 11);
 
 	MOON0_REG->reset[3] = RF_MASK_V_SET(1 << 9);
@@ -131,7 +160,7 @@ static void uphy_init(void)
 	mdelay(1);
 	MOON0_REG->reset[3] = RF_MASK_V_CLR(1 << 9);
 	MOON0_REG->reset[3] = RF_MASK_V_CLR(1 << 11);
-
+#endif
 	dwc3phy_reg = (volatile struct uphy_u3_regs *) UPHY0_U3_REG;
 	dwc3phy_reg->cfg[1] |= 0x03;
 	for (;;)
