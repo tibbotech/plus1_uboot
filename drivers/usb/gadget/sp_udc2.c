@@ -94,139 +94,161 @@ static void uphy_init(int port_num)
 #if defined(CONFIG_TARGET_PENTAGRAM_Q645)
 	if (0 == port_num) {
 		/* enable clock for UPHY, USBC and OTP */
-		MOON0_REG->clken[3] = RF_MASK_V_SET(1 << 8);
-		MOON0_REG->clken[3] = RF_MASK_V_SET(1 << 13);
-		MOON0_REG->clken[2] = RF_MASK_V_SET(1 << 2);
+		writel(RF_MASK_V_SET(1 << 8), moon0_reg + CLOCK_ENABLE3);
+		writel(RF_MASK_V_SET(1 << 13), moon0_reg + CLOCK_ENABLE3);
+		writel(RF_MASK_V_SET(1 << 2), moon0_reg + CLOCK_ENABLE2);
 
 		/* disable reset for OTP */
-		MOON0_REG->reset[2] = RF_MASK_V_CLR(1 << 2);
+		writel(RF_MASK_V_CLR(1 << 2), moon0_reg + HARDWARE_RESET2);
 
 		/* reset UPHY */
-		MOON0_REG->reset[3] = RF_MASK_V_SET(1 << 8);
+		writel(RF_MASK_V_SET(1 << 8), moon0_reg + HARDWARE_RESET3);
 		mdelay(1);
-		MOON0_REG->reset[3] = RF_MASK_V_CLR(1 << 8);
+		writel(RF_MASK_V_CLR(1 << 8), moon0_reg + HARDWARE_RESET3);
 		mdelay(1);
 
 		/* Default value modification */
-		UPHY0_RN_REG->gctrl[0] = 0x08888101;
+		writel(0x08888101, uphy0_reg + GLOBAL_CONTROL0);
 
 		/* PLL power off/on twice */
-		UPHY0_RN_REG->gctrl[2] = 0x88;
+		writel(0x88, uphy0_reg + GLOBAL_CONTROL2);
 		mdelay(1);
-		UPHY0_RN_REG->gctrl[2] = 0x80;
+		writel(0x80, uphy0_reg + GLOBAL_CONTROL2);
 		mdelay(1);
-		UPHY0_RN_REG->gctrl[2] = 0x88;
+		writel(0x88, uphy0_reg + GLOBAL_CONTROL2);
 		mdelay(1);
-		UPHY0_RN_REG->gctrl[2] = 0x80;
-		mdelay(20); /*	experience */
-		UPHY0_RN_REG->gctrl[2] = 0;
+		writel(0x80, uphy0_reg + GLOBAL_CONTROL2);
+		mdelay(20);
+		writel(0x0, uphy0_reg + GLOBAL_CONTROL2);
 
 		/* USBC 0 reset */
-		MOON0_REG->reset[3] = RF_MASK_V_SET(1 << 13);
+		writel(RF_MASK_V_SET(1 << 13), moon0_reg + HARDWARE_RESET3);
 		mdelay(1);
-		MOON0_REG->reset[3] = RF_MASK_V_CLR(1 << 13);
+		writel(RF_MASK_V_CLR(1 << 13), moon0_reg + HARDWARE_RESET3);
 		mdelay(1);
 
 		/* fix rx-active question */
-		UPHY0_RN_REG->cfg[19] |= 0xf;
+		val = readl(uphy0_reg + UPHY0_CONFIGS19);
+		set = val | 0xf;
+		writel(set, uphy0_reg + UPHY0_CONFIGS19);
 
 		/* OTP for USB phy tx clock invert */
-		val = HB_GP_REG->hb_otp_data2;
-		if ((val >> 1) & 1)
-			UPHY0_RN_REG->gctrl[1] |= (1 << 5);
+		val = readl(hb_gp_reg + HB_OTP_DATA2);
+		if ((val >> 1) & 1) {
+			val = readl(uphy0_reg + GLOBAL_CONTROL1);
+			set = val | (1 << 5);
+			writel(set, uphy0_reg + GLOBAL_CONTROL1);
+		}
 
 		/* OTP for USB phy rx clock invert */
-		val = HB_GP_REG->hb_otp_data2;
-		if (val & 1)
-			UPHY0_RN_REG->gctrl[1] |= (1 << 6);
+		val = readl(hb_gp_reg + HB_OTP_DATA2);
+		if (val & 1) {
+			val = readl(uphy0_reg + GLOBAL_CONTROL1);
+			set = val | (1 << 6);
+			writel(set, uphy0_reg + GLOBAL_CONTROL1);
+		}
 
 		/* OTP for USB DISC (disconnect voltage) */
-		val = HB_GP_REG->hb_otp_data6;
+		val = readl(hb_gp_reg + HB_OTP_DATA6);
 		set = val & 0x1f;
 		if (!set)
 			set = DEFAULT_UPHY_DISC;
 
-		UPHY0_RN_REG->cfg[7] = (UPHY0_RN_REG->cfg[7] & ~0x1F) | set;
+		val = readl(uphy0_reg + UPHY0_CONFIGS7);
+		set |= (val & ~0x1f);
+		writel(set, uphy0_reg + UPHY0_CONFIGS7);
 
 		/* OTP for USB phy current source adjustment */
-		MOON3_REG->sft_cfg[20] = RF_MASK_V_CLR(1 << 5);
+		writel(RF_MASK_V_CLR(1 << 5), moon3_reg + M3_CONFIGS20);
 
 		/* OTP for RX squelch level control to APHY */
-		val = HB_GP_REG->hb_otp_data6;
+		val = readl(hb_gp_reg + HB_OTP_DATA6);
 		set = (val >> 5) & 0x7;
 		if (!set)
 			set = DEFAULT_SQ_CT;
 
-		UPHY0_RN_REG->cfg[25] = (UPHY0_RN_REG->cfg[25] & ~0x7) | set;
+		val = readl(uphy0_reg + UPHY0_CONFIGS25);
+		set |= (val & ~0x7);
+		writel(set, uphy0_reg + UPHY0_CONFIGS25);
 	}
 #elif defined(CONFIG_TARGET_PENTAGRAM_SP7350)
 	if (0 == port_num) {
 		/* enable clock for UPHY, USBC and OTP */
-		MOON2_REG->sft_cfg[6] = RF_MASK_V_SET(1 << 12); // UPHY0_CLKEN=1
-		MOON2_REG->sft_cfg[6] = RF_MASK_V_SET(1 << 15); // USBC0_CLKEN=1
-		MOON2_REG->sft_cfg[5] = RF_MASK_V_SET(1 << 13); // OTPRX_CLKEN=1
+		writel(RF_MASK_V_SET(1 << 12), moon2_reg + M2_CONFIGS6);	// UPHY0_CLKEN=1
+		writel(RF_MASK_V_SET(1 << 15), moon2_reg + M2_CONFIGS6);	// USBC0_CLKEN=1
+		writel(RF_MASK_V_SET(1 << 13), moon2_reg + M2_CONFIGS5);
 
 		/* disable reset for OTP */
-		MOON0_REG->reset[0] = RF_MASK_V_CLR(1 << 9);  	// RBUS_BLOCKB_RESET=0
+		writel(RF_MASK_V_CLR(1 << 9), moon0_reg + HARDWARE_RESET0);	// RBUS_BLOCKB_RESET=0
 		mdelay(1);
-		MOON0_REG->reset[4] = RF_MASK_V_CLR(1 << 13); 	// OTPRX_RESET=0
+		writel(RF_MASK_V_CLR(1 << 13), moon0_reg + HARDWARE_RESET4);	// OTPRX_RESET=0
 		mdelay(1);
 
 		/* reset UPHY0 */
 		/* UPHY0_RESET : 1->0 */
-		MOON0_REG->reset[5] = RF_MASK_V_SET(1 << 12);
+		writel(RF_MASK_V_SET(1 << 12), moon0_reg + HARDWARE_RESET5);
 		mdelay(1);
-		MOON0_REG->reset[5] = RF_MASK_V_CLR(1 << 12);
+		writel(RF_MASK_V_CLR(1 << 12), moon0_reg + HARDWARE_RESET5);
 		mdelay(1);
 
 		/* Default value modification */
 		/* G149.28 uphy0_gctr0 */
-		UPHY0_RN_REG->gctrl[0] = 0x08888101;
+		writel(0x08888101, uphy0_reg + GLOBAL_CONTROL0);
 
 		/* PLL power off/on twice */
 		/* G149.30 uphy0_gctrl2 */
-		UPHY0_RN_REG->gctrl[2] = 0x88;
+		writel(0x88, uphy0_reg + GLOBAL_CONTROL2);
 		mdelay(1);
-		UPHY0_RN_REG->gctrl[2] = 0x80;
+		writel(0x80, uphy0_reg + GLOBAL_CONTROL2);
 		mdelay(1);
-		UPHY0_RN_REG->gctrl[2] = 0x88;
+		writel(0x88, uphy0_reg + GLOBAL_CONTROL2);
 		mdelay(1);
-		UPHY0_RN_REG->gctrl[2] = 0x80;
+		writel(0x80, uphy0_reg + GLOBAL_CONTROL2);
 		mdelay(1);
-		UPHY0_RN_REG->gctrl[2] = 0;
+		writel(0x0, uphy0_reg + GLOBAL_CONTROL2);
 		mdelay(20); /*	experience */
 
 		/* USBC 0 reset */
 		/* USBC0_RESET : 1->0 */
-		MOON0_REG->reset[5] = RF_MASK_V_SET(1 << 15);
+		writel(RF_MASK_V_SET(1 << 15), moon0_reg + HARDWARE_RESET5);
 		mdelay(1);
-		MOON0_REG->reset[5] = RF_MASK_V_CLR(1 << 15);
+		writel(RF_MASK_V_CLR(1 << 15), moon0_reg + HARDWARE_RESET5);
 		mdelay(1);
 
 		/* fix rx-active question */
 		/* G149.19 */
-		UPHY0_RN_REG->cfg[19] |= 0xf;
+		val = readl(uphy0_reg + UPHY0_CONFIGS19);
+		set = val | 0xf;
+		writel(set, uphy0_reg + UPHY0_CONFIGS19);
 
 		/* OTP for USB phy rx clock invert */
 		/* G149.29[6] */
-		val = OTP_REG->hb_otp_data[2];
-		if (val & 0x1)
-			UPHY0_RN_REG->gctrl[1] |= (1 << 6);
+		val = readl(hb_gp_reg + HB_OTP_DATA2);
+		if (val & 1) {
+			val = readl(uphy0_reg + GLOBAL_CONTROL1);
+			set = val | (1 << 6);
+			writel(set, uphy0_reg + GLOBAL_CONTROL1);
+		}
 
 		/* OTP for USB phy tx clock invert */
 		/* G149.29[5] */
-		val = OTP_REG->hb_otp_data[2];
-		if ((val >> 1) & 0x1)
-			UPHY0_RN_REG->gctrl[1] |= (1 << 5);
+		val = readl(hb_gp_reg + HB_OTP_DATA2);
+		if ((val >> 1) & 1) {
+			val = readl(uphy0_reg + GLOBAL_CONTROL1);
+			set = val | (1 << 5);
+			writel(set, uphy0_reg + GLOBAL_CONTROL1);
+		}
 
 		/* OTP for USB DISC (disconnect voltage) */
 		/* G149.7[4:0] */
-		val = OTP_REG->hb_otp_data[6];
+		val = readl(hb_gp_reg + HB_OTP_DATA19);
 		set = val & 0x1f;
 		if (!set)
 			set = DEFAULT_UPHY_DISC;
 
-		UPHY0_RN_REG->cfg[7] = (UPHY0_RN_REG->cfg[7] & 0xffffffe0) | set;
+		val = readl(uphy0_reg + UPHY0_CONFIGS7);
+		set |= (val & ~0x1f);
+		writel(set, uphy0_reg + UPHY0_CONFIGS7);
 	}
 #endif
 }
@@ -238,33 +260,31 @@ static void usb_power_init(int is_host, int port_num)
 	/* Host:   ctrl=1, host sel=1, type=1	*/
 	/* Device  ctrl=1, host sel=0, type=0	*/
 	if (is_host) {
-		if (0 == port_num) {
-			MOON3_REG->sft_cfg[22] = RF_MASK_V_SET(7 << 0);
-		}
+		if (0 == port_num)
+			writel(RF_MASK_V_SET(7 << 0), moon3_reg + M3_CONFIGS22);
 	} else {
 		if (0 == port_num) {
-			MOON3_REG->sft_cfg[22] = RF_MASK_V_SET(1 << 0);
-			MOON3_REG->sft_cfg[22] = RF_MASK_V_CLR(3 << 1);
+			writel(RF_MASK_V_SET(1 << 0), moon3_reg + M3_CONFIGS22);
+			writel(RF_MASK_V_CLR(3 << 1), moon3_reg + M3_CONFIGS22);
 		}
 	}
 #elif defined(CONFIG_TARGET_PENTAGRAM_SP7350)
 	/* a. enable pin mux control	*/
 	/*    Host: enable		*/
 	/*    Device: disable		*/
-	if (is_host) {
-		MOON1_REG->sft_cfg[1] = RF_MASK_V_SET(1 << 7);
-	} else {
-		MOON1_REG->sft_cfg[1] = RF_MASK_V_CLR(1 << 7);
-	}
+	if (is_host)
+		writel(RF_MASK_V_SET(1 << 7), moon1_reg + M1_CONFIGS1);
+	else
+		writel(RF_MASK_V_CLR(1 << 7), moon1_reg + M1_CONFIGS1);
 
 	/* b. USB control register:			*/
 	/*    Host:   ctrl=1, host sel=1, type=1	*/
 	/*    Device  ctrl=1, host sel=0, type=0	*/
 	if (is_host) {
-		MOON4_REG->sft_cfg[10] = RF_MASK_V_SET(7 << 0);
+		writel(RF_MASK_V_SET(7 << 0), moon4_reg + M4_CONFIGS10);
 	} else {
-		MOON4_REG->sft_cfg[10] = RF_MASK_V_SET(1 << 0);
-		MOON4_REG->sft_cfg[10] = RF_MASK_V_CLR(3 << 1);
+		writel(RF_MASK_V_SET(1 << 0), moon4_reg + M4_CONFIGS10);
+		writel(RF_MASK_V_CLR(3 << 1), moon4_reg + M4_CONFIGS10);
 	}
 #endif
 }
@@ -508,8 +528,8 @@ static void sp_udc_done(struct udc_endpoint *ep, struct sp_request *req, int sta
 
 static void sp_udc_nuke(struct sp_udc *udc, struct udc_endpoint *ep, int status)
 {
-	unsigned long flags;
 	struct sp_request *req;
+	unsigned long flags;
 
 	UDC_LOGD("%s.%d\n", __func__, __LINE__);
 
@@ -581,8 +601,8 @@ static void udc_before_sof_polling(struct timer_list *t)
 
 static uint32_t check_trb_status(struct trb_data *t_trb)
 {
-	uint32_t ret = 0;
 	uint32_t trb_status;
+	uint32_t ret = 0;
 
 	trb_status = ETRB_CC(t_trb->entry2);
 	switch (trb_status) {
@@ -652,8 +672,8 @@ static inline void hal_udc_sw_stop_handle(struct sp_udc *udc)
 
 static uint32_t hal_udc_check_trb_type(struct trb_data *t_trb)
 {
-	uint32_t index;
 	uint32_t trb_type = -1;
+	uint32_t index;
 
 	index = LTRB_TYPE((uint32_t)t_trb->entry3);
 	switch (index) {
@@ -690,6 +710,7 @@ static uint32_t hal_udc_check_trb_type(struct trb_data *t_trb)
 static void hal_udc_transfer_event_handle(struct transfer_event_trb *transfer_evnet, struct sp_udc *udc)
 {
 	struct normal_trb *ep_trb = NULL;
+	struct udc_endpoint *ep = NULL;
 	struct sp_request *req;
 	uint32_t aligned_len;
 	uint32_t trans_len = 0;
@@ -698,7 +719,6 @@ static void hal_udc_transfer_event_handle(struct transfer_event_trb *transfer_ev
 #else
 	uint32_t *data_buf;
 #endif
-	struct udc_endpoint *ep = NULL;
 	uint8_t ep_num;
 	int8_t count = TRANSFER_RING_COUNT;
 	unsigned long flags;
@@ -807,7 +827,7 @@ static void hal_udc_analysis_event_trb(struct trb_data *event_trb, struct sp_udc
 
 	ret = check_trb_status(event_trb);
 	if (!ret) {
-		UDC_LOGE("error,check_trb_status fail,ret : %d\n", ret);
+		UDC_LOGW("error,check_trb_status fail,ret : %d\n", ret);
 		return;
 	}
 
@@ -894,18 +914,18 @@ static void hal_udc_analysis_event_trb(struct trb_data *event_trb, struct sp_udc
 
 static void handle_event(struct sp_udc *udc)
 {
-	uint32_t temp_event_sg_count = udc->current_event_ring_seg;
-	uint8_t temp_ccs = udc->event_ccs;
-	struct udc_ring *tmp_event_ring = NULL;
 	volatile struct udc_reg *USBx = udc->reg;
+	struct udc_ring *tmp_event_ring = NULL;
 	struct trb_data *event_ring_dq = NULL;
+	struct trb_data *end_trb;
+	uint32_t temp_event_sg_count = udc->current_event_ring_seg;
 	uint32_t valid_event_count = 0;
 	uint32_t aligned_len;
-	struct trb_data *end_trb;
-	bool found = false;
 	uint32_t erdp_reg = 0;
 	uint32_t trb_cc = 0;
+	uint8_t temp_ccs = udc->event_ccs;
 	unsigned long flags;
+	bool found = false;
 
 	spin_lock_irqsave(&udc->lock, flags);
 	if (!udc->event_ring || !udc->driver) {
@@ -1700,9 +1720,9 @@ int32_t hal_udc_deinit(struct sp_udc *udc)
 
 int32_t hal_udc_endpoint_unconfigure(struct sp_udc *udc, uint8_t ep_addr)
 {
-	uint8_t ep_num;
-	struct udc_endpoint *ep;
 	volatile struct udc_reg *USBx = udc->reg;
+	struct udc_endpoint *ep;
+	uint8_t ep_num;
 
 	UDC_LOGI("unconfig EP %x\n", ep_addr);
 
@@ -1843,8 +1863,8 @@ int32_t hal_udc_power_control(struct sp_udc *udc, enum udc_power_state power_sta
 
 static void hal_udc_setup_complete(struct usb_ep *ep, struct usb_request *req)
 {
-	struct sp_udc *udc = NULL;
 	volatile struct udc_reg *USBx;
+	struct sp_udc *udc = NULL;
 
 	if (req->status || req->actual != req->length)
 		UDC_LOGD("hal udc setup fail\n");
@@ -2128,9 +2148,9 @@ static void cfg_udc_ep(struct sp_udc *udc)
 
 static void sp_udc_ep_init(struct sp_udc *udc)
 {
-	u32 i;
 	struct udc_endpoint *ep;
 	unsigned long flags;
+	u32 i;
 
 	UDC_LOGI("udc %d ep_init\n", udc->port_num);
 
@@ -2154,9 +2174,9 @@ static void sp_udc_ep_init(struct sp_udc *udc)
 
 static int sp_udc_ep_enable(struct usb_ep *_ep, const struct usb_endpoint_descriptor *desc)
 {
-	int max;
-	struct sp_udc *udc;
 	struct udc_endpoint *ep;
+	struct sp_udc *udc;
+	int max;
 
 	ep = to_sp_ep(_ep);
 	if (!_ep || !desc || desc->bDescriptorType != USB_DT_ENDPOINT) {
@@ -2514,13 +2534,95 @@ static int sp_udc_probe(struct udevice *udev)
 	struct sp_udc *udc = dev_get_priv(udev);
 	fdt_addr_t base;
 
-	base = dev_read_addr(udev);
+	base = dev_read_addr_index(udev, 0);
 	if (base == FDT_ADDR_T_NONE)
 		return -EINVAL;
 
 	udc->reg = ioremap(base, sizeof(struct udc_reg));
 	if (!udc->reg)
 		return -ENOMEM;
+
+#if defined(CONFIG_TARGET_PENTAGRAM_Q645)
+	base = dev_read_addr_index(udev, 1);
+	if (base == FDT_ADDR_T_NONE)
+		return -EINVAL;
+
+	moon3_reg = ioremap(base, sizeof(struct udc_reg));
+	if (!udc->reg)
+		return -ENOMEM;
+
+	base = dev_read_addr_index(udev, 2);
+	if (base == FDT_ADDR_T_NONE)
+		return -EINVAL;
+
+	moon0_reg = ioremap(base, sizeof(struct udc_reg));
+	if (!udc->reg)
+		return -ENOMEM;
+
+	base = dev_read_addr_index(udev, 3);
+	if (base == FDT_ADDR_T_NONE)
+		return -EINVAL;
+
+	uphy0_reg = ioremap(base, sizeof(struct udc_reg));
+	if (!udc->reg)
+		return -ENOMEM;
+
+	base = dev_read_addr_index(udev, 4);
+	if (base == FDT_ADDR_T_NONE)
+		return -EINVAL;
+
+	hb_gp_reg = ioremap(base, sizeof(struct udc_reg));
+	if (!udc->reg)
+		return -ENOMEM;
+#elif defined(CONFIG_TARGET_PENTAGRAM_SP7350)
+	base = dev_read_addr_index(udev, 1);
+	if (base == FDT_ADDR_T_NONE)
+		return -EINVAL;
+
+	moon4_reg = ioremap(base, sizeof(struct udc_reg));
+	if (!udc->reg)
+		return -ENOMEM;
+
+	base = dev_read_addr_index(udev, 2);
+	if (base == FDT_ADDR_T_NONE)
+		return -EINVAL;
+
+	moon0_reg = ioremap(base, sizeof(struct udc_reg));
+	if (!udc->reg)
+		return -ENOMEM;
+
+	base = dev_read_addr_index(udev, 3);
+	if (base == FDT_ADDR_T_NONE)
+		return -EINVAL;
+
+	moon1_reg = ioremap(base, sizeof(struct udc_reg));
+	if (!udc->reg)
+		return -ENOMEM;
+
+	base = dev_read_addr_index(udev, 4);
+	if (base == FDT_ADDR_T_NONE)
+		return -EINVAL;
+
+	moon2_reg = ioremap(base, sizeof(struct udc_reg));
+	if (!udc->reg)
+		return -ENOMEM;
+
+	base = dev_read_addr_index(udev, 5);
+	if (base == FDT_ADDR_T_NONE)
+		return -EINVAL;
+
+	uphy0_reg = ioremap(base, sizeof(struct udc_reg));
+	if (!udc->reg)
+		return -ENOMEM;
+
+	base = dev_read_addr_index(udev, 6);
+	if (base == FDT_ADDR_T_NONE)
+		return -EINVAL;
+
+	hb_gp_reg = ioremap(base, sizeof(struct udc_reg));
+	if (!udc->reg)
+		return -ENOMEM;
+#endif
 
 	cfg_udc_ep(udc);
 	udc->port_num = 0;

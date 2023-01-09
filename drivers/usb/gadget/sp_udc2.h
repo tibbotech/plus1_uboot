@@ -18,121 +18,6 @@
 
 //#define PIO_MODE
 
-#define REG_BASE			0xf8000000
-#define RF_GRP(_grp, _reg) ((((_grp) * 32 + (_reg)) * 4) + REG_BASE)
-
-#if defined(CONFIG_TARGET_PENTAGRAM_SP7350)
-#define REG_BASE_AO			0xf8800000
-#define RF_GRP_AO(_grp, _reg) ((((_grp) * 32 + (_reg)) * 4) + REG_BASE_AO)
-#endif
-
-#define RF_MASK_V(_mask, _val)       	(((_mask) << 16) | (_val))
-#define RF_MASK_V_SET(_mask)         	(((_mask) << 16) | (_mask))
-#define RF_MASK_V_CLR(_mask)         	(((_mask) << 16) | 0)
-
-/* usb spec 2.0 Table 7-3  VHSDSC (min, max) = (525, 625) */
-/* default = 577 mV (374 + 7 * 29) */
-#define DEFAULT_UPHY_DISC		0x7   // 7 (=577mv)
-#define DEFAULT_SQ_CT			0x3
-
-struct uphy_rn_regs {
-	u32 cfg[28];		       // 150.0
-	u32 gctrl[3];		       // 150.28
-	u32 gsts;		       // 150.31
-};
-#define UPHY0_RN_REG ((volatile struct uphy_rn_regs *)RF_GRP(149, 0))
-
-#if defined(CONFIG_TARGET_PENTAGRAM_SP7350)
-struct moon0_regs {
-	unsigned int stamp;            // 0.0
-	unsigned int reset[15];        // 0.1 -  0.12
-	unsigned int rsvd[15];         // 0.13 - 0.30
-	unsigned int hw_cfg;           // 0.31
-};
-#define MOON0_REG ((volatile struct moon0_regs *)RF_GRP_AO(0, 0))
-#elif defined(CONFIG_TARGET_PENTAGRAM_Q645)
-struct moon0_regs {
-	unsigned int stamp;            // 0.0
-	unsigned int clken[10];        // 0.1
-	unsigned int gclken[10];       // 0.11
-	unsigned int reset[10];        // 0.21
-	unsigned int hw_cfg;           // 0.31
-};
-#define MOON0_REG ((volatile struct moon0_regs *)RF_GRP(0, 0))
-#endif
-
-struct moon1_regs {
-	unsigned int sft_cfg[32];
-};
-#if defined(CONFIG_TARGET_PENTAGRAM_SP7350)
-#define MOON1_REG ((volatile struct moon1_regs *)RF_GRP_AO(1, 0))
-#elif defined(CONFIG_TARGET_PENTAGRAM_Q645)
-#define MOON1_REG ((volatile struct moon1_regs *)RF_GRP(1, 0))
-#endif
-
-struct moon2_regs {
-	unsigned int sft_cfg[32];
-};
-#if defined(CONFIG_TARGET_PENTAGRAM_SP7350)
-#define MOON2_REG ((volatile struct moon2_regs *)RF_GRP_AO(2, 0))
-#elif defined(CONFIG_TARGET_PENTAGRAM_Q645)
-#define MOON2_REG ((volatile struct moon2_regs *)RF_GRP(2, 0))
-#endif
-
-struct moon3_regs {
-	unsigned int sft_cfg[32];
-};
-
-#define MOON3_REG ((volatile struct moon3_regs *)RF_GRP(3, 0))
-
-#if defined(CONFIG_TARGET_PENTAGRAM_SP7350)
-struct moon4_regs {
-	unsigned int sft_cfg[32];
-};
-#define MOON4_REG ((volatile struct moon4_regs *)RF_GRP_AO(4, 0))
-#elif defined(CONFIG_TARGET_PENTAGRAM_Q645)
-struct moon4_regs {
-	unsigned int pllsp_ctl[7];	// 4.0
-	unsigned int plla_ctl[5];	// 4.7
-	unsigned int plle_ctl;		// 4.12
-	unsigned int pllf_ctl;		// 4.13
-	unsigned int plltv_ctl[3];	// 4.14
-	unsigned int usbc_ctl;		// 4.17
-	unsigned int uphy0_ctl[4];	// 4.18
-	unsigned int uphy1_ctl[4];	// 4.22
-	unsigned int pllsys;		// 4.26
-	unsigned int clk_sel0;		// 4.27
-	unsigned int probe_sel;		// 4.28
-	unsigned int misc_ctl_0;	// 4.29
-	unsigned int uphy0_sts;		// 4.30
-	unsigned int otp_st;		// 4.31
-};
-#define MOON4_REG ((volatile struct moon4_regs *)RF_GRP(4, 0))
-#endif
-
-#if defined(CONFIG_TARGET_PENTAGRAM_SP7350)
-struct hb_gp_regs {
-	unsigned int hb_otp_data[8];
-	unsigned int reserved_8[24];
-};
-#define OTP_REG	((volatile struct hb_gp_regs *)RF_GRP_AO(71, 0))
-#elif defined(CONFIG_TARGET_PENTAGRAM_Q645)
-struct hb_gp_regs {
-        unsigned int hb_otp_data0;
-        unsigned int hb_otp_data1;
-        unsigned int hb_otp_data2;
-        unsigned int hb_otp_data3;
-        unsigned int hb_otp_data4;
-        unsigned int hb_otp_data5;
-        unsigned int hb_otp_data6;
-        unsigned int hb_otp_data7;
-        unsigned int hb_otp_ctl;
-        unsigned int hb_otp_data;
-        unsigned int g7_reserved[22];
-};
-#define HB_GP_REG ((volatile struct hb_gp_regs *)RF_GRP(350, 0))
-#endif
-
 #define USB_COMP_EP0_BUFSIZ		4096
 
 /* run speeed & max ep condig config */
@@ -285,6 +170,78 @@ struct hb_gp_regs {
 #define UDC_RESUME 			194
 
 #define	DMA_ADDR_INVALID		(~(dma_addr_t)0)
+
+#if defined(CONFIG_TARGET_PENTAGRAM_Q645)
+/* MOON0 */
+#define CLOCK_ENABLE2			0xc
+#define CLOCK_ENABLE3			0x10
+#define HARDWARE_RESET2			0x5c
+#define HARDWARE_RESET3			0x60
+
+/* MOON3 */
+#define M3_CONFIGS20			0x50
+#define M3_CONFIGS22			0x58
+
+/* UPHY0 */
+#define UPHY0_CONFIGS7			0x1c
+#define UPHY0_CONFIGS19			0x4c
+#define UPHY0_CONFIGS25			0x64
+#define GLOBAL_CONTROL0			0x70
+#define GLOBAL_CONTROL1			0x74
+#define GLOBAL_CONTROL2			0x78
+
+/* usb spec 2.0 Table 7-3  VHSDSC (min, max) = (525, 625) */
+/* default = 577 mV (374 + 7 * 29) */
+#define DEFAULT_UPHY_DISC		0x7   // 7 (=577mv)
+#define DEFAULT_SQ_CT			0x3
+
+/* OTP */
+#define HB_OTP_DATA2			0x8
+#define HB_OTP_DATA6			0x18
+#elif defined(CONFIG_TARGET_PENTAGRAM_SP7350)
+/* MOON0 */
+#define HARDWARE_RESET0			0x4
+#define HARDWARE_RESET4			0x14
+#define HARDWARE_RESET5			0x18
+
+/* MOON1 */
+#define M1_CONFIGS1			0x4
+
+/* MOON2 */
+#define M2_CONFIGS5			0x14
+#define M2_CONFIGS6			0x18
+
+/* MOON4 */
+#define M4_CONFIGS10			0x28
+
+/* UPHY0 */
+#define UPHY0_CONFIGS7			0x1c
+#define UPHY0_CONFIGS19			0x4c
+#define GLOBAL_CONTROL0			0x70
+#define GLOBAL_CONTROL2			0x78
+
+/* usb spec 2.0 Table 7-3  VHSDSC (min, max) = (525, 625) */
+/* default = 577 mV (374 + 7 * 29) */
+#define DEFAULT_UPHY_DISC		0x7   // 7 (=577mv)
+#define DEFAULT_SQ_CT			0x3
+
+/* OTP */
+#define HB_OTP_DATA2			0x8
+#define HB_OTP_DATA6			0x18
+#define HB_OTP_DATA19			0x4c
+#endif
+
+#define RF_MASK_V(_mask, _val)       	(((_mask) << 16) | (_val))
+#define RF_MASK_V_SET(_mask)         	(((_mask) << 16) | (_mask))
+#define RF_MASK_V_CLR(_mask)         	(((_mask) << 16) | 0)
+
+void __iomem	*moon0_reg;
+void __iomem 	*moon1_reg;
+void __iomem 	*moon2_reg;
+void __iomem 	*moon3_reg;
+void __iomem 	*moon4_reg;
+void __iomem 	*uphy0_reg;
+void __iomem 	*hb_gp_reg;
 
 /* USB device power state */
 enum udc_power_state {
@@ -520,8 +477,6 @@ struct udc_endpoint {
 	spinlock_t 		 lock;
 	struct list_head	 queue;
 };
-
-void __iomem 		*moon3_reg;
 
 struct sp_udc {
 	bool 			 aset_flag; 			/* auto set flag, If this flag is true, zero packet will not be sent */
