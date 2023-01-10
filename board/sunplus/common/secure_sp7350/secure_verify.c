@@ -192,7 +192,10 @@ static int do_verify(struct cmd_tbl *cmdtp, int flag, int argc, char * const arg
 	prn_dump("hash", src, HASH_SZ);
 	printf("Verify signature (%lu ms): %d\n", t1, ret);
 
-	if (ret) while (1); // verify fail, stop boot kernel
+	if (ret) {
+		printf("Verify kernel signature failed, stop booting !!!\n");
+		while (1); // verify fail, stop boot kernel
+	}
 	return ret;
 }
 #else
