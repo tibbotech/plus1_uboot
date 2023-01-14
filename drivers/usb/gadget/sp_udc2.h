@@ -218,6 +218,7 @@
 #define UPHY0_CONFIGS7			0x1c
 #define UPHY0_CONFIGS19			0x4c
 #define GLOBAL_CONTROL0			0x70
+#define GLOBAL_CONTROL1			0x74
 #define GLOBAL_CONTROL2			0x78
 
 /* usb spec 2.0 Table 7-3  VHSDSC (min, max) = (525, 625) */

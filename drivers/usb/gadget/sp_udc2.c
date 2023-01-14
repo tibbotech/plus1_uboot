@@ -827,7 +827,7 @@ static void hal_udc_analysis_event_trb(struct trb_data *event_trb, struct sp_udc
 
 	ret = check_trb_status(event_trb);
 	if (!ret) {
-		UDC_LOGW("error,check_trb_status fail,ret : %d\n", ret);
+		UDC_LOGE("error,check_trb_status fail,ret : %d\n", ret);
 		return;
 	}
 
