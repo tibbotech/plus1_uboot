@@ -1264,7 +1264,7 @@ static void hal_udc_fill_ep_desc(struct sp_udc *udc, struct udc_endpoint *ep)
 	else
 		aligned_len = roundup(sizeof(struct endpointn_desc), ARCH_DMA_MINALIGN);
 
-	flush_dcache_range((unsigned long)udc->ep_desc, (unsigned long)udc->ep_desc + aligned_len);
+	flush_dcache_range((unsigned long)udc->ep_desc, ((unsigned long)udc->ep_desc + ep->num) + aligned_len);
 }
 
 static struct trb_data *hal_udc_fill_trb(struct sp_udc	*udc, struct udc_endpoint *ep, uint32_t zero)
