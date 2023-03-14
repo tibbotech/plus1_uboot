@@ -269,17 +269,9 @@ static void usb_power_init(int is_host, int port_num)
 		}
 	}
 #elif defined(CONFIG_TARGET_PENTAGRAM_SP7350)
-	/* a. enable pin mux control	*/
-	/*    Host: enable		*/
-	/*    Device: disable		*/
-	if (is_host)
-		writel(RF_MASK_V_SET(1 << 7), moon1_reg + M1_CONFIGS1);
-	else
-		writel(RF_MASK_V_CLR(1 << 7), moon1_reg + M1_CONFIGS1);
-
-	/* b. USB control register:			*/
-	/*    Host:   ctrl=1, host sel=1, type=1	*/
-	/*    Device  ctrl=1, host sel=0, type=0	*/
+	/* USB control register:		*/
+	/* Host:   ctrl=1, host sel=1, type=1	*/
+	/* Device  ctrl=1, host sel=0, type=0	*/
 	if (is_host) {
 		writel(RF_MASK_V_SET(7 << 0), moon4_reg + M4_CONFIGS10);
 	} else {
