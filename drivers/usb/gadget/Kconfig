@@ -98,6 +98,12 @@ config CI_UDC
 	  Say Y here to enable device controller functionality of the
 	  ChipIdea driver.
 
+config USB_GADGET_SUNPLUS_UDC2
+	bool "Sunplus USB Device Controller ver2.0"
+	select USB_GADGET_DUALSPEED
+	help
+	   This option selects Sunplus USB device controller ver2.0.
+
 config USB_GADGET_VBUS_DRAW
 	int "Maximum VBUS Power usage (2-500 mA)"
 	range 2 500
