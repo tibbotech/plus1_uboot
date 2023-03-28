@@ -211,17 +211,17 @@ static const struct usb_ep_ops sp_ep_ops = {
 };
 
 static void *udc_malloc_align(dma_addr_t *pa, size_t size, size_t align,
-								unsigned int cacheable)
+								unsigned int cached)
 {
 	void *alloc_addr = NULL;
 
 	*pa = (dma_addr_t)(unsigned long)memalign(align, size);
-	if (!pa) {
+	if (*pa == 0) {
 		UDC_LOGW("%s.%d, fail\n", __func__, __LINE__);
 		return NULL;
 	}
 
-	if (!cacheable)
+	if (!cached)
 		*pa &= 0x7fffffff;
 
 	alloc_addr = (void *)(unsigned long)*pa;
@@ -234,8 +234,8 @@ static void udc_free_align(void *vaddr, dma_addr_t pa, size_t size)
 	free((void *)&pa);
 }
 
-static int udc_ring_malloc(struct sp_udc *udc, struct udc_ring *const ring, uint8_t num_mem,
-									unsigned int cacheable)
+static int udc_ring_malloc(struct sp_udc *udc, struct udc_ring *const ring,
+						uint8_t num_mem, unsigned int cached)
 {
 	if (ring->trb_va) {
 		UDC_LOGW("ring already exists\n");
@@ -249,7 +249,7 @@ static int udc_ring_malloc(struct sp_udc *udc, struct udc_ring *const ring, uint
 
 	ring->num_mem = num_mem;
 	ring->trb_va = (struct trb_data *)udc_malloc_align(&ring->trb_pa, ring->num_mem * ENTRY_SIZE,
-										ALIGN_64_BYTE, cacheable);
+										ALIGN_64_BYTE, cached);
 
 	if (!ring->trb_va) {
 		UDC_LOGW("malloc %d memebrs ring fail\n", num_mem);
@@ -259,8 +259,8 @@ static int udc_ring_malloc(struct sp_udc *udc, struct udc_ring *const ring, uint
 	ring->end_trb_va = ring->trb_va + (ring->num_mem - 1);
 	ring->end_trb_pa = ring->trb_pa + ((ring->num_mem - 1) * ENTRY_SIZE);
 
-	UDC_LOGD("ring %px[%d], s:%px,0x%x e:%px,0x%x\n", ring, ring->num_mem,
-			ring->trb_va, ring->trb_pa, ring->end_trb_va, ring->end_trb_pa);
+	UDC_LOGD("ring %px[%d], s:%px,0x%x e:%px,0x%x\n", ring, ring->num_mem, ring->trb_va,
+							ring->trb_pa, ring->end_trb_va, ring->end_trb_pa);
 
 	return 0;
 }
