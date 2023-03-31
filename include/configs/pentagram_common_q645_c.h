@@ -101,7 +101,7 @@
 #if 0 // Set default mtdparts for zebu sim
 #define MTDPARTS_DEFAULT		"sp_spinand.0:128k(nand_header),384k(xboot1),1408k(uboot1),2176k(uboot2),1m(fip),512k(env),512k(env_redund),256k(dtb),25m(kernel),33536k(rootfs)"
 #else
-#define MTDPARTS_DEFAULT		"sp_spinand.0:128k(nand_header),384k(xboot1),1408k(uboot1),2176k(uboot2),2m(fip),512k(env),512k(env_redund),256k(dtb),25m(kernel),230144k(rootfs)"
+#define MTDPARTS_DEFAULT		"sp_spinand.0:128k(nand_header),384k(xboot1),1664k(uboot1),1920k(uboot2),2m(fip),512k(env),512k(env_redund),256k(dtb),25m(kernel),229120k(rootfs)"
 #endif
 #endif
 
@@ -275,7 +275,7 @@
 	"setexpr sz_kernel ${sz_kernel} / 0x10000; " \
 	"setexpr sz_kernel ${sz_kernel} * 0x10000; " \
 	"setenv bootargs ${b_c} root=/dev/mtdblock6 rw rootfstype=jffs2 user_debug=255 rootwait " \
-	"mtdparts=f8000b00.spinor:96k@0(iboot)ro,160k(xboot)ro,128k(dtb),1m(uboot),640k(reserve),0x${sz_kernel}(kernel),-(rootfs); "
+	"mtdparts=f8000b00.spinor:96k@0(iboot)ro,192k(xboot)ro,128k(dtb)ro,768k(uboot)ro,864k(fip)ro,0x${sz_kernel}(kernel),-(rootfs); "
 #else
 #define NOR_LOAD_KERNEL \
 	"setexpr sz_kernel ${sz_kernel} + 3; setexpr sz_kernel ${sz_kernel} / 4; " \
