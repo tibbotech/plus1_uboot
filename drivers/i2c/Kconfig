@@ -136,6 +136,13 @@ config SYS_I2C_DW
 	  controller is used in various SoCs, e.g. the ST SPEAr, Altera
 	  SoCFPGA, Synopsys ARC700 and some Intel x86 SoCs.
 
+config SYS_I2C_SP
+	bool "Sunplus I2C Controller"
+	default n
+	help
+	  Say yes here to select the Sunplus I2C Host Controller. This
+	  controller is used in various SoCs.
+
 config SYS_I2C_DW_ENABLE_STATUS_UNSUPPORTED
 	bool "DW I2C Enable Status Register not supported"
 	depends on SYS_I2C_DW && (TARGET_SPEAR300 || TARGET_SPEAR310 || \
