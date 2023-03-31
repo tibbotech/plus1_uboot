@@ -101,7 +101,7 @@
 #if 0 // Set default mtdparts for zebu sim
 #define MTDPARTS_DEFAULT		"sp_spinand.0:128k(nand_header),384k(xboot1),1408k(uboot1),2176k(uboot2),1m(fip),512k(env),512k(env_redund),256k(dtb),25m(kernel),33536k(rootfs)"
 #else
-#define MTDPARTS_DEFAULT		"sp_spinand.0:128k(nand_header),384k(xboot1),1408k(uboot1),2176k(uboot2),1m(fip),512k(env),512k(env_redund),256k(dtb),25m(kernel),230144k(rootfs)"
+#define MTDPARTS_DEFAULT		"sp_spinand.0:128k(nand_header),384k(xboot1),1408k(uboot1),2176k(uboot2),2m(fip),512k(env),512k(env_redund),256k(dtb),25m(kernel),230144k(rootfs)"
 #endif
 #endif
 
