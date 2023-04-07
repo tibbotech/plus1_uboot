@@ -21,13 +21,30 @@
 #include "disp_osd.h"
 #include "disp_mipitx.h"
 
+#if CONFIG_IS_ENABLED(DM_I2C) && defined(CONFIG_SP7350_LT8912B_BRIDGE)
+#include "disp_i2c_lt8912b.h"
+#endif
+
 //#define debug printf
 
 extern u32 osd0_header[];
 
+#if CONFIG_IS_ENABLED(DM_I2C) && defined(CONFIG_SP7350_LT8912B_BRIDGE)
+extern void lt8912_write_init_config(struct udevice *p1);
+extern void lt8912_write_mipi_basic_config(struct udevice *p2);
+extern void lt8912_write_param_by_resolution(struct udevice *p2, int w, int h);
+extern void lt8912_write_dds_config(struct udevice *p2);
+extern void lt8912_write_rxlogicres_config(struct udevice *p1);
+extern void lt8912_write_lvds_config(struct udevice *p2);
+#endif
+
 DECLARE_GLOBAL_DATA_PTR;
 
 struct sp7350_disp_priv {
+	#if CONFIG_IS_ENABLED(DM_I2C) && defined(CONFIG_SP7350_LT8912B_BRIDGE)
+	struct udevice *chip1;
+	struct udevice *chip2;
+	#endif
 	void __iomem *regs;
 	struct display_timing timing;
 };
@@ -101,6 +118,10 @@ static int sp7350_display_probe(struct udevice *dev)
 	int width, height;
 	void *fb_alloc;
 	u32 osd_base_addr;
+#if CONFIG_IS_ENABLED(DM_I2C) && defined(CONFIG_SP7350_LT8912B_BRIDGE)
+	struct sp7350_disp_priv *priv = dev_get_priv(dev);
+	int err;
+#endif
 
 	#ifdef CONFIG_EN_SP7350_MIPITX_SW
 	is_mipi_dsi_tx = 0; //Switch to MIPI_CSI_TX out
@@ -191,6 +212,33 @@ static int sp7350_display_probe(struct udevice *dev)
 		//uc_priv->cmap = osd0_header+32;
 	}
 	#endif
+
+#if CONFIG_IS_ENABLED(DM_I2C) && defined(CONFIG_SP7350_LT8912B_BRIDGE)
+	err = i2c_get_chip_for_busnum(6, LT8912B_I2C_ADDR_MAIN, 1, &priv->chip1);
+	if (err) {
+		printf("chip1 i2c_get_chip_for_busnum returned %d\n", err);
+		return err;
+	}
+
+	err = i2c_get_chip_for_busnum(6, LT8912B_I2C_ADDR_CEC_DSI, 1, &priv->chip2);
+	if (err) {
+		printf("chip2 i2c_get_chip_for_busnum returned %d\n", err);
+		return err;
+	}
+	printf("Disp: load lt8912b bridge ic param\n");
+
+	lt8912_write_init_config(priv->chip1);
+
+	lt8912_write_mipi_basic_config(priv->chip2);
+
+	lt8912_write_param_by_resolution(priv->chip2, width, height);
+
+	lt8912_write_dds_config(priv->chip2);
+
+	lt8912_write_rxlogicres_config(priv->chip1);
+
+	lt8912_write_lvds_config(priv->chip2);
+#endif
 
 	video_set_flush_dcache(dev, true);
 
