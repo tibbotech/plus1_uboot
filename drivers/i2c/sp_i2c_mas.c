@@ -450,7 +450,7 @@ static unsigned int sp_i2cm_get_dma_int_flag(struct regs_i2cm *sr_dma)
 	return readl(&sr_dma->int_flag);
 }
 
-static unsigned int sp_i2cm_clk_dma_int_flag(struct regs_i2cm *sr_dma)
+static void sp_i2cm_clk_dma_int_flag(struct regs_i2cm *sr_dma)
 {
 	u32 val = 0;
 
