@@ -2188,6 +2188,8 @@ static int sp_udc_ep_enable(struct usb_ep *_ep, const struct usb_endpoint_descri
 		return -EINVAL;
 	}
 
+	ep->ep.desc = desc;
+
 	max = usb_endpoint_maxp(desc) & 0x1fff;
 	hal_udc_endpoint_configure(udc, desc->bEndpointAddress, desc->bmAttributes, max & 0x7ff);
 
@@ -2212,6 +2214,7 @@ static int sp_udc_ep_disable(struct usb_ep *_ep)
 		return -EINVAL;
 	}
 
+	ep->ep.desc = NULL;
 	udc = ep->dev;
 	sp_udc_nuke(udc, ep, -ESHUTDOWN);
 	hal_udc_endpoint_unconfigure(udc, ep->bEndpointAddress);
@@ -2540,80 +2543,80 @@ static int sp_udc_probe(struct udevice *udev)
 	if (base == FDT_ADDR_T_NONE)
 		return -EINVAL;
 
-	moon3_reg = ioremap(base, sizeof(struct udc_reg));
-	if (!udc->reg)
+	moon3_reg = ioremap(base, 128);
+	if (!moon3_reg)
 		return -ENOMEM;
 
 	base = dev_read_addr_index(udev, 2);
 	if (base == FDT_ADDR_T_NONE)
 		return -EINVAL;
 
-	moon0_reg = ioremap(base, sizeof(struct udc_reg));
-	if (!udc->reg)
+	moon0_reg = ioremap(base, 128);
+	if (!moon0_reg)
 		return -ENOMEM;
 
 	base = dev_read_addr_index(udev, 3);
 	if (base == FDT_ADDR_T_NONE)
 		return -EINVAL;
 
-	uphy0_reg = ioremap(base, sizeof(struct udc_reg));
-	if (!udc->reg)
+	uphy0_reg = ioremap(base, 128);
+	if (!uphy0_reg)
 		return -ENOMEM;
 
 	base = dev_read_addr_index(udev, 4);
 	if (base == FDT_ADDR_T_NONE)
 		return -EINVAL;
 
-	hb_gp_reg = ioremap(base, sizeof(struct udc_reg));
-	if (!udc->reg)
+	hb_gp_reg = ioremap(base, 128);
+	if (!hb_gp_reg)
 		return -ENOMEM;
 #elif defined(CONFIG_TARGET_PENTAGRAM_SP7350)
 	base = dev_read_addr_index(udev, 1);
 	if (base == FDT_ADDR_T_NONE)
 		return -EINVAL;
 
-	moon4_reg = ioremap(base, sizeof(struct udc_reg));
-	if (!udc->reg)
+	moon4_reg = ioremap(base, 128);
+	if (!moon4_reg)
 		return -ENOMEM;
 
 	base = dev_read_addr_index(udev, 2);
 	if (base == FDT_ADDR_T_NONE)
 		return -EINVAL;
 
-	moon0_reg = ioremap(base, sizeof(struct udc_reg));
-	if (!udc->reg)
+	moon0_reg = ioremap(base, 128);
+	if (!moon0_reg)
 		return -ENOMEM;
 
 	base = dev_read_addr_index(udev, 3);
 	if (base == FDT_ADDR_T_NONE)
 		return -EINVAL;
 
-	moon1_reg = ioremap(base, sizeof(struct udc_reg));
-	if (!udc->reg)
+	moon1_reg = ioremap(base, 128);
+	if (!moon1_reg)
 		return -ENOMEM;
 
 	base = dev_read_addr_index(udev, 4);
 	if (base == FDT_ADDR_T_NONE)
 		return -EINVAL;
 
-	moon2_reg = ioremap(base, sizeof(struct udc_reg));
-	if (!udc->reg)
+	moon2_reg = ioremap(base, 128);
+	if (!moon2_reg)
 		return -ENOMEM;
 
 	base = dev_read_addr_index(udev, 5);
 	if (base == FDT_ADDR_T_NONE)
 		return -EINVAL;
 
-	uphy0_reg = ioremap(base, sizeof(struct udc_reg));
-	if (!udc->reg)
+	uphy0_reg = ioremap(base, 128);
+	if (!uphy0_reg)
 		return -ENOMEM;
 
 	base = dev_read_addr_index(udev, 6);
 	if (base == FDT_ADDR_T_NONE)
 		return -EINVAL;
 
-	hb_gp_reg = ioremap(base, sizeof(struct udc_reg));
-	if (!udc->reg)
+	hb_gp_reg = ioremap(base, 128);
+	if (!hb_gp_reg)
 		return -ENOMEM;
 #endif
 

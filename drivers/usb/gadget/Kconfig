@@ -120,6 +120,12 @@ config USB_GADGET_MAX3420
 	help
 	  MAX3420, from MAXIM, implements USB-over-SPI Full-Speed device controller.
 
+config USB_GADGET_SUNPLUS_UDC
+	bool "Sunplus USB Device Controller ver1.0"
+	select USB_GADGET_DUALSPEED
+	help
+	   This option selects Sunplus USB device controller ver1.0.
+
 config USB_GADGET_SUNPLUS_UDC2
 	bool "Sunplus USB Device Controller ver2.0"
 	select USB_GADGET_DUALSPEED

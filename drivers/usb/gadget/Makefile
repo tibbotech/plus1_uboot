@@ -21,6 +21,7 @@ obj-$(CONFIG_USB_GADGET_DWC2_OTG) += dwc2_udc_otg.o
 obj-$(CONFIG_USB_GADGET_DWC2_OTG_PHY) += dwc2_udc_otg_phy.o
 obj-$(CONFIG_USB_GADGET_FOTG210) += fotg210.o
 obj-$(CONFIG_USB_GADGET_MAX3420) += max3420_udc.o
+obj-$(CONFIG_USB_GADGET_SUNPLUS_UDC) += sp_udc.o
 obj-$(CONFIG_USB_GADGET_SUNPLUS_UDC2) += sp_udc2.o
 obj-$(CONFIG_CI_UDC)	+= ci_udc.o
 ifndef CONFIG_SPL_BUILD
