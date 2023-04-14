@@ -22,7 +22,14 @@ config EN_SP7350_MIPITX_SW
 	depends on DM_VIDEO && VIDEO_SP7350
 	default n
 	help
-		Enable the will switch video output to MIPI CSI TX.
+		Enable this will switch video output to MIPI CSI TX.
+
+config SP7350_LT8912B_BRIDGE
+	bool "Enable SP7350 LT8912B_HDMI bridge"
+	depends on DM_VIDEO && VIDEO_SP7350
+	default n
+	help
+		Enable this will init LT8912B_HDMI bridge via I2C6.
 
 config VIDEO_SP7350_MAX_XRES
 	int "Maximum horizontal resolution (for memory allocation purposes)"
