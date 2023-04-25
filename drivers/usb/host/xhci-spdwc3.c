@@ -143,7 +143,7 @@ static void uphy_init(void)
 #if defined(CONFIG_TARGET_PENTAGRAM_Q645) || defined(CONFIG_TARGET_PENTAGRAM_SP7350)
 	volatile struct uphy_u3_regs *dwc3phy_reg;
 	u32 result, i = 0;
-	
+
 #if defined(CONFIG_TARGET_PENTAGRAM_SP7350)
 	MOON2_REG->clken[5] = RF_MASK_V_SET(1 << 14); // U3PHY0_CLKEN=1
 
@@ -908,7 +908,7 @@ static int xhci_dwc3_probe(struct udevice *dev)
 	writel(reg, &dwc3_reg->g_usb2phycfg[0]);
 
 	dr_mode = usb_get_dr_mode(dev_ofnode(dev));
-	if (dr_mode == USB_DR_MODE_UNKNOWN)
+	if ((dr_mode == USB_DR_MODE_UNKNOWN) || (dr_mode == USB_DR_MODE_OTG))
 		/* by default set dual role mode to HOST */
 		dr_mode = USB_DR_MODE_HOST;
 
