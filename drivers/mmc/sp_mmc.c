@@ -507,7 +507,13 @@ sp_mmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
 		} else {
 			if ((MMC_CMD_READ_MULTIPLE_BLOCK == cmd->cmdidx)
 			    || (MMC_CMD_WRITE_MULTIPLE_BLOCK == cmd->cmdidx)) {
-				send_stop_cmd(host);
+			    send_stop_cmd(host);
+				if ((mmc_get_blk_desc(mmc)->hwpart == 3)
+					&& (host->ebase->sdstate_new & SDSTATE_NEW_ERROR_TIMEOUT)
+					&& (host->ebase->sdstatus & SP_SDSTATUS_WAIT_RSP_TIMEOUT)){
+					ret = 0;
+					break;
+				}
 			}
 			/* MMC_CMD_SEND_OP_COND response timeout need to re-init */
 			if (cmd->cmdidx == MMC_CMD_SEND_OP_COND)
