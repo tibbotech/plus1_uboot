@@ -508,12 +508,6 @@ sp_mmc_send_cmd(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
 			if ((MMC_CMD_READ_MULTIPLE_BLOCK == cmd->cmdidx)
 			    || (MMC_CMD_WRITE_MULTIPLE_BLOCK == cmd->cmdidx)) {
 			    send_stop_cmd(host);
-				if ((mmc_get_blk_desc(mmc)->hwpart == 3)
-					&& (host->ebase->sdstate_new & SDSTATE_NEW_ERROR_TIMEOUT)
-					&& (host->ebase->sdstatus & SP_SDSTATUS_WAIT_RSP_TIMEOUT)){
-					ret = 0;
-					break;
-				}
 			}
 			/* MMC_CMD_SEND_OP_COND response timeout need to re-init */
 			if (cmd->cmdidx == MMC_CMD_SEND_OP_COND)
@@ -1193,11 +1187,13 @@ int sp_emmc_hw_set_data_info (sp_mmc_host *host, struct mmc_cmd *cmd, struct mmc
 		host->ebase->sd_trans_mode = 1;
 	}
 
-	if ((MMC_CMD_READ_MULTIPLE_BLOCK == cmd->cmdidx) || (MMC_CMD_WRITE_MULTIPLE_BLOCK == cmd->cmdidx))
+	if ((MMC_CMD_READ_MULTIPLE_BLOCK == cmd->cmdidx) || (MMC_CMD_WRITE_MULTIPLE_BLOCK == cmd->cmdidx)) {
 		host->ebase->sd_len_mode = 0;
-	else
+		if (data->blocks == 1) /*mmc rpmb counter, Fixed CMD18/CMD25 response timeout error*/
+			host->ebase->sd_len_mode = 1;
+	} else {
 		host->ebase->sd_len_mode = 1;
-
+	}
 	host->ebase->sdcrctmren = 1;
 	host->ebase->sdrsptmren = 1;
 	host->ebase->hw_dma_en = 0;
