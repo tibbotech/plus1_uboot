@@ -16,6 +16,10 @@
 #include <jffs2/jffs2.h>
 #include <nand.h>
 
+#if defined(CONFIG_FASTBOOT_FLASH_NAND) && defined(CONFIG_SP_SPINAND)
+#include "../mtd/nand/raw/sp_bblk.h"
+#endif
+
 struct fb_nand_sparse {
 	struct mtd_info		*mtd;
 	struct part_info	*part;
@@ -71,6 +75,13 @@ static int _fb_nand_erase(struct mtd_info *mtd, struct part_info *part)
 	nand_erase_options_t opts;
 	int ret;
 
+#if defined(CONFIG_FASTBOOT_FLASH_NAND) && defined(CONFIG_SP_SPINAND)
+	if (!strcmp(part->name, "uboot1")) {
+		printf("Partition %s doesn't support erase operation!\n", part->name);
+		return -EINVAL;
+	}
+#endif
+
 	memset(&opts, 0, sizeof(opts));
 	opts.offset = part->offset;
 	opts.length = part->size;
@@ -99,9 +110,28 @@ static int _fb_nand_write(struct mtd_info *mtd, struct part_info *part,
 	flags |= WITH_DROP_FFS;
 #endif
 
+#if defined(CONFIG_FASTBOOT_FLASH_NAND) && defined(CONFIG_SP_SPINAND)
+	if (!strcmp(part->name, "uboot1")) {
+		printf("Partition %s doesn't support flash operation!\n", part->name);
+		return -EINVAL;
+	}
+
+	/*
+	 * Partition uboot2 is boot block. Its ECC structure is 1K60.
+	 */
+	if (!strcmp(part->name, "uboot2")) {
+		return sp_nand_write_bblk(mtd, offset, &length, part->size,
+					buffer, 0);
+	} else {
+		return nand_write_skip_bad(mtd, offset, &length, written,
+					part->size - (offset - part->offset),
+					buffer, flags);
+	}
+#else
 	return nand_write_skip_bad(mtd, offset, &length, written,
 				   part->size - (offset - part->offset),
 				   buffer, flags);
+#endif
 }
 
 static lbaint_t fb_nand_sparse_write(struct sparse_storage *info,
