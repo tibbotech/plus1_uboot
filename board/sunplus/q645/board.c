@@ -4,6 +4,7 @@
 #include <version.h>
 #include <common.h>
 #include <asm/global_data.h>
+#include <net.h>
 
 #ifdef CONFIG_SP_SPINAND_Q645
 extern void board_spinand_init(void);
@@ -94,6 +95,11 @@ int board_late_init(void)
 #ifdef CONFIG_DM_VIDEO
 	sp7021_video_show_board_info();
 #endif
+
+#ifdef CONFIG_USB_ETHER
+	usb_ether_init();
+#endif
+
 	return 0;
 }
 #endif

@@ -321,7 +321,7 @@ static void *udc_malloc_align(dma_addr_t *pa, size_t size, size_t align)
 
 static void udc_free_align(void *vaddr, dma_addr_t pa, size_t size)
 {
-	dma_free_coherent(&pa);
+	dma_free_coherent((dma_addr_t *)pa);
 }
 
 static int udc_ring_malloc(struct sp_udc *udc, struct udc_ring *const ring, uint8_t num_mem)

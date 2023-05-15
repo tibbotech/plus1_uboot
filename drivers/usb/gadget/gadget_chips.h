@@ -167,6 +167,21 @@
 #define gadget_is_mtu3(g)        0
 #endif
 
+#if defined(CONFIG_ARCH_PENTAGRAM) || defined(CONFIG_TARGET_PENTAGRAM_Q645) || \
+						defined(CONFIG_TARGET_PENTAGRAM_SP7350)
+	#ifdef CONFIG_USB_GADGET_SUNPLUS_UDC
+#define gadget_is_spudc(g)	(!strcmp("sp-udc", (g)->name))
+	#else
+#define gadget_is_spudc(g)	0
+	#endif
+
+	#ifdef CONFIG_USB_GADGET_SUNPLUS_UDC2
+#define gadget_is_spudc2(g)	(!strcmp("sp-udc", (g)->name))
+	#else
+#define gadget_is_spudc2(g)	0
+	#endif
+#endif
+
 /**
  * usb_gadget_controller_number - support bcdDevice id convention
  * @gadget: the controller being driven
@@ -232,5 +247,13 @@ static inline int usb_gadget_controller_number(struct usb_gadget *gadget)
 		return 0x25;
 	else if (gadget_is_mtu3(gadget))
 		return 0x26;
+#if defined(CONFIG_ARCH_PENTAGRAM) || defined(CONFIG_TARGET_PENTAGRAM_Q645) || \
+						defined(CONFIG_TARGET_PENTAGRAM_SP7350)
+	else if (gadget_is_spudc(gadget))
+		return 0x27;
+	else if (gadget_is_spudc2(gadget))
+		return 0x28;
+#endif
+
 	return -ENOENT;
 }
