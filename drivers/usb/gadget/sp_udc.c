@@ -63,7 +63,7 @@ u32 dma_xferlen_ep11;
 spinlock_t plock, qlock;
 
 /* coverity[declared_but_not_referenced] */
-static const char gadget_name[] = "sp_udc";
+static const char gadget_name[] = "sp-udc";
 
 static void __iomem *base_addr;
 static void __iomem *moon0_reg;
@@ -649,6 +649,7 @@ static void sp_udc_handle_ep0_idle(struct sp_udc *dev, struct sp_ep *ep,
 		{
 			u32 DescType = ((crq->wValue) >> 8);
 
+			udelay(200);
 			if (DescType == 0x1) {
 				if (udc_read(UDLCSET) & CURR_SPEED) {
 					DEBUG_DBG("DESCRIPTOR SPeed = USB_SPEED_FULL");
@@ -666,6 +667,8 @@ static void sp_udc_handle_ep0_idle(struct sp_udc *dev, struct sp_ep *ep,
 	case USB_REQ_SET_CONFIGURATION:
 		DEBUG_DBG(" ******* USB_REQ_SET_CONFIGURATION ...");
 		DEBUG_DBG("dev->gadget.state = %d", dev->gadget.state);
+
+		udelay(200);
 		dev->req_config = 1;
 		udc_write(udc_read(UDLCADDR) | (crq->wValue) << 16, UDLCADDR);
 		break;
@@ -682,6 +685,7 @@ static void sp_udc_handle_ep0_idle(struct sp_udc *dev, struct sp_ep *ep,
 	case USB_REQ_GET_STATUS:
 		DEBUG_DBG("USB_REQ_GET_STATUS ...");
 
+		udelay(200);
 		if (dev->req_std) {
 			if (!sp_udc_get_status(dev, crq))
 				return;
@@ -1611,13 +1615,17 @@ static int sp_udc_irq(struct sp_udc *dev)
 
 		dev->gadget.speed = USB_SPEED_UNKNOWN;
 		dev->address = 0;
+		udelay(100);
 
 		DEBUG_DBG("<<< IRQ: Suspend");
 	}
 
 	if (irq_en2_flags & EP0S_IF) {
-		udc_write(EP0S_IF, UDLIF);
 		DEBUG_DBG("IRQ:EP0S_IF %d, dev->ep0state = %d", udc_read(UDEP0CS), dev->ep0state);
+
+		udelay(100);
+		udc_write(EP0S_IF, UDLIF);
+
 		if ((udc_read(UDEP0CS) & (EP0_OVLD | EP0_OUT_EMPTY)) ==
 						(EP0_OVLD | EP0_OUT_EMPTY))
 			udc_write(udc_read(UDEP0CS) | CLR_EP0_OUT_VLD, UDEP0CS);
@@ -1628,6 +1636,8 @@ static int sp_udc_irq(struct sp_udc *dev)
 
 	if ((irq_en2_flags & EP0I_IF)) {
 		DEBUG_DBG("IRQ:EP0I_IF %d, dev->ep0state = %d", udc_read(UDEP0CS), dev->ep0state);
+
+		udelay(100);
 		udc_write(EP0I_IF, UDLIF);
 
 		if (dev->ep0state != EP0_IDLE)
@@ -1638,6 +1648,8 @@ static int sp_udc_irq(struct sp_udc *dev)
 
 	if ((irq_en2_flags & EP0O_IF)) {
 		DEBUG_DBG("IRQ:EP0O_IF %d, dev->ep0state = %d", udc_read(UDEP0CS), dev->ep0state);
+
+		udelay(100);
 		udc_write(EP0O_IF, UDLIF);
 
 		if (dev->ep0state != EP0_IDLE)
@@ -1733,7 +1745,7 @@ static int sp_udc_queue(struct usb_ep *_ep, struct usb_request *_req, gfp_t gfp_
 	DEBUG_DBG("req = %x, ep=%d, req_config=%d", req, idx, dev->req_config);
 	if (likely(req)) {
 		list_add_tail(&req->queue, &ep->queue);
-		if (idx && idx != EP3)
+		if (idx)
 			sp_udc_handle_ep(ep, NULL);
 	}
 
@@ -1918,11 +1930,6 @@ static int sp_udc_stop(struct usb_gadget *gadget)
 
 	DEBUG_NOTICE(">>> %s...", __func__);
 
-	/* report disconnect */
-	if (udc->driver->disconnect)
-		udc->driver->disconnect(&udc->gadget);
-
-	udc->driver->unbind(&udc->gadget);
 	udc->driver = NULL;
 
 	DEBUG_NOTICE("<<< %s...", __func__);
