@@ -141,9 +141,10 @@ struct moon5_regs {
 static void uphy_init(void)
 {
 #if defined(CONFIG_TARGET_PENTAGRAM_Q645) || defined(CONFIG_TARGET_PENTAGRAM_SP7350)
+#ifndef CONFIG_BOOT_ON_ZEBU
 	volatile struct uphy_u3_regs *dwc3phy_reg;
 	u32 result, i = 0;
-
+#endif
 #if defined(CONFIG_TARGET_PENTAGRAM_SP7350)
 	MOON2_REG->clken[5] = RF_MASK_V_SET(1 << 14); // U3PHY0_CLKEN=1
 
@@ -161,6 +162,7 @@ static void uphy_init(void)
 	MOON0_REG->reset[3] = RF_MASK_V_CLR(1 << 9);
 	MOON0_REG->reset[3] = RF_MASK_V_CLR(1 << 11);
 #endif
+#ifndef CONFIG_BOOT_ON_ZEBU
 	dwc3phy_reg = (volatile struct uphy_u3_regs *) UPHY0_U3_REG;
 	dwc3phy_reg->cfg[1] |= 0x03;
 	for (;;)
@@ -196,6 +198,7 @@ static void uphy_init(void)
 		}
 		mdelay(1);
 	}
+#endif
 
 #elif defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C)
 // 1. enable UPHY 2/3 */
