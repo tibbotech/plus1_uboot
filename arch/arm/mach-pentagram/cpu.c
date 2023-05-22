@@ -119,7 +119,11 @@ int dram_init(void)
 		gd->ram_size = CONFIG_SYS_SDRAM_SIZE;
 	}
 #endif
+
+#if defined(CONFIG_TARGET_PENTAGRAM_Q645) || defined(CONFIG_TARGET_PENTAGRAM_SP7350)
 	mem_map_fill();
+#endif
+
 	return 0;
 }
 int dram_init_banksize(void)
