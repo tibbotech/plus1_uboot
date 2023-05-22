@@ -215,23 +215,18 @@ void smp_set_core_boot_addr(unsigned long addr, int corenr)
 static struct mm_region sp_mem_map[SP_MEM_MAP_MAX] = {
 	{
 		/* RGST */
+#if defined(CONFIG_TARGET_PENTAGRAM_Q645)
 		.virt = 0xE0000000UL,
 		.phys = 0xE0000000UL,
 		.size = 0x20000000UL,
+#elif defined(CONFIG_TARGET_PENTAGRAM_SP7350)
+		.virt = 0xF0000000UL,
+		.phys = 0xF0000000UL,
+		.size = 0x10000000UL,
+#endif
 		.attrs = PTE_BLOCK_MEMTYPE(MT_DEVICE_NGNRNE) |
 			 PTE_BLOCK_NON_SHARE
-	},
-	#if 0
-	{
-		/* RGST */
-		.virt = 0x00000000UL,
-		.phys = 0x00000000UL,
-		.size = 0xE0000000UL,
-		.attrs = PTE_BLOCK_MEMTYPE(MT_NORMAL) |
-			 PTE_BLOCK_INNER_SHARE
-	},
-	{0}
-	#endif
+	}
 };
 struct mm_region *mem_map = sp_mem_map;
 
