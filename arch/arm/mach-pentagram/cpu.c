@@ -8,110 +8,6 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
-/* Group 96, 97, 99: STC_AV0 - STC_AV2 */
-#if defined(CONFIG_TARGET_PENTAGRAM_Q645)
-typedef struct {
-	unsigned int stc_15_0;       // 12.0
-	unsigned int stc_31_16;      // 12.1
-	unsigned int stc_47_32;      // 12.2
-	unsigned int stc_63_48;      // 12.3
-	unsigned int stc_64;         // 12.4
-	unsigned int stc_divisor;    // 12.5
-	unsigned int stc_config;     // 12.6
-	unsigned int rtc_15_0;       // 12.7
-	unsigned int rtc_23_16;      // 12.8
-	unsigned int rtc_divisor;    // 12.9
-	unsigned int timerw_ctl;     // 12.10
-	unsigned int timerw_cnt;     // 12.11
-	unsigned int timer0_ctl;     // 12.12
-	unsigned int timer0_cnt;     // 12.13
-	unsigned int timer0_reload;  // 12.14
-	unsigned int timer1_ctl;     // 12.15
-	unsigned int timer1_cnt;     // 12.16
-	unsigned int timer1_reload;  // 12.17
-	unsigned int timer2_ctl;     // 12.18
-	unsigned int timer2_cnt;     // 12.19
-	unsigned int timer2_reload;  // 12.20
-	unsigned int timer2_pres_val;// 12.21
-	unsigned int timer3_ctl;     // 12.22
-	unsigned int timer3_cnt;     // 12.23
-	unsigned int timer3_reload;  // 12.24
-	unsigned int timer3_pres_val;// 12.25
-	unsigned int stcl_0;         // 12.26
-	unsigned int stcl_1;         // 12.27
-	unsigned int stcl_2;         // 12.28
-	unsigned int atc_0;          // 12.29
-	unsigned int atc_1;          // 12.30
-	unsigned int atc_2;          // 12.31
-} stc_avReg_t;
-#elif defined(CONFIG_TARGET_PENTAGRAM_SP7350)
-typedef struct {
-	unsigned int stc_31_0;       // 12.0
-	unsigned int stc_63_32;      // 12.1
-	unsigned int stc_64;         // 12.2
-	unsigned int stc_divisor;    // 12.3
-	unsigned int stc_config;     // 12.4
-	unsigned int rtc_23_0;       // 12.5
-	unsigned int rtc_divisor;    // 12.6
-	unsigned int timerw_ctl;     // 12.7
-	unsigned int timerw_cnt;     // 12.8
-	unsigned int timer0_ctl;     // 12.9
-	unsigned int timer0_cnt;     // 12.10
-	unsigned int timer0_reload;  // 12.11
-	unsigned int timer1_ctl;     // 12.12
-	unsigned int timer1_cnt;     // 12.13
-	unsigned int timer1_reload;  // 12.14
-	unsigned int timer2_ctl;     // 12.15
-	unsigned int timer2_cnt;     // 12.16
-	unsigned int timer2_reload;  // 12.17
-	unsigned int timer3_ctl;     // 12.18
-	unsigned int timer3_cnt;     // 12.19
-	unsigned int timer3_reload;  // 12.20
-	unsigned int stcl_31_0;      // 12.21
-	unsigned int stcl_32;        // 12.22
-	unsigned int atc_31_0;       // 12.23
-	unsigned int atc_33_32;      // 12.24
-	unsigned int timer2_pres_val;// 12.25
-	unsigned int timer3_pres_val;// 12.26
-	unsigned int reserve[5];     // 12.27 --12.31
-}stc_avReg_t;
-#else
-typedef struct {
-	volatile unsigned int stc_15_0;
-	volatile unsigned int stc_31_16;
-	volatile unsigned int stc_64;
-	volatile unsigned int stc_divisor;
-	volatile unsigned int rtc_15_0;
-	volatile unsigned int rtc_23_16;
-	volatile unsigned int rtc_divisor;
-	volatile unsigned int stc_config;
-	volatile unsigned int timer0_ctrl;
-	volatile unsigned int timer0_cnt;
-	volatile unsigned int timer1_ctrl;
-	volatile unsigned int timer1_cnt;
-	volatile unsigned int timerw_ctrl;      /* Only STCs @ 0x9C000600 and 0x9C003000 */
-	volatile unsigned int timerw_cnt;       /* Only STCs @ 0x9C000600 and 0x9C003000 */
-	volatile unsigned int stc_47_32;
-	volatile unsigned int stc_63_48;
-	volatile unsigned int timer2_ctrl;
-	volatile unsigned int timer2_divisor;
-	volatile unsigned int timer2_reload;
-	volatile unsigned int timer2_cnt;
-	volatile unsigned int timer3_ctrl;
-	volatile unsigned int timer3_divisor;
-	volatile unsigned int timer3_reload;
-	volatile unsigned int timer3_cnt;
-	volatile unsigned int stcl_0;
-	volatile unsigned int stcl_1;
-	volatile unsigned int stcl_2;
-	volatile unsigned int atc_0;
-	volatile unsigned int atc_1;
-	volatile unsigned int atc_2;
-	volatile unsigned int timer0_reload;
-	volatile unsigned int timer1_reload;
-} stc_avReg_t;
-#endif
-
 #if defined(CONFIG_TARGET_PENTAGRAM_Q645) || defined(CONFIG_TARGET_PENTAGRAM_SP7350)
 #define PENTAGRAM_BASE_ADDR     (0xf8000000)
 #else
@@ -119,36 +15,23 @@ typedef struct {
 #endif
 
 #ifdef CONFIG_TARGET_PENTAGRAM_SP7350
-
 #define PENTAGRAM_AO_BASE_ADDR  (0xf8800000)   /*  sp7350  AO Domain base address */
-
 #define PENTAGRAM_MOON0         (PENTAGRAM_AO_BASE_ADDR + (0 << 7))
-#define PENTAGRAM_WDTMR_ADDR    (PENTAGRAM_AO_BASE_ADDR + (23 << 7))	/* Either Group 12 or 96 */
-#define PENTAGRAM_TIMER_ADDR    (PENTAGRAM_AO_BASE_ADDR + (26 << 7))
 #define PENTAGRAM_RTC_ADDR      (PENTAGRAM_AO_BASE_ADDR + (35 << 7))
 #else
 #define PENTAGRAM_MOON0         (PENTAGRAM_BASE_ADDR + (0 << 7))
-#define PENTAGRAM_WDTMR_ADDR    (PENTAGRAM_BASE_ADDR + (12 << 7))	/* Either Group 12 or 96 */
-#define PENTAGRAM_TIMER_ADDR    (PENTAGRAM_BASE_ADDR + (99 << 7))
 #define PENTAGRAM_RTC_ADDR      (PENTAGRAM_BASE_ADDR + (116 << 7))
 #endif
 
 #define PENTAGRAM_MOON4         (PENTAGRAM_BASE_ADDR + (4 << 7))
 #define PENTAGRAM_OTP_ADDR      (PENTAGRAM_BASE_ADDR + (350<<7))
 
-#define WATCHDOG_CMD_CNT_WR_UNLOCK  0xAB00
-#define WATCHDOG_CMD_CNT_WR_LOCK    0xAB01
-#define WATCHDOG_CMD_CNT_WR_MAX     0xDEAF
-#define WATCHDOG_CMD_PAUSE          0x3877
-#define WATCHDOG_CMD_RESUME         0x4A4B
-#define WATCHDOG_CMD_INTR_CLR       0x7482
-
+void mem_map_fill(void);
 
 void s_init(void)
 {
 	/* Init watchdog timer, ... */
 	/* TODO: Setup timer used by U-Boot, required to change on I-139 */
-	stc_avReg_t *pstc_avReg = (stc_avReg_t *)(PENTAGRAM_TIMER_ADDR);
 
 #if (CONFIG_SYS_HZ != 1000)
 #error "CONFIG_SYS_HZ != 1000"
@@ -157,40 +40,14 @@ void s_init(void)
 	 * Clock @ 27 MHz, but stc_divisor has only 14 bits
 	 * Min STC clock: 270000000 / (1 << 14) = 16479.4921875
 	 */
-	pstc_avReg->stc_divisor = ((270000000 + (1000 * 32) / 2) / (1000 * 32)) - 1 ; /* = 0x20F5, less then 14 bits */
+	//pstc_avReg->stc_divisor = ((270000000 + (1000 * 32) / 2) / (1000 * 32)) - 1 ; /* = 0x20F5, less then 14 bits */
 #endif
-}
 
-unsigned long notrace timer_read_counter(void)
-{
-	unsigned long value;
-
-	stc_avReg_t *pstc_avReg = (stc_avReg_t *)(PENTAGRAM_TIMER_ADDR);
-
-#ifdef CONFIG_TARGET_PENTAGRAM_SP7350
-	pstc_avReg->stcl_32 = 0; /* latch */
-	value  = (unsigned long)(pstc_avReg->stcl_32);
-	value  = value << 32;
-	value  |= (unsigned long)(pstc_avReg->stcl_31_0);
-	value  = value >> 5;
-#else
-	pstc_avReg->stcl_2 = 0; /* latch */
-	value  = (unsigned long)(pstc_avReg->stcl_2);
-	value  = value << 16;
-	value |= (unsigned long)(pstc_avReg->stcl_1);
-	value  = value << 16;
-	value |= (unsigned long)(pstc_avReg->stcl_0);
-	value = value >> 5; /* divided by 32 => (1000 * 32)/32 = 1000*/
-#endif
-	return value;
 }
 
 void reset_cpu(ulong ignored)
 {
 	volatile unsigned int *ptr;
-#if 0
-	stc_avReg_t *pstc_avReg;
-#endif
 
 	puts("System is going to reboot ...\n");
 
@@ -203,21 +60,13 @@ void reset_cpu(ulong ignored)
 	*ptr = (0x001E << 16) | 0x001E;
 #endif
 
-#if 0
-	/* Watchdogs used by RISC */
-	pstc_avReg = (stc_avReg_t *)(PENTAGRAM_WDTMR_ADDR);
-	pstc_avReg->stc_divisor = (0x0100 - 1);
-	pstc_avReg->stc_64 = 0;		/* reset STC */
-	pstc_avReg->timerw_ctrl = WATCHDOG_CMD_CNT_WR_UNLOCK;
-	pstc_avReg->timerw_ctrl = WATCHDOG_CMD_PAUSE;
-	pstc_avReg->timerw_cnt = 0x10 - 1;
-	pstc_avReg->timerw_ctrl = WATCHDOG_CMD_RESUME;
-	pstc_avReg->timerw_ctrl = WATCHDOG_CMD_CNT_WR_LOCK;
-#else
 	/* System reset */
+#ifdef CONFIG_TARGET_PENTAGRAM_SP7350
+	ptr = (volatile unsigned int *)(PENTAGRAM_MOON0 + (1 << 2));
+#else
 	ptr = (volatile unsigned int *)(PENTAGRAM_MOON0 + (21 << 2));
-	*ptr = (0x0001 << 16) | 0x0001;
 #endif
+	*ptr = (0x0001 << 16) | 0x0001;
 
 	while (1) {
 		/* wait for reset */
@@ -270,8 +119,8 @@ int dram_init(void)
 		gd->ram_size = CONFIG_SYS_SDRAM_SIZE;
 	}
 #endif
-
-return 0;
+	mem_map_fill();
+	return 0;
 }
 int dram_init_banksize(void)
 {
@@ -328,14 +177,12 @@ int arch_misc_init(void)
 }
 #endif
 
-#ifdef CONFIG_HAS_THUMB2
-#ifndef CONFIG_SYS_DCACHE_OFF
+#if defined(CONFIG_HAS_THUMB2) && !defined(CONFIG_SYS_DCACHE_OFF)
 void enable_caches(void)
 {
 	/* Enable D-cache. I-cache is already enabled in start.S */
 	dcache_enable();
 }
-#endif
 #endif
 
 #ifdef CONFIG_ARMV7_NONSEC
@@ -356,7 +203,12 @@ void smp_set_core_boot_addr(unsigned long addr, int corenr)
 #endif
 
 #if defined(CONFIG_TARGET_PENTAGRAM_Q645) || defined(CONFIG_TARGET_PENTAGRAM_SP7350)
-static struct mm_region sp_mem_map[] = {
+/* 1 for register */
+#define SP_MEM_MAP_USED 1
+/* add 1 for dram, 1 for end  */
+#define SP_MEM_MAP_MAX (SP_MEM_MAP_USED + 1 + 1)
+
+static struct mm_region sp_mem_map[SP_MEM_MAP_MAX] = {
 	{
 		/* RGST */
 		.virt = 0xE0000000UL,
@@ -365,18 +217,34 @@ static struct mm_region sp_mem_map[] = {
 		.attrs = PTE_BLOCK_MEMTYPE(MT_DEVICE_NGNRNE) |
 			 PTE_BLOCK_NON_SHARE
 	},
+	#if 0
 	{
-		/* DRAM */
+		/* RGST */
 		.virt = 0x00000000UL,
 		.phys = 0x00000000UL,
-		.size = 0x80000000UL,
+		.size = 0xE0000000UL,
 		.attrs = PTE_BLOCK_MEMTYPE(MT_NORMAL) |
 			 PTE_BLOCK_INNER_SHARE
 	},
-	{
-		0,
-	}
+	{0}
+	#endif
 };
 struct mm_region *mem_map = sp_mem_map;
+
+
+void mem_map_fill(void)
+{
+	int bank = SP_MEM_MAP_USED;
+	for (int i = 0; i < 1; i++) {
+		sp_mem_map[bank].virt = 0x00000000UL;
+		sp_mem_map[bank].phys = 0x00000000UL;
+		sp_mem_map[bank].size = gd->ram_size;
+		sp_mem_map[bank].attrs = PTE_BLOCK_MEMTYPE(MT_NORMAL) |
+                                 PTE_BLOCK_INNER_SHARE;
+		bank += 1;
+	}
+
+	sp_mem_map[bank].size = 0; /*  end  */
+}
 
 #endif
