@@ -226,10 +226,21 @@ static struct mm_region sp_mem_map[SP_MEM_MAP_MAX] = {
 #endif
 		.attrs = PTE_BLOCK_MEMTYPE(MT_DEVICE_NGNRNE) |
 			 PTE_BLOCK_NON_SHARE
-	}
+	},
+#if defined(CONFIG_SYS_ENV_ZEBU)
+	/* add for zmem relocate, set dram memmap after relocate */
+	{
+		/* DRAM */
+		.virt = 0x00000000UL,
+		.phys = 0x00000000UL,
+		.size = 0xE0000000UL,
+		.attrs = PTE_BLOCK_MEMTYPE(MT_NORMAL) |
+			 PTE_BLOCK_INNER_SHARE
+	},
+	{0}
+#endif
 };
 struct mm_region *mem_map = sp_mem_map;
-
 
 void mem_map_fill(void)
 {
