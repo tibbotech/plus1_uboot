@@ -2449,8 +2449,7 @@ static int sp_udc_remove(struct udevice *udev)
 }
 
 static const struct udevice_id sp_udc_ids[] = {
-	{ .compatible = "sunplus,sp7021-usb-udc0" },
-	{ .compatible = "sunplus,sp7021-usb-udc1" },
+	{ .compatible = "sunplus,sp7021-usb-udc" },
 	{ },
 };
 
