@@ -40,9 +40,9 @@ static const struct udevice_id ohci_sunplus_ids[] = {
 	{ .compatible = "sunplus,sunplus-i143-usb-ohci0" },
 	{ .compatible = "sunplus,sunplus-i143-usb-ohci1" },
 #elif defined(CONFIG_TARGET_PENTAGRAM_Q645)
-	{ .compatible = "sunplus,q645-usb-ohci0" },
+	{ .compatible = "sunplus,q645-usb-ohci" },
 #elif defined(CONFIG_TARGET_PENTAGRAM_SP7350)
-	{ .compatible = "sunplus,sp7350-usb-ohci0" },
+	{ .compatible = "sunplus,sp7350-usb-ohci" },
 #endif
 	{ }
 };
