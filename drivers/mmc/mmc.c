@@ -2824,7 +2824,7 @@ retry:
 
 	/* The internal partition reset to user partition(0) at every CMD0 */
 	mmc_get_blk_desc(mmc)->hwpart = 0;
-
+#if 0
 	/* Test for SD version 2 */
 	err = mmc_send_if_cond(mmc);
 
@@ -2835,7 +2835,8 @@ retry:
 		mmc_power_cycle(mmc);
 		goto retry;
 	}
-
+#endif
+err = -ETIMEDOUT;
 	/* If the command timed out, we check for an MMC card */
 	if (err == -ETIMEDOUT) {
 		err = mmc_send_op_cond(mmc);
