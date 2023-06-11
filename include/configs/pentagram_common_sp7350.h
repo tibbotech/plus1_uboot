@@ -98,7 +98,7 @@
 #define CONFIG_SYS_NAND_BASE		0xf8002b80
 //#define CONFIG_MTD_DEVICE		/* needed for mtdparts cmd */
 #define MTDIDS_DEFAULT			"nand0=sp_spinand.0"
-#if 0 // Set default mtdparts for zebu sim
+#if 1 // Set default mtdparts for zebu sim
 #define MTDPARTS_DEFAULT		"sp_spinand.0:128k(nand_header),384k(xboot1),1536k(uboot1),2048k(uboot2),2m(fip),512k(env),512k(env_redund),256k(dtb),25m(kernel),32512k(rootfs)"
 #else
 #define MTDPARTS_DEFAULT		"sp_spinand.0:128k(nand_header),384k(xboot1),1536k(uboot1),2048k(uboot2),2m(fip),512k(env),512k(env_redund),256k(dtb),25m(kernel),229120k(rootfs)"

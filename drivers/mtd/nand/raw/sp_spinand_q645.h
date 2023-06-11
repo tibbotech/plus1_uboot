@@ -40,13 +40,13 @@
 #define CONFIG_SPINAND_TRSMODE_RAW           SPINAND_TRS_DMA
 #define CONFIG_SPINAND_AUTOBCH_DECSRC        0		/* 0:spi-nand ctrl, 1:system memory */
 #else
-#define CONFIG_SPINAND_CLK_DIV               (4)	// CLK_SPI/8. 600/8 = 75 MHz
+#define CONFIG_SPINAND_CLK_DIV               (3)	// CLK_SPI/8. 600/8 = 75 MHz
 #define CONFIG_SPINAND_CLK_SRC               (14)
 #define CONFIG_SPINAND_READ_BITMODE          SPINAND_4BIT_MODE
 #define CONFIG_SPINAND_WRITE_BITMODE         SPINAND_4BIT_MODE
 #define CONFIG_SPINAND_BUF_SZ                (8 << 10)
 #define CONFIG_SPINAND_TIMEOUT               (100)   /* unit: ms */
-	#if 0 // For zebu sim
+	#if 1 // For zebu sim
 #define CONFIG_SPINAND_READ_TIMING_SEL       (0)
 #define CONFIG_SPINAND_CS_DISACTIVE_CYC      0		/* 20ns = 0 x 1.6ns + 20ns */
 #define CONFIG_SPINAND_TRSMODE               SPINAND_TRS_DMA_AUTOBCH
