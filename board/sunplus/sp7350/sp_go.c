@@ -293,7 +293,7 @@ void SPI_nor_speed_up_clk(void)
 
 	if ((id != SUNPLUS_ROMTER_ID) && (id != 0) && (id != 0xFFFFFF)) {
 		printf("\n");
-#if defined(CONFIG_SYS_ENV_ZEBU)
+#if 1//defined(CONFIG_SYS_ENV_ZEBU)
 		SPI_nor_set_clk_div(SPI_CLK_D_2);
 #else
 		SPI_nor_set_clk_div(SPI_CLK_D_4);
