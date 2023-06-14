@@ -89,6 +89,9 @@
 #ifdef	CONFIG_SYS_ZMEM_SKIP_RELOC
 #undef CONFIG_SYS_ZMEM_SKIP_RELOC
 #endif
+#define SIGN_SIZE                   0x100
+#else
+#define SIGN_SIZE                   0
 #endif
 
 #ifdef CONFIG_MTD_RAW_NAND
@@ -296,7 +299,7 @@
 #endif
 
 #define CONFIG_EXTRA_ENV_SETTINGS \
-"sz_sign=0x100\0" \
+"sz_sign="                       __stringify(SIGN_SIZE) "\0" \
 "b_c=console=ttyS0,115200 earlycon\0" \
 "emmc_root=root=/dev/mmcblk0p8 rw rootwait\0" \
 "stdin=" STDIN_CFG "\0" \
