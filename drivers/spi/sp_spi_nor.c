@@ -727,7 +727,7 @@ static int sp_spi_nor_claim_bus(struct udevice *dev)
 	else
 		value = B_CHIP;
 
-#if defined (CONFIG_TARGET_PENTAGRAM_Q645)
+#if defined (CONFIG_TARGET_PENTAGRAM_Q645) || defined (CONFIG_TARGET_PENTAGRAM_SP7350)
 	// SPI-NOR source clock = 360.0 MHz
 	if (plat->clock >= 90000000)
 		value |= SPI_CLK_D_4;
