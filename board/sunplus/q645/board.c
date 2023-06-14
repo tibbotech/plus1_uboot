@@ -41,11 +41,6 @@ struct uphy_u3_regs {
 
 #define UPHY0_U3_REG ((volatile struct uphy_u3_regs *)Q645_RF_AMBA(189, 0))
 
-enum Device_table{
-	DEVICE_SPI_NAND = 0,
-	DEVICE_MAX
-};
-
 DECLARE_GLOBAL_DATA_PTR;
 
 int board_init(void)
@@ -63,28 +58,9 @@ int misc_init_r(void)
 	return 0;
 }
 
-void SetBootDev(unsigned int bootdev, unsigned int pin_x)
-{
-	switch(bootdev)
-	{
-#ifdef CONFIG_SP_SPINAND_Q645
-		case DEVICE_SPI_NAND:
-			/* module release reset pin */
-			Q645_MOON0_REG->reset[2] = Q645_RF_MASK_V_CLR(3<<11);   // spi nand & bch
-			/* nand pll level set */
-			//Q645_MOON4_REG->sft_cfg[27] |= (0x00040004);
-			break;
-#endif
-		default:
-			printf("unknowm \n");
-			break;
-	}
-}
-
 void board_nand_init(void)
 {
 #ifdef CONFIG_SP_SPINAND_Q645
-	SetBootDev(DEVICE_SPI_NAND,1);
 	board_spinand_init();
 #endif
 }
