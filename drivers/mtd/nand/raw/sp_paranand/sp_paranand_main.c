@@ -1411,6 +1411,36 @@ void sp_pnand_select_chip(struct mtd_info *mtd, int cs)
 	//DBGLEVEL2(sp_pnand_dbg("==>chan = %d, ce = %d\n", info->cur_chan, info->sel_chip));
 }
 
+void sp_pnand_set_ecc_for_bblk(struct sp_pnand_info *temp_info, int restore)
+{
+	uint32_t val;
+	struct sp_pnand_info *info = get_pnand_info();
+	if (!restore) {
+		temp_info->useecc = info->useecc;
+		temp_info->eccbasft = info->eccbasft;
+		info->useecc = 60;
+		info->eccbasft = 10;//(1 << 10) = 1024 byte
+	} else {
+		info->useecc = temp_info->useecc;
+		info->eccbasft = temp_info->eccbasft;
+	}
+
+	DBGLEVEL1(sp_pnand_dbg("ECC correction bits: %d\n", info->useecc));
+	DBGLEVEL1(sp_pnand_dbg("ECC step size: %d\n", 1 << info->eccbasft));
+
+	val = (info->useecc - 1) | ((info->useecc - 1) << 8) |
+		((info->useecc - 1) << 16) | ((info->useecc - 1) << 24);
+	writel(val, info->io_base + ECC_CORRECT_BITREG1);
+	writel(val, info->io_base + ECC_CORRECT_BITREG2);
+
+	val = readl(info->io_base + ECC_CONTROL);
+	val &= ~ECC_BASE;
+	if (info->eccbasft > 9)
+		val |= ECC_BASE;
+	val |= (ECC_EN(0xFF) | ECC_ERR_MASK(0xFF));
+	writel(val, info->io_base + ECC_CONTROL);
+	writel(ECC_INTR_THRES_HIT | ECC_INTR_CORRECT_FAIL, info->io_base + ECC_INTR_EN);
+}
 static int sp_pnand_attach_chip(struct nand_chip *nand)
 {
 	struct mtd_info *mtd = nand_to_mtd(nand);

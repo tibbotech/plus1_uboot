@@ -421,6 +421,7 @@ extern int sp_pnand_read_page_sp(struct nand_chip *, uint8_t *);
 extern int sp_pnand_write_page_sp(struct nand_chip *, const uint8_t *);
 extern int sp_pnand_read_oob_sp(struct nand_chip *, u8 *);
 extern int sp_pnand_write_oob_sp(struct nand_chip *, u8 *, int);
+extern void sp_pnand_set_ecc_for_bblk(struct sp_pnand_info *temp_info, int restore);
 
 extern struct sp_pnand_info *sp_pnand_init_param(void);
 

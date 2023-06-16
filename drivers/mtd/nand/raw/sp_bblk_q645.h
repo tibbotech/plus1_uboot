@@ -44,13 +44,20 @@ struct BootProfileHeader
 	uint32_t    reserved60;
 
 	// 64
+#ifdef CONFIG_SP_PARANAND
+	uint32_t    ac_timing0;
+	uint32_t    ac_timing1;
+	uint32_t    ac_timing2;
+	uint32_t    ac_timing3;
+	uint32_t    reserved96[40];
+#else
 	uint64_t    uboot_env_off;  // u64 hint offset to uboot env partition
 	uint32_t    reserved72;
 	uint32_t    reserved76;
 
 	// 80
 	struct OptBootEntry16 opt_entry[10]; // optional boot entries at 80, ..., 224
-
+#endif
 	// 240
 	uint32_t    reserved240;
 	uint32_t    reserved244;
