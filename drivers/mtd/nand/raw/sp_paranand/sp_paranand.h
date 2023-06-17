@@ -2,7 +2,7 @@
 *	Platform(user) specific
 **********************************************************/
 /* Frequency Setting (unit: HZ) */
-#define CONFIG_PNANDC_HCLK				200000000
+#define CONFIG_PNANDC_HCLK				400000000
 
 /* Reserved BI byte (bad block information) from spare location, BI_byte = 1~6 */
 #define CONFIG_BI_BYTE		0
@@ -44,7 +44,7 @@
 #define	  WRITE_PROTECT			(1 << 2)
 #define	  DATA_INVERSE			(1 << 1)
 #define	  DATA_SCRAMBLER		(1 << 0)
-#define MEM_ATTR_SET			0x108
+#define	  MEM_ATTR_SET			0x108
 #define   BI_BYTE_MASK				(0x7 << 19) //from PNANDC v2.3
 #define   PG_SZ_512				(0 << 16)
 #define   PG_SZ_2K				(1 << 16)
@@ -388,6 +388,7 @@ struct sp_pnand_info {
 	int useecc_spare;
 	int block_boundary;	//addr space of block (unit: page)
 	int seed_val; //Scramble Seed bit [7:0] and [13:8] in cq1 and cq2
+	int sector_per_page; //used for cmdreg[3], e.x.2KB page: 1K60bit-> 1 sector; 512/2bit -> 4sector;
 
 	int (*write_oob) (struct nand_chip *nand, u8 *buf, int len);
 	int (*read_oob) (struct nand_chip *nand, u8 *buf);

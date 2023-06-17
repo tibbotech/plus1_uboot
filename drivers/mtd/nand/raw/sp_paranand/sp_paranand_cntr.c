@@ -366,6 +366,7 @@ int rd_pg_w_oob(struct nand_chip *nand, int real_pg,
 	int status;
 	int i;
 	u32 *lbuf;
+	u32 data_size;
 	//unsigned long timeo;
 
 	//DBGLEVEL2(sp_pnand_dbg("%s %d\n", __FUNCTION__, __LINE__));
@@ -373,7 +374,7 @@ int rd_pg_w_oob(struct nand_chip *nand, int real_pg,
 	cmd_f.col_cycle = COL_ADDR_2CYCLE;
 	cmd_f.cq1 = real_pg | SCR_SEED_VAL1(info->seed_val);
 	cmd_f.cq2 = CMD_EX_SPARE_NUM(info->spare) | SCR_SEED_VAL2(info->seed_val);
-	cmd_f.cq3 = CMD_COUNT(mtd->writesize >> info->eccbasft) |
+	cmd_f.cq3 = CMD_COUNT(info->sector_per_page) |\
 			(info->column & 0xFF);
 	cmd_f.cq4 = CMD_COMPLETE_EN | CMD_FLASH_TYPE(info->flash_type) |\
 			CMD_START_CE(info->sel_chip) | CMD_SPARE_NUM(info->spare) |\
@@ -392,9 +393,10 @@ int rd_pg_w_oob(struct nand_chip *nand, int real_pg,
 	do {
 	} while(BMC_region_status_empty(info) && (get_timer(0) < timeo));
 #endif
+	data_size = info->sector_per_page << info->eccbasft;
 	if(!BMC_region_status_empty(info)) {
 		lbuf = (u32 *)data_buf;
-		for (i = 0; i < mtd->writesize; i += 4)
+		for (i = 0; i < data_size; i += 4)
 			*lbuf++ = *(volatile unsigned *)(nand->IO_ADDR_R);
 	} else {
 		printk(KERN_ERR "Transfer timeout!");
@@ -511,13 +513,14 @@ int rd_pg(struct nand_chip *nand, int real_pg, uint8_t *data_buf)
 	struct cmd_feature cmd_f;
 	int status;
 	u32 *lbuf;
+	u32 data_size;
 	int i;
 
 	cmd_f.row_cycle = ROW_ADDR_3CYCLE;
 	cmd_f.col_cycle = COL_ADDR_2CYCLE;
 	cmd_f.cq1 = real_pg | SCR_SEED_VAL1(info->seed_val);
 	cmd_f.cq2 = CMD_EX_SPARE_NUM(info->spare) | SCR_SEED_VAL2(info->seed_val);
-	cmd_f.cq3 = CMD_COUNT(mtd->writesize >> info->eccbasft) | (info->column & 0xFF);
+	cmd_f.cq3 = CMD_COUNT(info->sector_per_page) | (info->column & 0xFF);
 	cmd_f.cq4 = CMD_COMPLETE_EN | CMD_FLASH_TYPE(info->flash_type) |\
 			CMD_START_CE(info->sel_chip) | CMD_SPARE_NUM(info->spare) |\
 			CMD_INDEX(LARGE_FIXFLOW_PAGEREAD);
@@ -528,9 +531,10 @@ int rd_pg(struct nand_chip *nand, int real_pg, uint8_t *data_buf)
 
 	sp_pnand_wait(mtd, nand);
 
+	data_size = info->sector_per_page << info->eccbasft;
 	if(!BMC_region_status_empty(info)) {
 		lbuf = (u32 *)data_buf;
-		for (i = 0; i < mtd->writesize; i += 4)
+		for (i = 0; i < data_size; i += 4)
 			*lbuf++ = *(volatile unsigned *)(nand->IO_ADDR_R);
 	} else {
 		printk(KERN_ERR "Transfer timeout!");
@@ -849,6 +853,7 @@ int sp_pnand_write_page_lp(struct nand_chip *nand, const uint8_t *buf)
 	u32 *lbuf;
 	int real_pg;
 	int i, status = 0;
+	u32 data_size;
 
 	#if defined(CONFIG_PNANDC_TOSHIBA_TC58NVG4T2ETA00) ||\
 		defined(CONFIG_PNANDC_SAMSUNG_K9ABGD8U0B)
@@ -876,7 +881,7 @@ int sp_pnand_write_page_lp(struct nand_chip *nand, const uint8_t *buf)
 	cmd_f.col_cycle = COL_ADDR_2CYCLE;
 	cmd_f.cq1 = real_pg | SCR_SEED_VAL1(info->seed_val);
 	cmd_f.cq2 = CMD_EX_SPARE_NUM(info->spare) | SCR_SEED_VAL2(info->seed_val);
-	cmd_f.cq3 = CMD_COUNT(mtd->writesize >> info->eccbasft) |
+	cmd_f.cq3 = CMD_COUNT(info->sector_per_page) |
 			(info->column & 0xFF);
 	cmd_f.cq4 = CMD_COMPLETE_EN | CMD_FLASH_TYPE(info->flash_type) | \
 			CMD_START_CE(info->sel_chip) | CMD_SPARE_NUM(info->spare);
@@ -895,9 +900,10 @@ int sp_pnand_write_page_lp(struct nand_chip *nand, const uint8_t *buf)
 	if (status < 0)
 		goto out;
 
+	data_size = info->sector_per_page << info->eccbasft;
 	if(!BMC_region_status_full(info)) {
 		lbuf = (u32 *)buf;
-		for (i = 0; i < mtd->writesize; i += 4)
+		for (i = 0; i < data_size; i += 4)
 			*(volatile unsigned *)(nand->IO_ADDR_R) = *lbuf++;
 	} else {
 		printk(KERN_ERR "Transfer timeout!");

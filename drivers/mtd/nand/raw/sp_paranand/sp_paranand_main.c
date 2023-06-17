@@ -13,6 +13,7 @@
 #include <linux/ioport.h>
 #include <mach/gpio_drv.h>
 #include <cpu_func.h>
+#include <mapmem.h>
 
 #include <linux/dma-mapping.h>
 #include <linux/mtd/bbm.h>
@@ -1411,22 +1412,43 @@ void sp_pnand_select_chip(struct mtd_info *mtd, int cs)
 	//DBGLEVEL2(sp_pnand_dbg("==>chan = %d, ce = %d\n", info->cur_chan, info->sel_chip));
 }
 
+u32 temp_oobsize = 0;
 void sp_pnand_set_ecc_for_bblk(struct sp_pnand_info *temp_info, int restore)
 {
 	uint32_t val;
 	struct sp_pnand_info *info = get_pnand_info();
+	struct mtd_info * mtd = nand_to_mtd(&info->nand);
+
+	//writel((1 << info->cur_chan), info->io_base + NANDC_SW_RESET);
+	// Wait for the NANDC024 software reset is complete
+	//while(readl(info->io_base + NANDC_SW_RESET) & (1 << info->cur_chan)) ;
 	if (!restore) {
 		temp_info->useecc = info->useecc;
 		temp_info->eccbasft = info->eccbasft;
+		temp_info->sector_per_page = info->sector_per_page;
+		temp_oobsize = mtd->oobsize;
+		mtd->oobsize = 0;
 		info->useecc = 60;
 		info->eccbasft = 10;//(1 << 10) = 1024 byte
+		if (mtd->writesize == 2048)
+			info->sector_per_page = 1;
+		else if (mtd->writesize == 4096)
+			info->sector_per_page = 3;
+		else if (mtd->writesize == 8192)
+			info->sector_per_page = 7;
+		else
+			info->sector_per_page = 1;
 	} else {
 		info->useecc = temp_info->useecc;
 		info->eccbasft = temp_info->eccbasft;
+		info->sector_per_page = temp_info->sector_per_page;
+		mtd->oobsize = temp_oobsize;
 	}
 
-	DBGLEVEL1(sp_pnand_dbg("ECC correction bits: %d\n", info->useecc));
-	DBGLEVEL1(sp_pnand_dbg("ECC step size: %d\n", 1 << info->eccbasft));
+	DBGLEVEL2(sp_pnand_dbg("ECC correction bits: %d\n", info->useecc));
+	DBGLEVEL2(sp_pnand_dbg("ECC step size: %d\n", 1 << info->eccbasft));
+	DBGLEVEL2(sp_pnand_dbg("ECC sector per page: %d\n", info->sector_per_page));
+	DBGLEVEL2(sp_pnand_dbg("oobsize: %d\n", mtd->oobsize));
 
 	val = (info->useecc - 1) | ((info->useecc - 1) << 8) |
 		((info->useecc - 1) << 16) | ((info->useecc - 1) << 24);
@@ -1452,6 +1474,9 @@ static int sp_pnand_attach_chip(struct nand_chip *nand)
 	nand->bbt_td = &sp_pnand_bbt_main_descr;
 	nand->bbt_md = &sp_pnand_bbt_mirror_descr;
 	nand->badblock_pattern = &sp_pnand_largepage_flashbased;
+
+	//TODO:refine e.x. 1k60bit?
+	info->sector_per_page = mtd->writesize >> info->eccbasft;
 
 	//usually, spare size is 1/32 page size
 	if (info->spare < (mtd->writesize >> 5))
@@ -1865,12 +1890,20 @@ U_BOOT_DRIVER(sunplus_para_nand) = {
 	.priv_auto      = sizeof(struct sp_pnand_info),
 };
 
+#define PNAND_CORE_CLK_REG	0xf88001dc
+#define CORE_CLK_100M		(1 << 13) | (3 << 29)
+#define CORE_CLK_200M		(3 << 13) | (3 << 29)
+#define CORE_CLK_400M		(0 << 13) | (3 << 29)
+
 void board_paranand_init(void)
 {
 	struct udevice *dev;
 	int ret;
 
 	DBGLEVEL2(sp_pnand_dbg("board_paranand_init() entry\n"));
+
+	volatile unsigned int *clk_reg = (volatile unsigned int *)map_sysmem(PNAND_CORE_CLK_REG, 0);
+	*clk_reg = CORE_CLK_400M;
 
 	ret = uclass_get_device_by_driver(UCLASS_MTD,
 					  DM_DRIVER_GET(sunplus_para_nand),
