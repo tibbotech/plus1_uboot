@@ -266,6 +266,7 @@ config SP_SPINAND_Q645
 config SP_PARANAND
 	bool "Sunplus SP7350 Parallel NAND Controller"
 	depends on DM || MTD
+	select SP_NAND_BBLK
 	imply CMD_NAND
 	help
 	  This selects the Sunplus Parallel NAND Controller Interface on
