@@ -170,7 +170,7 @@ static int do_verify(struct cmd_tbl *cmdtp, int flag, int argc, char * const arg
 	int ret;
 
 	//prn_dump("uImage header", k, 0x50);
-	prn_dump("sign (encrypted hash)", src, RSA_KEY_SZ);
+	//prn_dump("sign (encrypted hash)", src, RSA_KEY_SZ);
 
 	t0 = get_timer(0);
 
@@ -188,8 +188,8 @@ static int do_verify(struct cmd_tbl *cmdtp, int flag, int argc, char * const arg
 
 	t1 = get_timer(t0);
 
-	prn_dump("decrypted hash", dst, HASH_SZ);
-	prn_dump("hash", src, HASH_SZ);
+	//prn_dump("decrypted hash", dst, HASH_SZ);
+	//prn_dump("hash", src, HASH_SZ);
 	printf("Verify signature (%lu ms): %d\n", t1, ret);
 
 	if (ret) {
