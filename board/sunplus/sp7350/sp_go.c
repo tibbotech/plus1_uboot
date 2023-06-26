@@ -296,7 +296,7 @@ void SPI_nor_speed_up_clk(void)
 #if defined(CONFIG_SYS_ENV_ZEBU)
 		SPI_nor_set_clk_div(SPI_CLK_D_2);
 #else
-		SPI_nor_set_clk_div(SPI_CLK_D_4);
+		SPI_nor_set_clk_div(SPI_CLK_D_8);
 #endif
 	} else {
 		if (id == SUNPLUS_ROMTER_ID)
