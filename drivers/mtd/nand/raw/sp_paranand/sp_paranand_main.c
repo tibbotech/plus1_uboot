@@ -45,39 +45,14 @@ static struct sp_pnand_attr nand_attr[] = {
 	 * Manufacturer ID, spare size, ECC bits, ECC base shift,
 	 * ECC for spare, Block Boundary, Protect Spare, legacy flash
 	 * */
-	{"Micron 29F16G08MAA",
-		218, 8, 9, 4, 128, 1, LEGACY_FLASH},	/* 4K MLC */
 	{"Samsung K9F4G08U0A",
 		64, 2, 9, 4, 64, 1, LEGACY_FLASH},	/* 2K SLC */
-	{"Hynix HY27US08561A",
-		16, 3, 9, 1, 32, 1, LEGACY_FLASH},	/* 512B SLC */
-	{"Toshiba TH58NVG5D2ETA20",
-		376, 24, 10, 4, 128, 1, LEGACY_FLASH},	/* 8K MLC */
-	{"Toshiba TH58NVG7D2GTA20",
-		640, 40, 10, 4, 256, 1, LEGACY_FLASH},	/* 8K MLC */
-	{"Samsung K9HDGD8X5M",
-		512, 24, 10, 4, 128, 1, TOGGLE1},	/* 8K TOGGLE MLC */
-	{"Micron 29F32G08CBABB",
-		224, 8, 9, 4, 256, 1, ONFI2},		/* 4K ONFI MLC */
-	{"Samsung K9LBG08U0M",
-		128, 4, 9, 4, 128, 1, LEGACY_FLASH},	/* 4K MLC */
-	{"Toshiba TC58NVG4T2ETA00",
-		376, 24, 10, 4, 256, 1, LEGACY_FLASH},	/* 8K TLC */
-	{"Toshiba TC58NVG6DCJTA00",
-		1280, 40, 10, 40, 256, 1, LEGACY_FLASH},/* 16K MLC */
-	{"Samsung K9GCGY8S0A",
-		640, 40, 10, 24, 128, 1, TOGGLE2},	/* 16K MLC */
-	{"Toshiba TH58TEG7DCJBA4C",
-		1280, 40, 10, 40, 256, 1, TOGGLE2},	/* 16K MLC */
-	{"Samsung K9ABGD8U0B",
-		1024, 60, 10, 60, 256, 1, TOGGLE1},	/* 8K TLC */
-	{"Winbond W29N01GV", 64, 3, 9, 3, 64, 1, LEGACY_FLASH},
-	{"Toshiba TH58TFT0DDLBA8H",
-		1280, 40, 10, 40, 256, 1, TOGGLE2},	/* 16K Toggle2 */
-	{"Micron 29F128G08CBECB",
-		1872, 60, 10, 60, 512, 1, ONFI3},	/* 16K ONFI-3.2 MLC */
-	{"Samsung K9F2G08XXX ZEBU",
-		64, 1, 9, 1, 64, 1, LEGACY_FLASH},	/* 2K SLC */
+	{"GigaDevice 9AU4G8F3AMGI",
+		64, 2, 9, 4, 64, 1, LEGACY_FLASH},	/* 2K SLC */
+	{"GigaDevice 9FU4G8F4BMGI",
+		256, 2, 9, 4, 64, 1, LEGACY_FLASH},	/* 4K SLC */
+	{"Samsung K9GBG08U0B",
+		1024, 2, 9, 4, 128, 1, LEGACY_FLASH},	/* 4K SLC */
 };
 
 /* Note: The unit of tWPST/tRPST/tWPRE/tRPRE field of sp_pnand_chip_timing is ns.
@@ -102,20 +77,34 @@ static struct sp_pnand_chip_timing chip_timing = {
 	0, 60, 0, 8, 0, 30, 10, 0, 0, 0, 0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-#elif defined (CONFIG_PNANDC_SAMSUNG_K9F4G08U0A) || defined (CONFIG_PNANDC_SAMSUNG_K9F2G08U0A)
+#elif defined (CONFIG_PNANDC_SAMSUNG_K9F2G08U0A)
 static struct sp_pnand_chip_timing chip_timing = {
 	10, 5, 5, 5, 0, 12, 10, 0, 0, 0,
 	20, 12, 100, 0, 60, 0, 100, 20, 10, 0,
 	70, 100, 0, 20, 0, 12, 10, 12, 0, 0, 0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-#elif defined (CONFIG_PNANDC_HYNIX_HY27US08561A)
+#elif defined (CONFIG_PNANDC_GIGADEVICE_9AU4G8F3AMGI)
 static struct sp_pnand_chip_timing chip_timing = {
-	15, 10, 10, 10, 0, 25, 15, 0, 0, 0,
-	30, 25, 100, 100, 60, 0, 0, 20, 10, 0,
-	0, 30, 0, 0, 0, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0,
+	7, 5, 5, 5, 0, 12, 7, 0, 0, 0,
+	18, 10, 100, 0, 80, 0, 100, 20, 10, 20,
+	100, 100, 0, 15, 0, 12, 10, 10, 0, 0, 0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100};
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+#elif defined (CONFIG_PNANDC_GIGADEVICE_9FU4G8F4BMGI)
+static struct sp_pnand_chip_timing chip_timing = {
+	10, 5, 5, 5, 0, 12, 10, 0, 0, 0,
+	20, 12, 100, 0, 60, 0, 100, 20, 10, 0,
+	70, 100, 0, 20, 0, 12, 10, 12, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+#elif defined (CONFIG_PNANDC_SAMSUNG_K9GBG08U0B)
+static struct sp_pnand_chip_timing chip_timing = {
+	10, 5, 5, 5, 0, 12, 10, 0, 0, 0,
+	20, 12, 100, 0, 60, 0, 100, 20, 10, 0,
+	70, 100, 0, 20, 0, 12, 10, 12, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 #elif defined (CONFIG_PNANDC_TOSHIBA_TH58NVG5D2ETA20)
 static struct sp_pnand_chip_timing chip_timing = {
 	10, 5, 5, 5, 0, 12, 10, 10, 0, 0,
@@ -1424,11 +1413,13 @@ void sp_pnand_set_ecc_for_bblk(struct sp_pnand_info *temp_info, int restore)
 	//while(readl(info->io_base + NANDC_SW_RESET) & (1 << info->cur_chan)) ;
 	if (!restore) {
 		temp_info->useecc = info->useecc;
+		temp_info->useecc_spare = info->useecc_spare;
 		temp_info->eccbasft = info->eccbasft;
 		temp_info->sector_per_page = info->sector_per_page;
 		temp_oobsize = mtd->oobsize;
-		mtd->oobsize = 0;
+		mtd->oobsize = 64;
 		info->useecc = 60;
+		info->useecc_spare = 4;
 		info->eccbasft = 10;//(1 << 10) = 1024 byte
 		if (mtd->writesize == 2048)
 			info->sector_per_page = 1;
@@ -1440,6 +1431,7 @@ void sp_pnand_set_ecc_for_bblk(struct sp_pnand_info *temp_info, int restore)
 			info->sector_per_page = 1;
 	} else {
 		info->useecc = temp_info->useecc;
+		info->useecc_spare = temp_info->useecc_spare;
 		info->eccbasft = temp_info->eccbasft;
 		info->sector_per_page = temp_info->sector_per_page;
 		mtd->oobsize = temp_oobsize;
@@ -1462,6 +1454,15 @@ void sp_pnand_set_ecc_for_bblk(struct sp_pnand_info *temp_info, int restore)
 	val |= (ECC_EN(0xFF) | ECC_ERR_MASK(0xFF));
 	writel(val, info->io_base + ECC_CONTROL);
 	writel(ECC_INTR_THRES_HIT | ECC_INTR_CORRECT_FAIL, info->io_base + ECC_INTR_EN);
+#if 1
+	// Setting the ecc capability & threshold for spare
+	writel(0x01010101, info->io_base + ECC_THRES_BIT_FOR_SPARE_REG1);
+	writel(0x01010101, info->io_base + ECC_THRES_BIT_FOR_SPARE_REG2);
+	val = (info->useecc_spare - 1) | ((info->useecc_spare - 1) << 8) |
+		((info->useecc_spare - 1) << 16) | ((info->useecc_spare - 1) << 24);
+	writel(val, info->io_base + ECC_CORRECT_BIT_FOR_SPARE_REG1);
+	writel(val, info->io_base + ECC_CORRECT_BIT_FOR_SPARE_REG2);
+#endif
 }
 static int sp_pnand_attach_chip(struct nand_chip *nand)
 {
@@ -1595,8 +1596,10 @@ static int sp_pnand_attach_chip(struct nand_chip *nand)
 
 	nand->ecc.mode = NAND_ECC_HW;
 	nand->ecc.size = mtd->writesize;
-	nand->ecc.bytes = 0;
-	nand->ecc.strength = 1;
+	nand->ecc.bytes = (info->useecc * 14) / 8;
+	if (((info->useecc * 14) % 8) != 0)
+		nand->ecc.bytes++;
+	nand->ecc.strength = 2;
 	nand->ecc.read_page = sp_pnand_read_page;
 	nand->ecc.write_page = sp_pnand_write_page_lowlevel;
 	nand->ecc.read_oob = sp_pnand_read_oob_std;
@@ -1630,9 +1633,10 @@ int sp_pnand_hw_init(struct sp_pnand_info *info)
 	writel(1, info->io_base + GLOBAL_RESET);
 	while (readl(info->io_base + GLOBAL_RESET)) ;
 
-#if defined(CONFIG_PNANDC_HYNIX_HY27US08561A) ||\
-	defined(CONFIG_PNANDC_SAMSUNG_K9F4G08U0A) ||\
-	defined(CONFIG_PNANDC_SAMSUNG_K9F2G08U0A)
+#if defined(CONFIG_PNANDC_SAMSUNG_K9F2G08U0A) ||\
+	defined(CONFIG_PNANDC_GIGADEVICE_9AU4G8F3AMGI) ||\
+	defined(CONFIG_PNANDC_GIGADEVICE_9FU4G8F4BMGI) ||\
+	defined(CONFIG_PNANDC_SAMSUNG_K9GBG08U0B)
 	/* We disable scramble function on SLC because SLC
 	 * usually needs fewer ecc correction capability.
 	 * The fewer ecc correction capability, the more
@@ -1694,40 +1698,12 @@ int sp_pnand_flash_param_set(struct sp_pnand_info *info)
 {
 	int sel;
 
-#if defined (CONFIG_PNANDC_MICRON_29F16G08MAA)
+#if defined (CONFIG_PNANDC_SAMSUNG_K9F4G08U0A) || defined (CONFIG_PNANDC_SAMSUNG_K9F2G08U0A)
 	sel = 0;
-#elif defined (CONFIG_PNANDC_SAMSUNG_K9F4G08U0A) || defined (CONFIG_PNANDC_SAMSUNG_K9F2G08U0A)
+#elif defined (CONFIG_PNANDC_GIGADEVICE_9AU4G8F3AMGI)
 	sel = 1;
-#elif defined (CONFIG_PNANDC_HYNIX_HY27US08561A)
+#elif defined (CONFIG_PNANDC_GIGADEVICE_9FU4G8F4BMGI)
 	sel = 2;
-#elif defined (CONFIG_PNANDC_TOSHIBA_TH58NVG5D2ETA20)
-	sel = 3;
-#elif defined (CONFIG_PNANDC_TOSHIBA_TH58NVG7D2GTA20)
-	sel = 4;
-#elif defined (CONFIG_PNANDC_SAMSUNG_K9HDGD8X5M)
-	sel = 5;
-#elif defined (CONFIG_PNANDC_MICRON_29F32G08CBABB)
-	sel = 6;
-#elif defined (CONFIG_PNANDC_SAMSUNG_K9LBG08U0M)
-	sel = 7;
-#elif defined (CONFIG_PNANDC_TOSHIBA_TC58NVG4T2ETA00)
-	sel = 8;
-#elif defined (CONFIG_PNANDC_TOSHIBA_TC58NVG6DCJTA00)
-	sel = 9;
-#elif defined (CONFIG_PNANDC_SAMSUNG_K9GCGY8S0A)
-	sel = 10;
-#elif defined (CONFIG_PNANDC_TOSHIBA_TH58TEG7DCJBA4C)
-	sel = 11;
-#elif defined (CONFIG_PNANDC_SAMSUNG_K9ABGD8U0B)
-	sel = 12;
-#elif defined (CONFIG_PNANDC_WINBOND_W29N01GV)
-	sel = 13;
-#elif defined (CONFIG_PNANDC_TOSHIBA_TH58TFT0DDLBA8H)
-	sel = 14;
-#elif defined (CONFIG_PNANDC_MICRON_29F128G08CBECB)
-	sel = 15;
-#elif defined (CONFIG_SP_SAMSUNG_K9F2G08XXX_ZEBU)
-	sel = 16;
 #else
 	sel = -1;
 #endif

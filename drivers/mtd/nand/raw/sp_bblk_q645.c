@@ -106,8 +106,22 @@ static u64 get_mtd_env_off(void)
 #endif
 }
 
+void sp_nand_info(nand_info_t *mtd)
+{
+	struct nand_chip *nand = (struct nand_chip *)mtd->priv;
+	struct sp_nand_info *info = (struct sp_nand_info *)
+		container_of(nand, struct sp_nand_info, nand);
+	//debug("  mtd=%p nand=%p sp=%p\n", mtd, nand, info);
+#ifdef CONFIG_SP_SPINAND_Q645
+	struct sp_spinand_info *sinfo = (struct sp_spinand_info *)info;
+	printf("  cycle cac=%d rac=%d\n", sinfo->cac, sinfo->rac);
+	return;
 #endif
-#ifndef CONFIG_SP_PARANAND
+	// parallel nand
+	printf("  cycle cac=%d rac=%d\n", info->cac, info->rac);
+}
+#endif
+
 /*
  * sp_nand_compose_bhdr
  * mtd      - nand_info_t
@@ -117,7 +131,7 @@ static u64 get_mtd_env_off(void)
 int sp_nand_compose_bhdr(nand_info_t *mtd, struct BootProfileHeader *hdr,
 		uint32_t xboot_sz)
 {
-	struct nand_chip *nand = (struct nand_chip *)mtd->priv;
+	struct nand_chip *nand = mtd_to_nand(mtd);
 	uint32_t sz_sect = sp_nand_lookup_bdata_sect_sz(mtd);
 	#ifdef CONFIG_SP_SPINAND_Q645
 	struct sp_spinand_info *sinfo = (struct sp_spinand_info *)
@@ -140,7 +154,11 @@ int sp_nand_compose_bhdr(nand_info_t *mtd, struct BootProfileHeader *hdr,
 
 	// 16
 	hdr->BchType       = 0; // 1K60
+	#ifdef CONFIG_SP_PARANAND
+	hdr->addrCycle     = 0; //unused for parallel nand
+	#else
 	hdr->addrCycle     = sp_get_addr_cycle(nand);
+	#endif
 	hdr->ReduntSize    = mtd->oobsize;
 	hdr->BlockNum      = mtd->size >> nand->phys_erase_shift;
 	hdr->BadBlockNum   = 0; //TODO
@@ -162,7 +180,14 @@ int sp_nand_compose_bhdr(nand_info_t *mtd, struct BootProfileHeader *hdr,
 	//reserved60
 
 	//64
+	#ifdef CONFIG_SP_PARANAND
+	hdr->ac_timing0    = 0x0f1f0f1f;
+	hdr->ac_timing1    = 0x00007f7f;//bit 16 tRLAT
+	hdr->ac_timing2    = 0x7f7f7f7f;
+	hdr->ac_timing3    = 0xff1f001f;
+	#else
 	hdr->uboot_env_off = get_mtd_env_off(); // u64 hint for "Scanning for env"
+	#endif
 	//reserved72
 	//reserved76
 
@@ -201,15 +226,19 @@ int sp_nand_compose_bhdr(nand_info_t *mtd, struct BootProfileHeader *hdr,
 int sp_nand_write_bsect(struct mtd_info *nand,
 		loff_t maxsize, void *buf, uint32_t off, uint32_t sz_sect, int no_skip)
 {
-	int ret, res;
+	int ret;
 	size_t rwsize = nand->writesize;
+#ifndef CONFIG_SP_PARANAND
+	int res;
 	uint32_t i;
+#endif
 
 	if (off % nand->writesize) {
 		printf("%s: offset must be aligend to page size\n", __func__);
 		return -EINVAL;
 	}
 
+#ifndef CONFIG_SP_PARANAND
 	// Append 1K60 ecc to buf. That is, buf[] = (data of sz_sect) + (its ecc).
 	// Each 1K data has a 128 ecc.
 	for (i = 0; i < sz_sect / 1024; i++) {
@@ -218,201 +247,7 @@ int sp_nand_write_bsect(struct mtd_info *nand,
 			printf("%s: bch 1k60 failed at i=%u, res=%d\n", __func__, i, res);
 		}
 	}
-
-	if (no_skip) {
-		// Write buf to a page (even if it's in a bad block)
-		ret = nand_write(nand, off, &rwsize, (u_char *)buf);
-	} else {
-		// Write buf to a page
-		ret = nand_write_skip_bad(nand, off, &rwsize,
-				NULL, maxsize,
-				(u_char *)buf, 0);
-	}
-
-	if (ret) {
-		printf("%s: sz_sect=%u off=%u err=%d\n", __func__, sz_sect, off, ret);
-	}
-
-	return ret;
-}
-
-/*
- * Read a boot sect from a page
- * @nand: pointer to nand_info_t
- * @maxsize: write length limitation (depends on nand size)
- * @off: nand offset (must align to page size)
- * @sz_sect: sect size (page size - sect ecc size)
- * @buf: sect data and sect ecc to write where sect ecc is generated in this function.
- * @no_skip: don't skip bad block (for block 0 header)
- */
-int sp_nand_read_bsect(nand_info_t *nand,
-		loff_t maxsize, void *buf, uint32_t off, uint32_t sz_sect, int no_skip, int *skipped)
-{
-	int ret, res;
-	size_t rwsize = nand->writesize;
-	uint32_t i;
-	int max_skip_blk = 20;
-	uint32_t org_off = off;
-
-	*skipped = 0;
-
-	//debug("%s: buf=0x%x off=0x%x sz_sect=%u\n", __func__, (uint32_t)buf, (uint32_t)off, sz_sect);
-
-	if (off % nand->writesize) {
-		printf("%s: offset must be aligend to page size\n", __func__);
-		return -EINVAL;
-	}
-
-	if (no_skip) { // for block 0 header
-		// Read to buf from a page (no skip bad)
-		ret = nand_read(nand, off, &rwsize,(u_char *)buf);
-	} else {
-		// Skip bad blocks before read.
-		// Otherwise, always read next good block's page 0
-		while (max_skip_blk-- &&
-			nand_block_isbad(nand, off & ~(nand->erasesize - 1))) {
-			off += nand->erasesize; // next block
-			(*skipped)++;
-		}
-
-		if (!max_skip_blk) {
-			printf("too many bad block since off=0x%x\n", org_off);
-			return -1;
-		}
-
-		// Read to buf from a page
-		ret = nand_read_skip_bad(nand, off, &rwsize,
-				NULL, maxsize, (u_char *)buf);
-	}
-
-	if (ret) {
-		printf("%s: sz_sect=%u off=%u err=%d\n", __func__, sz_sect, off, ret);
-	}
-
-	// Decode 1K60 ecc in buf[] = (data of sz_sect) + (its ecc).
-	// Each 1K data has a 128 ecc.
-	for (i = 0; i < sz_sect / 1024; i++) {
-		res = sp_bch_decode_1024x60(buf + (i * 1024), buf + sz_sect + (i *128));
-		if (res) {
-			printf("%s: bch decode 1k60 failed at i=%u, res=%d\n", __func__, i, res);
-		}
-	}
-
-	return ret;
-}
-
-void sp_nand_info(nand_info_t *mtd)
-{
-	struct nand_chip *nand = (struct nand_chip *)mtd->priv;
-	struct sp_nand_info *info = (struct sp_nand_info *)
-		container_of(nand, struct sp_nand_info, nand);
-	//debug("  mtd=%p nand=%p sp=%p\n", mtd, nand, info);
-#ifdef CONFIG_SP_SPINAND_Q645
-	struct sp_spinand_info *sinfo = (struct sp_spinand_info *)info;
-	printf("  cycle cac=%d rac=%d\n", sinfo->cac, sinfo->rac);
-	return;
 #endif
-	// parallel nand
-	printf("  cycle cac=%d rac=%d\n", info->cac, info->rac);
-}
-
-#else
-/*
- * sp_nand_compose_bhdr
- * mtd      - nand_info_t
- * hdr      - destination buffer (hdr)
- * xboot_sz - xboot image size (if 0, assume its size is 32KB)
- */
-int sp_nand_compose_bhdr(nand_info_t *mtd, struct BootProfileHeader *hdr,
-		uint32_t xboot_sz)
-{
-	//struct nand_chip *nand = (struct nand_chip *)mtd->priv;
-	uint32_t sz_sect = sp_nand_lookup_bdata_sect_sz(mtd);
-
-	debug("%s xboot_sz=%u\n", __func__, xboot_sz);
-
-	if (xboot_sz == 0) {
-		xboot_sz = 32 *1024;
-	}
-
-	memset((void *)hdr, 0, sizeof(*hdr));
-
-	// 0
-	hdr->Signature     = BHDR_BEG_SIGNATURE;
-	hdr->Length        = sizeof(*hdr);
-	hdr->Version       = 0;
-	//reserved12;
-
-	// 16
-	hdr->BchType       = 0xff; // BCH OFF
-	//hdr->addrCycle     = sp_get_addr_cycle(nand);
-
-	hdr->ReduntSize    = mtd->oobsize;
-	hdr->BlockNum      = 2048;//mtd->size >> nand->phys_erase_shift;
-	hdr->BadBlockNum   = 0; //TODO
-	hdr->PagePerBlock  = mtd->erasesize / mtd->writesize;
-
-	// 32
-	hdr->PageSize      = mtd->writesize;
-
-	// 48
-	hdr->xboot_copies  = 1;
-	hdr->xboot_pg_off  = mtd->erasesize / mtd->writesize; // assume xboot is at block 1
-	hdr->xboot_pg_cnt  = (xboot_sz  + sz_sect - 1) / sz_sect;
-	//reserved60
-
-	//64
-	hdr->ac_timing0 = 0x0f1f0f1f;
-	hdr->ac_timing1 = 0x00007f7f;//bit 16 tRLAT
-	hdr->ac_timing2 = 0x7f7f7f7f;
-	hdr->ac_timing3 = 0xff1f001f;
-	//hdr->uboot_env_off = get_mtd_env_off(); // u64 hint for "Scanning for env"
-	//reserved72
-	//reserved76
-
-	//80
-	//struct OptBootEntry16 opt_entry[10];
-
-	// 240
-	//reserved240
-	//reserved244
-	hdr->EndSignature  = BHDR_END_SIGNATURE;
-	hdr->CheckSum      = tcpsum((u8 *)hdr, 252);
-
-	// Print important information
-	printf("BchType=%d ReduntSize=%d BlockNum=%d PagePerBlock=%d PageSize=%d\n"
-		"xboot_copies=%d xboot_pg_off=%d xboot_pg_cnt=%d\n"
-		"tcpsum=0x%08x\n",
-		hdr->BchType, hdr->ReduntSize, hdr->BlockNum,
-		hdr->PagePerBlock, hdr->PageSize,
-		hdr->xboot_copies, hdr->xboot_pg_off, hdr->xboot_pg_cnt,
-		hdr->CheckSum);
-
-	BUILD_BUG_ON(sizeof(*hdr) != 256);
-
-	return 0;
-}
-
-/*
- * Write a boot sect to a page
- * @nand: pointer to nand_info_t
- * @maxsize: write length limitation (depends on nand size)
- * @off: nand offset (must align to page size)
- * @sz_sect: sect size (page size - sect ecc size)
- * @buf: sect data and sect ecc to write where sect ecc is generated in this function.
- * @no_skip: don't skip bad block (for block 0 header)
- */
-int sp_nand_write_bsect(struct mtd_info *nand,
-		loff_t maxsize, void *buf, uint32_t off, uint32_t sz_sect, int no_skip)
-{
-	int ret;
-	size_t rwsize = nand->writesize;
-
-	if (off % nand->writesize) {
-		printf("%s: offset must be aligend to page size\n", __func__);
-		return -EINVAL;
-	}
-
 	if (no_skip) {
 		// Write buf to a page (even if it's in a bad block)
 		ret = nand_write(nand, off, &rwsize, (u_char *)buf);
@@ -444,11 +279,15 @@ int sp_nand_read_bsect(nand_info_t *nand,
 {
 	int ret;
 	size_t rwsize = nand->writesize;
+#ifndef CONFIG_SP_PARANAND
+	int res;
+	uint32_t i;
+#endif
 	int max_skip_blk = 20;
 	uint32_t org_off = off;
 
 	*skipped = 0;
-	//STAMP(0xabcd1234);
+
 	//debug("%s: buf=0x%x off=0x%x sz_sect=%u\n", __func__, (uint32_t)buf, (uint32_t)off, sz_sect);
 
 	if (off % nand->writesize) {
@@ -465,9 +304,8 @@ int sp_nand_read_bsect(nand_info_t *nand,
 		while (max_skip_blk &&
 			nand_block_isbad(nand, off & ~(nand->erasesize - 1))) {
 			off += nand->erasesize; // next block
-
 			(*skipped)++;
-			max_skip_blk --;
+			max_skip_blk--;
 		}
 
 		if (!max_skip_blk) {
@@ -483,10 +321,20 @@ int sp_nand_read_bsect(nand_info_t *nand,
 	if (ret) {
 		printf("%s: sz_sect=%u off=%u err=%d\n", __func__, sz_sect, off, ret);
 	}
-	//STAMP(0xabcddcba);
+
+#ifndef CONFIG_SP_PARANAND
+	// Decode 1K60 ecc in buf[] = (data of sz_sect) + (its ecc).
+	// Each 1K data has a 128 ecc.
+	for (i = 0; i < sz_sect / 1024; i++) {
+		res = sp_bch_decode_1024x60(buf + (i * 1024), buf + sz_sect + (i *128));
+		if (res) {
+			printf("%s: bch decode 1k60 failed at i=%u, res=%d\n", __func__, i, res);
+		}
+	}
+#endif
 	return ret;
 }
-#endif
+
 /*
  * Write boot blocks (1K60 ecc in data area)
  * @nand: pointer to nand_info_t
@@ -540,13 +388,23 @@ int sp_nand_write_bblk(nand_info_t *nand, loff_t off, size_t *length,
 		       (uint32_t)off);
 		memcpy(buf, data, *length);
 		memset(buf + *length, 0xff, nand->writesize - *length);
-
+#if 0//debug
+		printk("Dump header from buf in sp_nand_write_bblk():\n");
+		for (int i = 0; i < (nand->writesize >> 4); i++) {
+			printk("%04xh:", 16*i);
+			for(int j = 0; j < 16; j++) {
+				printk("%02x ", *((u8 *)buf+j+16*i));
+			}
+			printk("\n");
+		}
+#endif
 		// write bhdr every 4 pages
 		for (i = 0; i < pgnr; i += 4) {
 			//TODO: write block 0 w/o skip bad
 
 			// write a nand page
 			res = sp_nand_write_bsect(nand, maxsize, buf, off, sect_sz, 1);
+			//res = sp_nand_write_bsect(nand, maxsize, buf, off, sect_sz, 0);
 			if (res)
 				ret = res;
 
@@ -750,6 +608,15 @@ static int do_sp_bblk(struct cmd_tbl *cmdtp, int flag, int argc, char * const ar
 		struct BootProfileHeader hdr;
 		sp_nand_compose_bhdr(mtd, &hdr, size);
 		size = sizeof(hdr);
+#if 0//debug
+		printk("Dump header from hdr:\n");
+		for (int i = 0; i < (size >> 4); i++) {
+			for(int j = 0; j < 16; j++) {
+				printk("%02x ", *((u8 *)&hdr+j+16*i));
+			}
+			printk("\n");
+		}
+#endif
 		ret = sp_nand_write_bblk(mtd, off, (size_t *)&size, maxsize, (u_char *)&hdr, 1);
 	} else if (!strcmp(argv[1], "write") && !strcmp(argv[2], "bhdr")) {
 		ret = sp_nand_write_bblk(mtd, off, (size_t *)&size, maxsize, (u_char *)addr, 1);

@@ -233,6 +233,7 @@ int sp_pnand_wait(struct mtd_info *mtd, struct nand_chip *nand)
 			if (sts_fail_sts & (1 << (info->cur_chan))) {
 				printk(KERN_ERR "STATUS FAIL@(pg_addr:0x%x)\n", info->page_addr);
 				info->cmd_status |= CMD_STATUS_FAIL;
+				//printk(">>>>>>%s(%d)   cmd_status    %d\n",__FUNCTION__,__LINE__, info->cmd_status);
 				ret = CMD_STATUS_FAIL;
 				sp_pnand_abort(nand);
 			}
@@ -246,6 +247,7 @@ int sp_pnand_wait(struct mtd_info *mtd, struct nand_chip *nand)
 				if (ecc_sts_for_data & (1 << info->cur_chan)) {
 					info->cmd_status |= CMD_ECC_FAIL_ON_DATA;
 					ret = NAND_STATUS_FAIL;
+					//printk(">>>>>>%s(%d)   cmd_status    %d\n",__FUNCTION__,__LINE__, info->cmd_status);
 				}
 
 				ecc_sts_for_spare = ((ecc_intr_sts & 0xFF0000) >> 16);
@@ -253,6 +255,7 @@ int sp_pnand_wait(struct mtd_info *mtd, struct nand_chip *nand)
 				if (ecc_sts_for_spare & (1 << info->cur_chan)) {
 					info->cmd_status |= CMD_ECC_FAIL_ON_SPARE;
 					ret = NAND_STATUS_FAIL;
+					//printk(">>>>>>%s(%d)   cmd_status    %d\n",__FUNCTION__,__LINE__, info->cmd_status);
 				}
 			}
 			goto out;
@@ -612,7 +615,11 @@ int sp_pnand_check_bad_spare(struct nand_chip *nand, int pg)
 		if (eccbyte & 0x1)
 			eccbyte ++;
 	}
-	spare_phy_start = mtd->writesize + (eccbyte * sec_num) + CONFIG_BI_BYTE;
+
+	if(info->sector_per_page < (mtd->writesize >> info->eccbasft))
+		spare_phy_start = mtd->writesize;
+	else
+		spare_phy_start = mtd->writesize + (eccbyte * sec_num) + CONFIG_BI_BYTE;
 
 	eccbyte = (info->useecc_spare * 14) / 8;
 	if (((info->useecc_spare * 14) % 8) != 0)
@@ -639,8 +646,8 @@ int sp_pnand_check_bad_spare(struct nand_chip *nand, int pg)
 					if((*(spare_buf + i) & (0x1 << j)) == 0)
 						errbit_num ++;
 				}
-				//printk("xt_debug i= %d", i);///
-				//printk("data= 0x%x\n", *(spare_buf + i));///
+				printk("xt_debug i= %d", i);///
+				printk("data= 0x%x\n", *(spare_buf + i));///
 			}
 		}
 		if (errbit_num != 0) {
@@ -723,6 +730,7 @@ int sp_pnand_read_page_lp(struct nand_chip *nand, uint8_t *buf)
 	int real_pg;
 	u8  data_empty, spare_empty;
 	u32 *lbuf;
+	u32 data_size;
 
 	#if defined(CONFIG_PNANDC_TOSHIBA_TC58NVG4T2ETA00) ||\
 		defined(CONFIG_PNANDC_SAMSUNG_K9ABGD8U0B)
@@ -784,9 +792,23 @@ retry:
 			if(chk_data_0xFF == 1) {
 
 				lbuf = (u32 *)buf;
-				for (i = 0; i < (mtd->writesize >> 2); i++) {
+#if 0//debug
+				if(real_pg == 0) {
+					printk("Dump Page 0:\n");
+					data_size = info->sector_per_page << info->eccbasft;
+					for (i = 0; i < (data_size >> 4); i++) {
+						printk("%04xh:", 16*i);
+						for(int j = 0; j < 16; j++) {
+							printk("%02x ", *((u8 *)lbuf+j+16*i));
+						}
+						printk("\n");
+					}
+				}
+#endif
+				data_size = info->sector_per_page << info->eccbasft;
+				for (i = 0; i < (data_size >> 2); i++) {
 					if (*(lbuf + i) != 0xFFFFFFFF) {
-						printk(KERN_ERR "ECC err @ page0x%x real:0x%x\n",
+						printk(KERN_ERR "22ECC err @ page0x%x real:0x%x\n",
 							info->page_addr, real_pg);
 						data_empty = 0;
 						break;
@@ -800,7 +822,7 @@ retry:
 				if (readl(info->io_base + MEM_ATTR_SET) & BI_BYTE_MASK) {
 					for (i = 0; i < mtd->oobsize; i++) {
 						if (*(nand->oob_poi + i) != 0xFF) {
-							printk(KERN_ERR "ECC err for spare(Read page) @");
+							printk(KERN_ERR "1ECC err for spare(Read page) @");
 							printk(KERN_ERR	"ch:%d ce:%d page0x%x real:0x%x\n",
 								info->cur_chan, info->sel_chip, info->page_addr, real_pg);
 							spare_empty = 0;
@@ -811,7 +833,7 @@ retry:
 				else {
 				//~lichun
 					if(sp_pnand_check_bad_spare(nand, info->page_addr)) {
-						printk(KERN_ERR "ECC err for spare(Read page) @");
+						printk(KERN_ERR "2ECC err for spare(Read page) @");
 						printk(KERN_ERR	"ch:%d ce:%d page0x%x real:0x%x\n",
 							info->cur_chan, info->sel_chip, info->page_addr, real_pg);
 						spare_empty = 0;
