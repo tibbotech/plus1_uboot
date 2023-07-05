@@ -52,7 +52,7 @@ static struct sp_pnand_attr nand_attr[] = {
 	{"GigaDevice 9FU4G8F4BMGI",
 		256, 2, 9, 4, 64, 1, LEGACY_FLASH},	/* 4K SLC */
 	{"Samsung K9GBG08U0B",
-		1024, 2, 9, 4, 128, 1, LEGACY_FLASH},	/* 4K SLC */
+		1024, 2, 9, 4, 128, 1, LEGACY_FLASH},	/* 8K MLC */
 };
 
 /* Note: The unit of tWPST/tRPST/tWPRE/tRPRE field of sp_pnand_chip_timing is ns.
@@ -1417,7 +1417,7 @@ void sp_pnand_set_ecc_for_bblk(struct sp_pnand_info *temp_info, int restore)
 		temp_info->eccbasft = info->eccbasft;
 		temp_info->sector_per_page = info->sector_per_page;
 		temp_oobsize = mtd->oobsize;
-		mtd->oobsize = 64;
+		mtd->oobsize = info->spare;// used to compose nand_header
 		info->useecc = 60;
 		info->useecc_spare = 4;
 		info->eccbasft = 10;//(1 << 10) = 1024 byte
@@ -1698,12 +1698,14 @@ int sp_pnand_flash_param_set(struct sp_pnand_info *info)
 {
 	int sel;
 
-#if defined (CONFIG_PNANDC_SAMSUNG_K9F4G08U0A) || defined (CONFIG_PNANDC_SAMSUNG_K9F2G08U0A)
+#if defined (CONFIG_PNANDC_SAMSUNG_K9F2G08U0A)
 	sel = 0;
 #elif defined (CONFIG_PNANDC_GIGADEVICE_9AU4G8F3AMGI)
 	sel = 1;
 #elif defined (CONFIG_PNANDC_GIGADEVICE_9FU4G8F4BMGI)
 	sel = 2;
+#elif defined (CONFIG_PNANDC_SAMSUNG_K9GBG08U0B)
+	sel = 3;
 #else
 	sel = -1;
 #endif
