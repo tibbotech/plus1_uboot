@@ -242,22 +242,49 @@ static int dw_adjust_link(struct dw_eth_dev *priv, struct eth_mac_regs *mac_p,
 			  struct phy_device *phydev)
 {
 	u32 conf = readl(&mac_p->conf) | FRAMEBURSTENABLE | DISABLERXOWN;
+#ifdef CONFIG_CLK
+	u32 clk_rate,clk_for_link_now = 0;
+#endif
 
 	if (!phydev->link) {
 		printf("%s: No link.\n", phydev->dev->name);
 		return 0;
 	}
 
-	if (phydev->speed != 1000)
+	if (phydev->speed != 1000) {
 		conf |= MII_PORTSELECT;
-	else
+#ifdef CONFIG_CLK
+		if (phydev->speed == 10) {
+			clk_for_link_now = 2500000;
+		}
+#endif
+	}
+	else {
 		conf &= ~MII_PORTSELECT;
+#ifdef CONFIG_CLK
+		clk_for_link_now = 125000000;
+#endif
+	}
 
-	if (phydev->speed == 100)
+	if (phydev->speed == 100) {
 		conf |= FES_100;
+#ifdef CONFIG_CLK
+		clk_for_link_now = 25000000;
+#endif
+	}
 
 	if (phydev->duplex)
 		conf |= FULLDPLXMODE;
+
+#ifdef CONFIG_CLK
+	if (clk_for_link_now) {
+		clk_rate = clk_get_rate(priv->clocks);
+		printf("GMAC clock current = %d \n",clk_rate);
+		clk_set_rate(priv->clocks, clk_for_link_now);
+		clk_rate = clk_get_rate(priv->clocks);
+		printf("GMAC clock switch to %d \n",clk_rate);
+	}
+#endif
 
 	writel(conf, &mac_p->conf);
 
