@@ -7,10 +7,13 @@
 
 /***********************************
 |---------------------------|
-|        kernel data        |
+|        uImage header      |
 |---------------------------|
+|            data           |
 |---------------------------|
-|      sig data(256byte)    |
+|       sign (256byte)      |
+|---------------------------|
+|     rsakey_N (256byte)    |
 |---------------------------|
 ***********************************/
 
@@ -69,15 +72,10 @@ static void reverse_buf(u8 *buf, u32 len)
 #define BATCH_SZ	(0xffff / (BLOCK_SZ * 4) * (BLOCK_SZ * 4))
 
 static volatile struct sp_crypto_reg *reg = (void *)SP_CRYPTO_REG_BASE;
-static u8 rsakey_E[RSA_KEY_SZ] = { 0x01, 0x00, 0x01 };
-static u8 rsakey_N[RSA_KEY_SZ] = {
-#include "rsakey_N.h"
-};
+static u8 *rsakey_E, *rsakey_N;
+static u8 *dst, *p2;
 
-static u8 dst[RSA_KEY_SZ];
-static u8 p2[RSA_KEY_SZ];
-
-static u8 *sp_hash(u8 *data, u32 len)
+static u8 *sp_hash(u8 *data, int len)
 {
 	u8 *buf = (u8 *)ALIGN((uintptr_t)p2, 32);
 	u32 padding;
@@ -103,7 +101,7 @@ static u8 *sp_hash(u8 *data, u32 len)
 		u32 bs = MIN(len, BATCH_SZ);
 
 		reg->HASHSPTR = (uintptr_t)data;
-		reg->HASHDMACS = (bs << 16) | 1;
+		reg->HASHDMACS = SEC_DMA_SIZE(bs) | SEC_DMA_ENABLE;
 
 		while (!(reg->SECIF & HASH_DMA_IF));
 		reg->SECIF = HASH_DMA_IF; // clear hash dma finish flag
@@ -130,7 +128,7 @@ static long long mont_w(unsigned char *mod)
 	return (-t);
 }
 
-static int sp_expmod(u8 *dst, u8 *src, u8 *e, u8 *n, u32 size)
+static void sp_expmod(u8 *dst, u8 *src, u8 *e, u8 *n, u32 len)
 {
 	reg->RSADPTR  = (uintptr_t)dst;
 	reg->RSASPTR  = (uintptr_t)src;
@@ -148,12 +146,10 @@ static int sp_expmod(u8 *dst, u8 *src, u8 *e, u8 *n, u32 size)
 	}
 
 	flush_dcache_all();
-	reg->RSADMACS = RSA_DMA_SIZE(size) | RSA_DMA_ENABLE;
+	reg->RSADMACS = SEC_DMA_SIZE(len) | SEC_DMA_ENABLE;
 
 	while (!(reg->SECIF & RSA_DMA_IF));
 	reg->SECIF = RSA_DMA_IF; // clear rsa dma finish flag
-
-	return 0;
 }
 
 #define HEADER_SZ	(sizeof(struct image_header))
@@ -163,38 +159,46 @@ static int do_verify(struct cmd_tbl *cmdtp, int flag, int argc, char * const arg
 	if (argc < 2)
 		return CMD_RET_USAGE;
 
-	u8 *k = (u8 *)simple_strtoul(argv[1], NULL, 0); // uImage start addr
-	u32 imgsize = HEADER_SZ + image_get_data_size((image_header_t  *)k); // uImage size, without sign
-	u8 *src = k + imgsize;
-	ulong t0, t1;  /* unit:ms */
+	image_header_t *hdr = (void *)simple_strtoul(argv[1], NULL, 0);
+	u32 data_size = image_get_size(hdr) - (RSA_KEY_SZ * 2);
+	u8 *data = (u8 *)image_get_data(hdr);
+	u8 *src = data + data_size; // sign
+	u32 t0, t1;  /* unit:ms */
 	int ret;
-
-	//prn_dump("uImage header", k, 0x50);
-	//prn_dump("sign (encrypted hash)", src, RSA_KEY_SZ);
 
 	t0 = get_timer(0);
 
+	/* initial buffers */
+	//prn_dump(image_get_name(hdr), (u8 *)hdr, 0x50);
+	//prn_dump("sign (encrypted hash)", src, RSA_KEY_SZ);
+	rsakey_N = src + (RSA_KEY_SZ * 1);
+	//prn_dump("rsakey_N:", rsakey_N, RSA_KEY_SZ);
+	rsakey_E = src + (RSA_KEY_SZ * 2);
+	memset(rsakey_E, 0, RSA_KEY_SZ);
+	rsakey_E[0] = rsakey_E[2] = 1;
+	//prn_dump("rsakey_E:", rsakey_E, RSA_KEY_SZ);
+	dst      = src + (RSA_KEY_SZ * 3);
+	p2       = src + (RSA_KEY_SZ * 4);
+
 	/* public key decrypt */
-	reverse_buf(rsakey_N, RSA_KEY_SZ);
-	reverse_buf(src, RSA_KEY_SZ);
-	ret = sp_expmod(dst, src, rsakey_E, rsakey_N, RSA_KEY_SZ);
+	sp_expmod(dst, src, rsakey_E, rsakey_N, RSA_KEY_SZ);
 	reverse_buf(dst, HASH_SZ);
 
-	/* hash uImage */
-	src = sp_hash(k, imgsize);
+	/* hash data */
+	src = sp_hash(data, data_size);
 
- 	/* verify sign */
+	/* verify sign */
 	ret = memcmp(dst, src, HASH_SZ);
 
 	t1 = get_timer(t0);
 
 	//prn_dump("decrypted hash", dst, HASH_SZ);
 	//prn_dump("hash", src, HASH_SZ);
-	printf("Verify signature (%lu ms): %d\n", t1, ret);
+	printf("%s verify signature ... %u ms: %d\n", image_get_name(hdr), t1, ret);
 
 	if (ret) {
-		printf("Verify kernel signature failed, stop booting !!!\n");
-		while (1); // verify fail, stop boot kernel
+		printf("%s verify fail !!\nhalt!", image_get_name(hdr));
+		while (1);
 	}
 	return ret;
 }

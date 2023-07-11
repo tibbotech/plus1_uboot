@@ -182,10 +182,10 @@ struct sp_crypto_reg {
 	 *   when DMA finishes
 	 */
 	unsigned int RSADMACS;
-#define RSA_DMA_ENABLE  (1 << 0)
-#define RSA_DATA_BE     (1 << 3)
-#define RSA_DATA_LE     (0 << 3)
-#define RSA_DMA_SIZE(x) (x << 16)
+#define SEC_DMA_ENABLE  (1 << 0)
+#define SEC_DATA_BE     (1 << 3)
+#define SEC_DATA_LE     (0 << 3)
+#define SEC_DMA_SIZE(x) (x << 16)
 
 	/*123.13 RSA Source Data pointer (RSASPTR)
 	 *   SPTR        31:0    RW Source(X) address Z=X**Y (mod N),
