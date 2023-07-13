@@ -15,22 +15,6 @@ typedef unsigned short UINT16;
 typedef unsigned char UINT8;
 typedef unsigned char BYTE;
 
-
-//#define ALL_DEBUG
-#ifdef ALL_DEBUG
-#define diag_printf(fmt, arg...)        printf(fmt, ##arg)
-#else
-#define diag_printf(s...)               ((void)0)
-#endif
-
-//#define DEBUG
-#ifdef DEBUG
-#define msg_printf(fmt, arg...)         printf(fmt, ##arg)
-#else
-#define msg_printf(s...)                ((void)0)
-#endif
-
-
 #define SP_SPINOR_DMA                   1
 
 #define CFG_BUFF_MAX                    (18 << 10)
