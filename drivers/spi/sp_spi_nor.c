@@ -117,10 +117,9 @@ static void spi_readcmd_set(UINT8 cmd)
 {
 	SPI_ENHANCE enhance;
 
+	pr_debug("%s\n", __FUNCTION__);
 	enhance.enhance_en = 0;
 	enhance.enhance_bit_mode = 0;
-	diag_printf("%s\n",__FUNCTION__);
-
 	switch (cmd) {
 	case 0x0B: // Fast read
 		spi_nor_io_CUST_config(CMD_1,ADDR_1,DATA_1,enhance,DUMMY_CYCLE(8));
@@ -157,18 +156,17 @@ static int spi_flash_xfer_DMAread(struct sp_spi_nor_priv *priv,UINT8 *cmd, size_
 	int    value;
 	struct spinorbufdesc *desc_r = &priv->rchain;
 
-	diag_printf("%s\n",__FUNCTION__);
-	msg_printf("DMA read: data length 0x%x, cmd[0] 0x%x\n", data_len, cmd[0]);
+	pr_debug("%s\n", __FUNCTION__);
+	//pr_debug("DMA read: data length 0x%lx, cmd[0] 0x%x\n", data_len, cmd[0]);
 	while ((spi_reg->spi_auto_cfg & DMA_TRIGGER) || (spi_reg->spi_ctrl & SPI_CTRL_BUSY)) {
 		time++;
 		if (time > 0x30000) {
-			 msg_printf("##busy check time out: spi_auto_cfg 0x%x spi_ctrl 0x%x\n", spi_reg->spi_auto_cfg, spi_reg->spi_ctrl);
+			 pr_err("##busy check time out: spi_auto_cfg 0x%x spi_ctrl 0x%x\n", spi_reg->spi_auto_cfg, spi_reg->spi_ctrl);
 			 break;
 		}
 	}
 
-	msg_printf("data length %d buff size 0x%x\n",data_len, desc_r->size);
-
+	//pr_debug("data length %d buff size 0x%x\n",data_len, desc_r->size);
 	spi_readcmd_set(cmd[0]);
 	ctrl = spi_reg->spi_ctrl & (CLEAR_CUST_CMD & (~(1<<19)));
 	ctrl |= (READ | BYTE_0 | ADDR_0B);
@@ -180,7 +178,7 @@ static int spi_flash_xfer_DMAread(struct sp_spi_nor_priv *priv,UINT8 *cmd, size_
 	}
 
 	spi_reg->spi_ctrl = ctrl;
-	msg_printf("data ctrl 0x%x\n",ctrl);
+	pr_debug("data ctrl 0x%x\n", ctrl);
 	spi_reg->spi_page_size = 0x100<<4;
 	do {
 		spi_reg->spi_page_addr = addr_temp;
@@ -191,7 +189,7 @@ static int spi_flash_xfer_DMAread(struct sp_spi_nor_priv *priv,UINT8 *cmd, size_
 			temp_len = data_len;
 			data_len = 0;
 		}
-		msg_printf("remain len  0x%x\n", data_len);
+		pr_debug("remain len 0x%lx\n", data_len);
 
 		value = (spi_reg->spi_cfg0 & CLEAR_DATA64_LEN) |  temp_len | DATA64_EN;
 		if (cmd[0] == 5)//need to check
@@ -199,9 +197,8 @@ static int spi_flash_xfer_DMAread(struct sp_spi_nor_priv *priv,UINT8 *cmd, size_
 		spi_reg->spi_cfg0 = value;
 
 		spi_reg->spi_mem_data_addr = desc_r->phys;
-		msg_printf("dma addr 0x%x\n", spi_reg->spi_mem_data_addr);
-		msg_printf("spi_auto_cfg  0x%x\n", spi_reg->spi_auto_cfg);
-
+		pr_debug("spi_auto_cfg 0x%x, dma addr 0x%x\n", spi_reg->spi_auto_cfg, spi_reg->spi_mem_data_addr);
+		
 		autocfg = (cmd[0]<<24)|(1<<20)| DMA_TRIGGER;
 		value = (spi_reg->spi_auto_cfg &(~(0xff<<24))) | autocfg;
 
@@ -209,8 +206,15 @@ static int spi_flash_xfer_DMAread(struct sp_spi_nor_priv *priv,UINT8 *cmd, size_
 		spi_reg->spi_intr_sts = 0x07;
 
 		spi_reg->spi_auto_cfg = value;
-
-		while (( spi_reg->spi_intr_sts & 0x2) == 0x0);
+		time = 0;
+		while ((spi_reg->spi_intr_sts & 0x2) == 0x0) {
+			time++;
+			if (time > 0x90000) {
+				pr_err("#####spi_reg->spi_intr_sts time out: 0x%x spi_auto_cfg 0x%x spi_ctrl 0x%x\n", spi_reg->spi_intr_sts, spi_reg->spi_auto_cfg, spi_reg->spi_ctrl);
+				data_len = 0;
+				break;
+			}
+		}
 
 		spi_reg->spi_intr_sts |= 0x02;
 		spi_reg->spi_intr_msk = 0;
@@ -218,7 +222,7 @@ static int spi_flash_xfer_DMAread(struct sp_spi_nor_priv *priv,UINT8 *cmd, size_
 		while ((spi_reg->spi_ctrl & SPI_CTRL_BUSY)!=0) {
 			time++;
 			if (time > 0x20000) {
-				msg_printf("##busy check time out: spi_auto_cfg 0x%x spi_ctrl 0x%x\n", spi_reg->spi_auto_cfg, spi_reg->spi_ctrl);
+				pr_err("#####busy check time out: spi_auto_cfg 0x%x spi_ctrl 0x%x\n", spi_reg->spi_auto_cfg, spi_reg->spi_ctrl);
 				data_len = 0;
 				break;
 			}
@@ -248,23 +252,23 @@ static int spi_flash_xfer_DMAwrite(struct sp_spi_nor_priv *priv, UINT8 *cmd, siz
 	int    value;
 	struct spinorbufdesc *desc_w = &priv->wchain;
 
-	diag_printf("%s\n",__FUNCTION__);
-	msg_printf("DMA write: wdata length %d, cmd 0x%x\n", data_len, cmd[0]);
+	pr_debug("%s, DMA write: wdata length %ld, cmd 0x%x\n", __FUNCTION__, data_len, cmd[0]);
 
 	while ((spi_reg->spi_auto_cfg & DMA_TRIGGER) || (spi_reg->spi_ctrl & SPI_CTRL_BUSY)) {
 		time++;
 		if (time > 0x30000) {
-			 msg_printf("##busy check time out: spi_auto_cfg 0x%x spi_ctrl 0x%x\n", spi_reg->spi_auto_cfg, spi_reg->spi_ctrl);
+			 pr_err("#####busy check time out: spi_auto_cfg 0x%x spi_ctrl 0x%x\n", spi_reg->spi_auto_cfg, spi_reg->spi_ctrl);
 			 break;
 		}
 	}
 
 	spi_readcmd_set(cmd[0]);
-	ctrl = spi_reg->spi_ctrl & (CLEAR_CUST_CMD & (~(1<<19)));
+	ctrl = spi_reg->spi_ctrl & (CLEAR_CUST_CMD & (~(1 << 19)));
 	ctrl |= (WRITE | BYTE_0 | ADDR_0B | (1<<19));
 	if (cmd[0] == 6)//need to check
-		ctrl &= ~(1<<19);
-
+		ctrl &= ~(1 << 19);
+	
+	spi_reg->spi_page_addr = 0;	
 	spi_reg->spi_data = 0;
 	if (cmd_len > 1) {
 		addr_temp = (cmd[1] << 16) | (cmd[2] << 8) | cmd[3];
@@ -272,6 +276,7 @@ static int spi_flash_xfer_DMAwrite(struct sp_spi_nor_priv *priv, UINT8 *cmd, siz
 	}
 
 	spi_reg->spi_ctrl = ctrl;
+	pr_debug("spi_reg->spi_ctrl 0x%x\n", spi_reg->spi_ctrl);
 	spi_reg->spi_page_size = 0x100<<4;
 	do {
 		spi_reg->spi_page_addr = addr_temp;
@@ -290,8 +295,8 @@ static int spi_flash_xfer_DMAwrite(struct sp_spi_nor_priv *priv, UINT8 *cmd, siz
 		}
 
 		value =  spi_reg->spi_cfg0;
-#if defined(CONFIG_SOC_Q645) || defined(CONFIG_SOC_SP7350)
-		spi_reg->spi_cfg0 = (value & CLEAR_DATA64_LEN) | temp_len | (1<<19);//| DATA64_EN;
+#if defined(CONFIG_TARGET_PENTAGRAM_Q645) || defined(CONFIG_TARGET_PENTAGRAM_SP7350)
+		spi_reg->spi_cfg0 = (value & CLEAR_DATA64_LEN) | temp_len | (1<<19);//| DATA64_EN;	
 #else
 		spi_reg->spi_cfg0 = (value & CLEAR_DATA64_LEN) | temp_len;//| DATA64_EN;
 #endif
@@ -301,20 +306,30 @@ static int spi_flash_xfer_DMAwrite(struct sp_spi_nor_priv *priv, UINT8 *cmd, siz
 		value = (spi_reg->spi_auto_cfg & (~(0xff<<8))) | autocfg;
 
 		spi_reg->spi_intr_msk = (0x2<<1);
-		spi_reg->spi_intr_sts = 0x07;
+		spi_reg->spi_intr_sts = 0x7;
 
 		spi_reg->spi_auto_cfg =  value;
-
-		while (( spi_reg->spi_intr_sts & 0x2) == 0x0);
+		time = 0;
+		//printf("spi_reg->spi_auto_cfg 0x%x\n", spi_reg->spi_auto_cfg);
+		//printf("spi_reg->spi_cfg0 0x%x\n", spi_reg->spi_cfg0);
+		//printf("spi_reg->spi_cfg1 0x%x\n", spi_reg->spi_cfg1);
+		//printf("spi_reg->spi_cfg2 0x%x\n", spi_reg->spi_cfg2);
+		while ((spi_reg->spi_intr_sts & 0x2) == 0x0) {
+			time++;
+			if (time > 0x90000) {
+				pr_err("#####spi_reg->spi_intr_sts 0x%x time out: spi_auto_cfg 0x%x spi_ctrl 0x%x\n", spi_reg->spi_intr_sts, spi_reg->spi_auto_cfg, spi_reg->spi_ctrl);
+				data_len = 0;
+				break;
+			}
+		}
 
 		spi_reg->spi_intr_sts |= 0x02;
 		spi_reg->spi_intr_msk = 0;
 		time = 0;
-
 		while ((spi_reg->spi_ctrl & SPI_CTRL_BUSY) != 0) {
 			time++;
 			if (time > 0x30000) {
-				msg_printf("##busy check time out: spi_auto_cfg 0x%x spi_ctrl 0x%x\n", spi_reg->spi_auto_cfg, spi_reg->spi_ctrl);
+				pr_err("#####busy check time out: spi_auto_cfg 0x%x spi_ctrl 0x%x\n", spi_reg->spi_auto_cfg, spi_reg->spi_ctrl);
 				data_len = 0;
 				break;
 			}
@@ -335,12 +350,10 @@ static void spi_fast_read_enable(void)
 {
 	SPI_ENHANCE enhance;
 
+	pr_debug("%s\n", __FUNCTION__);
 	enhance.enhance_en = 0;
-	diag_printf("%s\n",__FUNCTION__);
-
-	while ((spi_reg->spi_ctrl & SPI_CTRL_BUSY) != 0) {
-		msg_printf("wait spi_reg->spi_ctrl 0x%x\n",spi_reg->spi_ctrl);
-	}
+	while ((spi_reg->spi_ctrl & SPI_CTRL_BUSY) != 0)
+		pr_debug("wait spi_reg->spi_ctrl 0x%x\n",spi_reg->spi_ctrl);
 
 	spi_reg->spi_ctrl = A_CHIP | SPI_CLK_D_16;
 	spi_nor_io_CUST_config(CMD_1,ADDR_1,DATA_1,enhance,DUMMY_CYCLE(8));
@@ -350,12 +363,10 @@ static void spi_fast_read_disable(void)
 {
 	SPI_ENHANCE enhance;
 
+	pr_debug("%s\n", __FUNCTION__);
 	enhance.enhance_en = 0;
-	diag_printf("%s\n",__FUNCTION__);
-
-	while ((spi_reg->spi_ctrl & SPI_CTRL_BUSY) != 0) {
-		msg_printf("wait spi_reg->spi_ctrl 0x%x\n",spi_reg->spi_ctrl);
-	}
+	while ((spi_reg->spi_ctrl & SPI_CTRL_BUSY) != 0)
+		pr_debug("wait spi_reg->spi_ctrl 0x%x\n", spi_reg->spi_ctrl);
 
 	spi_reg->spi_ctrl = A_CHIP | SPI_CLK_D_32;
 	spi_nor_io_CUST_config(CMD_1,ADDR_1,DATA_1,enhance,DUMMY_CYCLE(0));
@@ -365,28 +376,26 @@ static UINT8 spi_nor_read_status1(void)
 {
 	UINT32 ctrl;
 
-	diag_printf("%s\n",__FUNCTION__);
+	pr_debug("%s\n", __FUNCTION__);
 
 	ctrl = spi_reg->spi_ctrl & CLEAR_CUST_CMD;
 	ctrl = ctrl | READ | BYTE_0 | ADDR_0B | CUST_CMD(0x05);
-	while ((spi_reg->spi_ctrl & SPI_CTRL_BUSY) != 0) {
-		msg_printf("wait spi_reg->spi_ctrl 0x%x\n",spi_reg->spi_ctrl);
-	}
+	while ((spi_reg->spi_ctrl & SPI_CTRL_BUSY) != 0)
+		pr_debug("wait spi_reg->spi_ctrl 0x%x\n", spi_reg->spi_ctrl);
 
 	spi_reg->spi_data = 0;
 	spi_reg->spi_ctrl = ctrl;
 	spi_reg->spi_auto_cfg |= PIO_TRIGGER;
-	while ((spi_reg->spi_auto_cfg & PIO_TRIGGER) != 0) {
-		msg_printf("wait PIO_TRIGGER\n");
-	}
+	pr_debug("wait PIO_TRIGGER\n")
+	while ((spi_reg->spi_auto_cfg & PIO_TRIGGER) != 0)
+		;
 
-	msg_printf("spi_reg->spi_status 0x%x\n",spi_reg->spi_status);
+	pr_debug("spi_reg->spi_status 0x%x\n", spi_reg->spi_status);
 	return (spi_reg->spi_status&0xff);
 }
 
 static int spi_flash_xfer_read(UINT8 *cmd, size_t cmd_len, void *data, size_t data_len)
 {
-	diag_printf("%s\n",__FUNCTION__);
 	UINT32 total_count = data_len;
 	UINT32 data_count;
 	UINT32 addr_offset = 0;
@@ -398,7 +407,7 @@ static int spi_flash_xfer_read(UINT8 *cmd, size_t cmd_len, void *data, size_t da
 	UINT32 ctrl = 0;
 	int    fast_read = 0;
 
-	msg_printf("data length %d\n",data_len);
+	pr_debug("%s, data length %d\n", __FUNCTION__, data_len);
 	while (total_count > 0) {
 		if (total_count > SPI_DATA64_MAX_LEN) {
 			total_count = total_count - SPI_DATA64_MAX_LEN;
@@ -408,9 +417,8 @@ static int spi_flash_xfer_read(UINT8 *cmd, size_t cmd_len, void *data, size_t da
 			total_count = 0;
 		}
 
-		while ((spi_reg->spi_ctrl & SPI_CTRL_BUSY) != 0) {
-			msg_printf("wait spi_reg->spi_ctrl 0x%x\n",spi_reg->spi_ctrl);
-		}
+		while ((spi_reg->spi_ctrl & SPI_CTRL_BUSY) != 0)
+			pr_debug("wait spi_reg->spi_ctrl 0x%x\n", spi_reg->spi_ctrl);
 
 		ctrl = spi_reg->spi_ctrl & CLEAR_CUST_CMD;
 		ctrl = ctrl | READ | BYTE_0 | ADDR_0B | CUST_CMD(cmd[0]);
@@ -423,7 +431,7 @@ static int spi_flash_xfer_read(UINT8 *cmd, size_t cmd_len, void *data, size_t da
 			addr_temp = addr_temp + addr_offset * SPI_DATA64_MAX_LEN;
 			spi_reg->spi_page_addr = addr_temp;
 			ctrl = ctrl | ADDR_3B;
-			msg_printf("addr 0x%x\n", spi_reg->spi_page_addr);
+			pr_debug("addr 0x%x\n", spi_reg->spi_page_addr);
 		}
 
 		if (cmd[0] == CMD_FAST_READ) {
@@ -434,9 +442,9 @@ static int spi_flash_xfer_read(UINT8 *cmd, size_t cmd_len, void *data, size_t da
 		spi_reg->spi_data = 0;
 		spi_reg->spi_ctrl = ctrl;
 		spi_reg->spi_auto_cfg |= PIO_TRIGGER;
-		//msg_printf("spi_reg->spi_ctrl 0x%x\n", spi_reg->spi_ctrl);
-		//msg_printf("spi_reg->spi_page_addr 0x%x\n", spi_reg->spi_page_addr);
-		//msg_printf("spi_reg->spi_cfg0 0x%x\n", spi_reg->spi_cfg0);
+		//pr_debug("spi_reg->spi_ctrl 0x%x\n", spi_reg->spi_ctrl);
+		//pr_debug("spi_reg->spi_page_addr 0x%x\n", spi_reg->spi_page_addr);
+		//pr_debug("spi_reg->spi_cfg0 0x%x\n", spi_reg->spi_cfg0);
 
 		if (cmd[0] == CMD_READ_STATUS) {
 			data_in[0] = spi_reg->spi_status& 0xff;
@@ -449,13 +457,13 @@ static int spi_flash_xfer_read(UINT8 *cmd, size_t cmd_len, void *data, size_t da
 				while (spi_reg->spi_status_2 & SRAM_EMPTY) {
 					timeout = AV1_GetStc32();
 					if ((timeout - time) > SPI_TIMEOUT) {
-						msg_printf("timeout\n");
+						pr_err("timeout1\n");
 						break;
 					}
 				}
 
 				data_temp = spi_reg->spi_data64;
-				//msg_printf("data_temp 0x%x\n",data_temp);
+				//pr_debug("data_temp 0x%x\n",data_temp);
 				data_in[0] = data_temp & 0xff;
 				data_in[1] = ((data_temp & 0xff00) >> 8);
 				data_in[2] = ((data_temp & 0xff0000) >> 16);
@@ -467,13 +475,13 @@ static int spi_flash_xfer_read(UINT8 *cmd, size_t cmd_len, void *data, size_t da
 				while (spi_reg->spi_status_2 & SRAM_EMPTY) {
 					timeout = AV1_GetStc32();
 					if ((timeout - time) > SPI_TIMEOUT) {
-						msg_printf("timeout\n");
+						pr_err("timeout2\n");
 						break;
 					}
 				}
 
 				data_temp = spi_reg->spi_data64;
-				//msg_printf("data_temp 0x%x\n",data_temp);
+				//pr_debug("data_temp 0x%x\n",data_temp);
 				if (data_count == 3) {
 					data_in[0] = data_temp & 0xff;
 					data_in[1] = ((data_temp & 0xff00) >> 8);
@@ -494,29 +502,26 @@ static int spi_flash_xfer_read(UINT8 *cmd, size_t cmd_len, void *data, size_t da
 		}
 
 		addr_offset = addr_offset + 1;
-		while ((spi_nor_read_status1() & 0x01) != 0) {
-			msg_printf("wait DEVICE busy\n");
-		}
+		pr_debug("wait DEVICE busy\n")
+		while ((spi_nor_read_status1() & 0x01) != 0)
+			;
 	}
+	pr_debug("wait PIO_TRIGGER\n")
+	while ((spi_reg->spi_auto_cfg & PIO_TRIGGER) != 0)
+		;
 
-	while ((spi_reg->spi_auto_cfg & PIO_TRIGGER) != 0) {
-		msg_printf("wait PIO_TRIGGER\n");
-	}
-
-	while ((spi_reg->spi_ctrl & SPI_CTRL_BUSY) != 0) {
-		msg_printf("wait spi_reg->spi_ctrl 0x%x\n",spi_reg->spi_ctrl);
-	}
+	while ((spi_reg->spi_ctrl & SPI_CTRL_BUSY) != 0)
+		pr_debug("wait spi_reg->spi_ctrl 0x%x\n", spi_reg->spi_ctrl);
 
 	spi_reg->spi_cfg0 &= DATA64_DIS;
-	if (fast_read == 1) {
+	if (fast_read == 1)
 		spi_fast_read_disable();
-	}
+
 	return 0;
 }
 
 static int spi_flash_xfer_write(UINT8 *cmd, size_t cmd_len, const void *data, size_t data_len)
-{
-	diag_printf("%s\n",__FUNCTION__);
+{	
 	UINT32 total_count = data_len;
 	UINT32 data_count = 0;
 	UINT32 addr_offset = 0;
@@ -527,11 +532,10 @@ static int spi_flash_xfer_write(UINT8 *cmd, size_t cmd_len, const void *data, si
 	UINT32 time = 0;
 	UINT32 ctrl = 0;
 
-	msg_printf("data length %d\n",data_len);
+	pr_debug("%s, data length %d\n", __FUNCTION__, data_len);
 	if (total_count == 0) {
-		while ((spi_reg->spi_ctrl & SPI_CTRL_BUSY) != 0) {
-			msg_printf("wait spi_reg->spi_ctrl 0x%x\n",spi_reg->spi_ctrl);
-		}
+		while ((spi_reg->spi_ctrl & SPI_CTRL_BUSY) != 0)
+			pr_debug("wait spi_reg->spi_ctrl 0x%x\n", spi_reg->spi_ctrl);
 
 		ctrl = spi_reg->spi_ctrl & CLEAR_CUST_CMD;
 		ctrl = ctrl | WRITE | BYTE_0 | ADDR_0B | CUST_CMD(cmd[0]);
@@ -542,15 +546,15 @@ static int spi_flash_xfer_write(UINT8 *cmd, size_t cmd_len, const void *data, si
 			addr_temp = (cmd[1] << 16) | (cmd[2] << 8) | cmd[3];
 			spi_reg->spi_page_addr = addr_temp;
 			ctrl = ctrl | ADDR_3B;
-			msg_printf("addr 0x%x\n", spi_reg->spi_page_addr);
+			pr_debug("addr 0x%x\n", spi_reg->spi_page_addr);
 		}
 
 		spi_reg->spi_data = 0;
 		spi_reg->spi_ctrl = ctrl;
 		spi_reg->spi_auto_cfg |= PIO_TRIGGER;
-		//msg_printf("spi_reg->spi_ctrl 0x%x\n", spi_reg->spi_ctrl);
-		//msg_printf("spi_reg->spi_page_addr 0x%x\n", spi_reg->spi_page_addr);
-		//msg_printf("spi_reg->spi_cfg0 0x%x\n", spi_reg->spi_cfg0);
+		//pr_debug("spi_reg->spi_ctrl 0x%x\n", spi_reg->spi_ctrl);
+		//pr_debug("spi_reg->spi_page_addr 0x%x\n", spi_reg->spi_page_addr);
+		//pr_debug("spi_reg->spi_cfg0 0x%x\n", spi_reg->spi_cfg0);
 	}
 
 	while (total_count > 0) {
@@ -562,9 +566,8 @@ static int spi_flash_xfer_write(UINT8 *cmd, size_t cmd_len, const void *data, si
 			total_count = 0;
 		}
 
-		while ((spi_reg->spi_ctrl & SPI_CTRL_BUSY) != 0) {
-			msg_printf("wait spi_reg->spi_ctrl 0x%x\n",spi_reg->spi_ctrl);
-		}
+		while ((spi_reg->spi_ctrl & SPI_CTRL_BUSY) != 0)
+			pr_debug("wait spi_reg->spi_ctrl 0x%x\n", spi_reg->spi_ctrl);
 
 		ctrl = spi_reg->spi_ctrl & CLEAR_CUST_CMD;
 		ctrl = ctrl | WRITE | BYTE_0 | ADDR_0B | CUST_CMD(cmd[0]);
@@ -575,15 +578,15 @@ static int spi_flash_xfer_write(UINT8 *cmd, size_t cmd_len, const void *data, si
 			addr_temp = addr_temp + addr_offset * SPI_DATA64_MAX_LEN;
 			spi_reg->spi_page_addr = addr_temp;
 			ctrl = ctrl | ADDR_3B;
-			msg_printf("addr 0x%x\n", spi_reg->spi_page_addr);
+			pr_debug("addr 0x%x\n", spi_reg->spi_page_addr);
 		}
 
 		spi_reg->spi_data = 0;
 		spi_reg->spi_ctrl = ctrl;
 		spi_reg->spi_auto_cfg |= PIO_TRIGGER;
-		//msg_printf("spi_reg->spi_ctrl 0x%x\n", spi_reg->spi_ctrl);
-		//msg_printf("spi_reg->spi_page_addr 0x%x\n", spi_reg->spi_page_addr);
-		//msg_printf("spi_reg->spi_cfg0 0x%x\n", spi_reg->spi_cfg0);
+		//pr_debug("spi_reg->spi_ctrl 0x%x\n", spi_reg->spi_ctrl);
+		//pr_debug("spi_reg->spi_page_addr 0x%x\n", spi_reg->spi_page_addr);
+		//pr_debug("spi_reg->spi_cfg0 0x%x\n", spi_reg->spi_cfg0);
 
 		while (data_count > 0) {
 			if ((data_count / 4) > 0) {
@@ -592,7 +595,7 @@ static int spi_flash_xfer_write(UINT8 *cmd, size_t cmd_len, const void *data, si
 					while ((spi_reg->spi_status_2 & SRAM_EMPTY) == 0) {
 						timeout = AV1_GetStc32();
 						if ((timeout - time) > SPI_TIMEOUT) {
-							msg_printf("timeout\n");
+							pr_err("timeout3\n");
 							break;
 						}
 					}
@@ -608,7 +611,7 @@ static int spi_flash_xfer_write(UINT8 *cmd, size_t cmd_len, const void *data, si
 					while ((spi_reg->spi_status_2 & SRAM_EMPTY) == 0) {
 						timeout = AV1_GetStc32();
 						if ((timeout - time) > SPI_TIMEOUT) {
-							msg_printf("timeout\n");
+							pr_err("timeout4\n");
 							break;
 						}
 					}
@@ -633,18 +636,16 @@ static int spi_flash_xfer_write(UINT8 *cmd, size_t cmd_len, const void *data, si
 		}
 		addr_offset = addr_offset + 1;
 
-		while ((spi_nor_read_status1() & 0x01) != 0) {
-			msg_printf("wait DEVICE busy\n");
-		}
+		pr_debug("wait DEVICE busy\n")
+		while ((spi_nor_read_status1() & 0x01) != 0)
+			;
 	}
+	pr_debug("wait PIO_TRIGGER\n")
+	while ((spi_reg->spi_auto_cfg & PIO_TRIGGER) != 0)
+		;
 
-	while ((spi_reg->spi_auto_cfg & PIO_TRIGGER) != 0) {
-		msg_printf("wait PIO_TRIGGER\n");
-	}
-
-	while ((spi_reg->spi_ctrl & SPI_CTRL_BUSY) != 0) {
-		msg_printf("wait spi_reg->spi_ctrl 0x%x\n",spi_reg->spi_ctrl);
-	}
+	while ((spi_reg->spi_ctrl & SPI_CTRL_BUSY) != 0)
+		pr_debug("wait spi_reg->spi_ctrl 0x%x\n", spi_reg->spi_ctrl);
 
 	spi_reg->spi_cfg0 &= DATA64_DIS;
 	return 0;
@@ -657,7 +658,7 @@ static int sp_spi_nor_ofdata_to_platdata(struct udevice *bus)
 	const void *blob = gd->fdt_blob;
 	int node = dev_of_offset(bus);
 
-	msg_printf("%s\n",__FUNCTION__);
+	pr_debug("%s\n", __FUNCTION__);
 	plat->regs = (struct sp_spi_nor_regs *)fdtdec_get_addr(blob, node, "reg");
 	plat->clock = fdtdec_get_int(blob, node, "spi-max-frequency", 50000000);
 	plat->chipsel = fdtdec_get_int(blob, node, "spi-chip-selection", 0);
@@ -679,7 +680,7 @@ static int sp_spi_nor_probe(struct udevice *bus)
 	UINT32 *r_buffer_adr = (UINT32 *)&priv->r_buf[0];
 #endif
 
-	diag_printf("%s\n",__FUNCTION__);
+	pr_debug("%s\n", __FUNCTION__);
 	priv->regs = plat->regs;
 	priv->clock = plat->clock;
 
@@ -687,9 +688,9 @@ static int sp_spi_nor_probe(struct udevice *bus)
 	cmd_buf = malloc(CMD_BUF_LEN * sizeof(UINT8));
 
 #if (SP_SPINOR_DMA)
-	msg_printf("buffsddr 0x%px\n", cmd_buf);
-	msg_printf("wdesc 0x%px rdesc 0x%px\n", wdesc, rdesc);
-	msg_printf("w_buffer_adr 0x%px size 0x%x r_buffer_adr 0x%px\n", w_buffer_adr, CFG_BUFF_MAX, r_buffer_adr);
+	pr_debug("buffsddr 0x%px\n", cmd_buf);
+	pr_debug("wdesc 0x%px rdesc 0x%px\n", wdesc, rdesc);
+	pr_debug("w_buffer_adr 0x%px size 0x%x r_buffer_adr 0x%px\n", w_buffer_adr, CFG_BUFF_MAX, r_buffer_adr);
 	flush_dcache_range((ulong)w_buffer_adr, (ulong)w_buffer_adr + CFG_BUFF_MAX);
 	flush_dcache_range((ulong)r_buffer_adr, (ulong)r_buffer_adr + CFG_BUFF_MAX);
 
@@ -702,14 +703,14 @@ static int sp_spi_nor_probe(struct udevice *bus)
 	tempdesc->size = CFG_BUFF_MAX;
 	tempdesc->phys = (dma_addr_t)r_buffer_adr;
 	flush_dcache_range((ulong)(&priv->rchain),(ulong)(&priv->rchain) + sizeof(priv->rchain));
-	msg_printf("wdesc->phys 0x%x,  rdesc->phys 0x%x\n", wdesc->phys, rdesc->phys);
+	//pr_debug("wdesc->phys 0x%x,  rdesc->phys 0x%llx\n", wdesc->phys, rdesc->phys);
 #endif
 	return 0;
 }
 
 static int sp_spi_nor_remove(struct udevice *dev)
 {
-	diag_printf("%s\n",__FUNCTION__);
+	pr_debug("%s\n", __FUNCTION__);
 	free(cmd_buf);
 	return 0;
 }
@@ -720,7 +721,7 @@ static int sp_spi_nor_claim_bus(struct udevice *dev)
 	struct sp_spi_nor_platdata *plat =  dev_get_plat(bus);;
 	int value = 0;
 
-	diag_printf("%s\n",__FUNCTION__);
+	pr_debug("%s\n", __FUNCTION__);
 
 	if (plat->chipsel == 0)
 		value = A_CHIP;
@@ -766,7 +767,7 @@ static int sp_spi_nor_claim_bus(struct udevice *dev)
 #else
 	spi_reg->spi_timing = (spi_reg->spi_timing & (~0x3)) | plat->rwTimingSel;
 #endif
-	msg_printf("ctrl 0x%x spi_timing 0x%x\n", spi_reg->spi_ctrl, spi_reg->spi_timing);
+	pr_debug("ctrl 0x%x spi_timing 0x%x\n", spi_reg->spi_ctrl, spi_reg->spi_timing);
 
 	spi_reg->spi_cfg1 = SPI_CMD_OEN_1b | SPI_ADDR_OEN_1b | SPI_DATA_OEN_1b | SPI_CMD_1b | SPI_ADDR_1b |
 			    SPI_DATA_1b | SPI_ENHANCE_NO | SPI_DUMMY_CYC(0) | SPI_DATA_IEN_DQ1;
@@ -777,7 +778,7 @@ static int sp_spi_nor_claim_bus(struct udevice *dev)
 
 static int sp_spi_nor_release_bus(struct udevice *dev)
 {
-	diag_printf("%s\n",__FUNCTION__);
+	pr_debug("%s\n", __FUNCTION__);
 	return 0;
 }
 
@@ -791,7 +792,7 @@ static int sp_spi_nor_xfer(struct udevice *dev, unsigned int bitlen,
 	unsigned int len;
 	int flc = 0;
 
-	diag_printf("%s\n", __FUNCTION__);
+	pr_debug("%s\n", __FUNCTION__);
 	if (bitlen == 0)
 		goto out;
 
@@ -805,9 +806,9 @@ static int sp_spi_nor_xfer(struct udevice *dev, unsigned int bitlen,
 			cmd_len = len;
 			memset(cmd_buf, 0, CMD_BUF_LEN);
 			memcpy(cmd_buf, dout, len);
-			msg_printf("cmd 0x%x\n", cmd_buf[0]);
-			msg_printf("addr 0x%x\n", cmd_buf[1] << 16 | cmd_buf[2] << 8 | cmd_buf[3]);
-			msg_printf("cmd len %d, flags %lx\n", len, flags);
+			pr_debug("cmd 0x%x\n", cmd_buf[0]);
+			pr_debug("addr 0x%x\n", cmd_buf[1] << 16 | cmd_buf[2] << 8 | cmd_buf[3]);
+			pr_debug("cmd len %d, flags %lx addr4 0x%x\n", len, flags, cmd_buf[4]);
 		}
 
 		if (!(flags & SPI_XFER_END))
@@ -818,7 +819,7 @@ static int sp_spi_nor_xfer(struct udevice *dev, unsigned int bitlen,
 
 	if (!dout) {
 		// read
-		msg_printf("read\n");
+		pr_debug("===read===>\n");
 #if (SP_SPINOR_DMA)
 		if (cmd_buf[0] == 0x03)
 			cmd_buf[0] = 0xB; //winbond 03 command has 50 MHz limitation
@@ -829,18 +830,16 @@ static int sp_spi_nor_xfer(struct udevice *dev, unsigned int bitlen,
 #endif
 	} else if ((!din) | (flags & SPI_XFER_END)) {
 		// write
+		pr_debug("===write===>\n");
 #if (SP_SPINOR_DMA)
 		if (cmd_buf[0] == 0x06)
-			goto out;
-
-		msg_printf("write\n");
-		if (flc == 1)
+			goto out;	
+		
+		if (flc == 1) // read nor register
 			spi_flash_xfer_DMAwrite(priv, cmd_buf, cmd_len, NULL, 0);
 		else
 			spi_flash_xfer_DMAwrite(priv, cmd_buf, cmd_len, dout, len);
 #else
-		msg_printf("write\n");
-
 		if (flc == 1)
 			spi_flash_xfer_write(cmd_buf, cmd_len, NULL, 0);
 		else
@@ -857,8 +856,6 @@ static int sp_spi_nor_set_speed(struct udevice *bus, uint speed)
 	struct sp_spi_nor_platdata *plat = dev_get_plat(bus);;
 	struct sp_spi_nor_priv *priv = dev_get_priv(bus);
 
-	printf("speed = %d Hz\n", speed);
-
 	if (speed > plat->clock)
 		speed = plat->clock;
 
@@ -874,8 +871,7 @@ static int sp_spi_nor_set_mode(struct udevice *bus, uint mode)
 	struct sp_spi_nor_priv *priv = dev_get_priv(bus);
 	//uint32_t reg;
 
-	diag_printf("%s %d\n",__FUNCTION__, mode);
-
+	pr_debug("%s, mode %d\n", __FUNCTION__, mode);
 	//set spi nor mode
 	debug("%s: regs=%p, mode=%d\n", __func__, priv->regs, priv->mode);
 
