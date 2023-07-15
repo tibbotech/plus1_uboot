@@ -2701,6 +2701,19 @@ static int sp_spinand_test(struct cmd_tbl *cmdtp, int flag, int argc, char * con
 		} else {
 			printk("trs_mode = %d\n", info->trs_mode);
 		}
+	} else if (strncmp(cmd, "rawtrsmode", 10) == 0) {
+		if (argc >= 3) {
+			u32 rawtrsmode = simple_strtoul(argv[2], NULL, 10);
+			if (rawtrsmode >= SPINAND_TRS_MAX) {
+				printk("invalid value!\n");
+				ret = CMD_RET_USAGE;
+			} else {
+				info->raw_trs_mode = rawtrsmode;
+				printk("set raw_trs_mode => %d\n", rawtrsmode);
+			}
+		} else {
+			printk("raw_trs_mode = %d\n", info->raw_trs_mode);
+		}
 	}
 	else if (strncmp(cmd, "wio", 3) == 0) {
 		if (argc >= 3) {
@@ -2802,6 +2815,7 @@ U_BOOT_CMD(ssnand, CONFIG_SYS_MAXARGS, 1, sp_spinand_test,
 	"ssnand timing [clk|dq] - timing test,\n"
 	"\tif 'clk' or 'dq' is specified, means the softpad function of clk or dq is disabled.\n"
 	"ssnand trsmode [value] - set/show trs_mode, 0~3 are allowed.\n"
+	"ssnand rawtrsmode [value] - set/show raw_trs_mode, 0~2 are allowed.\n"
 	"ssnand wio [value] - set/show write_bitmode, 0/2 are allowed.\n"
 	"ssnand rio [value] - set/show read_bitmode, 0/1/2 are allowed.\n"
 	"ssnand clksel [value] - set/show spi_clk_sel, 4~15 are allowed.\n"
