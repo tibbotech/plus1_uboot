@@ -89,9 +89,9 @@
 #ifdef	CONFIG_SYS_ZMEM_SKIP_RELOC
 #undef CONFIG_SYS_ZMEM_SKIP_RELOC
 #endif
-#define SIGN_SIZE                   0x100
+#define SIGN_SIZE                       0x100
 #else
-#define SIGN_SIZE                   0
+#define SIGN_SIZE                       0
 #endif
 
 #ifdef CONFIG_MTD_RAW_NAND
@@ -110,9 +110,9 @@
 #undef CONFIG_SYS_NAND_BASE
 #undef MTDIDS_DEFAULT
 #undef MTDPARTS_DEFAULT
-#define CONFIG_SYS_NAND_BASE           0xf8120000
-#define MTDIDS_DEFAULT                 "nand0=sp_paranand.0"
-#define MTDPARTS_DEFAULT               "sp_paranand.0:128k(nand_header),384k(xboot1),1536k(uboot1),2048k(uboot2),2m(fip),512k(env),512k(env_redund),256k(dtb),25m(kernel),229120k(rootfs)"
+#define CONFIG_SYS_NAND_BASE            0xf8120000
+#define MTDIDS_DEFAULT                  "nand0=sp_paranand.0"
+#define MTDPARTS_DEFAULT                "sp_paranand.0:128k(nand_header),384k(xboot1),1536k(uboot1),2048k(uboot2),2m(fip),512k(env),512k(env_redund),256k(dtb),25m(kernel),229120k(rootfs)"
 #endif
 #endif
 
@@ -424,11 +424,17 @@
 	"printenv serverip; " \
 	"setenv filesize 0; " \
 	"dhcp ${addr_dst_dtb} ${serverip}:dtb" __stringify(USER_NAME) " && " \
-	"dhcp ${addr_dst_kernel} ${serverip}:uImage" __stringify(USER_NAME) "; " \
+	"dhcp ${addr_temp_kernel} ${serverip}:uImage" __stringify(USER_NAME) "; " \
 	"if test $? != 0; then " \
 		"echo Error occurred while getting images from tftp server!; " \
 		"exit; " \
 	"fi; " \
+	"verify ${addr_temp_kernel} ${do_secure}; "\
+	"setexpr addr_temp_kernel ${addr_temp_kernel} + 0x40; " \
+	"setexpr addr_dst_kernel ${addr_dst_kernel} + 0x40; " \
+	"echo unzip ${addr_temp_kernel} ${addr_dst_kernel}; " \
+	"unzip ${addr_temp_kernel} ${addr_dst_kernel}; " \
+	"echo booti ${addr_dst_kernel} - ${addr_dst_dtb}; " \
 	"booti ${addr_dst_kernel} - ${addr_dst_dtb}; " \
 	"\0" \
 "isp_usb=setenv isp_if usb && setenv isp_dev 0; " \
