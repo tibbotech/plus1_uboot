@@ -173,12 +173,15 @@ static int spi_flash_xfer_DMAread(struct sp_spi_nor_priv *priv,UINT8 *cmd, size_
 
 	spi_reg->spi_data = 0;
 	if (cmd_len > 1) {
-		addr_temp = (cmd[1] << 16) | (cmd[2] << 8) | cmd[3];
+		if (cmd_len == 6)
+			addr_temp = (cmd[1] << 24) | (cmd[2] << 16) | (cmd[3] << 8) | cmd[4];
+		else
+			addr_temp = (cmd[1] << 16) | (cmd[2] << 8) | cmd[3];
 		ctrl |= ADDR_3B;
 	}
 
 	spi_reg->spi_ctrl = ctrl;
-	pr_debug("data ctrl 0x%x\n", ctrl);
+	pr_debug("data ctrl 0x%x addr 0x%x\n", ctrl, addr_temp);
 	spi_reg->spi_page_size = 0x100<<4;
 	do {
 		spi_reg->spi_page_addr = addr_temp;
@@ -189,7 +192,7 @@ static int spi_flash_xfer_DMAread(struct sp_spi_nor_priv *priv,UINT8 *cmd, size_
 			temp_len = data_len;
 			data_len = 0;
 		}
-		pr_debug("remain len 0x%lx\n", data_len);
+		pr_debug("remain len 0x%lx, regaddr 0x%x\n", data_len, spi_reg->spi_page_addr);
 
 		value = (spi_reg->spi_cfg0 & CLEAR_DATA64_LEN) |  temp_len | DATA64_EN;
 		if (cmd[0] == 5)//need to check
@@ -198,7 +201,7 @@ static int spi_flash_xfer_DMAread(struct sp_spi_nor_priv *priv,UINT8 *cmd, size_
 
 		spi_reg->spi_mem_data_addr = desc_r->phys;
 		pr_debug("spi_auto_cfg 0x%x, dma addr 0x%x\n", spi_reg->spi_auto_cfg, spi_reg->spi_mem_data_addr);
-		
+
 		autocfg = (cmd[0]<<24)|(1<<20)| DMA_TRIGGER;
 		value = (spi_reg->spi_auto_cfg &(~(0xff<<24))) | autocfg;
 
@@ -267,16 +270,19 @@ static int spi_flash_xfer_DMAwrite(struct sp_spi_nor_priv *priv, UINT8 *cmd, siz
 	ctrl |= (WRITE | BYTE_0 | ADDR_0B | (1<<19));
 	if (cmd[0] == 6)//need to check
 		ctrl &= ~(1 << 19);
-	
-	spi_reg->spi_page_addr = 0;	
+
+	spi_reg->spi_page_addr = 0;
 	spi_reg->spi_data = 0;
 	if (cmd_len > 1) {
-		addr_temp = (cmd[1] << 16) | (cmd[2] << 8) | cmd[3];
+		if (cmd_len == 5)
+			addr_temp = (cmd[1] << 24) | (cmd[2] << 16) | (cmd[3] << 8) | cmd[4];
+		else
+			addr_temp = (cmd[1] << 16) | (cmd[2] << 8) | cmd[3];
 		ctrl |= ADDR_3B;
 	}
 
 	spi_reg->spi_ctrl = ctrl;
-	pr_debug("spi_reg->spi_ctrl 0x%x\n", spi_reg->spi_ctrl);
+	pr_debug("spi_reg->spi_ctrl 0x%x addr 0x%x\n", spi_reg->spi_ctrl, addr_temp);
 	spi_reg->spi_page_size = 0x100<<4;
 	do {
 		spi_reg->spi_page_addr = addr_temp;
@@ -287,7 +293,7 @@ static int spi_flash_xfer_DMAwrite(struct sp_spi_nor_priv *priv, UINT8 *cmd, siz
 			temp_len = data_len;
 			data_len = 0;
 		}
-
+		pr_debug("regaddr 0x%x\n",spi_reg->spi_page_addr);
 		if (temp_len > 0) {
 			memcpy((void *)desc_w->phys, data_in, temp_len); // copy data to dma
 			/* Flush data to be sent */
@@ -296,7 +302,7 @@ static int spi_flash_xfer_DMAwrite(struct sp_spi_nor_priv *priv, UINT8 *cmd, siz
 
 		value =  spi_reg->spi_cfg0;
 #if defined(CONFIG_TARGET_PENTAGRAM_Q645) || defined(CONFIG_TARGET_PENTAGRAM_SP7350)
-		spi_reg->spi_cfg0 = (value & CLEAR_DATA64_LEN) | temp_len | (1<<19);//| DATA64_EN;	
+		spi_reg->spi_cfg0 = (value & CLEAR_DATA64_LEN) | temp_len | (1<<19);//| DATA64_EN;
 #else
 		spi_reg->spi_cfg0 = (value & CLEAR_DATA64_LEN) | temp_len;//| DATA64_EN;
 #endif
@@ -427,7 +433,10 @@ static int spi_flash_xfer_read(UINT8 *cmd, size_t cmd_len, void *data, size_t da
 		spi_reg->spi_buf_addr = DATA64_READ_ADDR(0) | DATA64_WRITE_ADDR(0);
 
 		if (cmd_len > 1) {
-			addr_temp = (cmd[1] << 16) | (cmd[2] << 8) | cmd[3];
+			if (cmd_len == 6)
+				addr_temp = (cmd[1] << 24) | (cmd[2] << 16) | (cmd[3] << 8) | cmd[4];
+			else
+				addr_temp = (cmd[1] << 16) | (cmd[2] << 8) | cmd[3];
 			addr_temp = addr_temp + addr_offset * SPI_DATA64_MAX_LEN;
 			spi_reg->spi_page_addr = addr_temp;
 			ctrl = ctrl | ADDR_3B;
@@ -521,7 +530,7 @@ static int spi_flash_xfer_read(UINT8 *cmd, size_t cmd_len, void *data, size_t da
 }
 
 static int spi_flash_xfer_write(UINT8 *cmd, size_t cmd_len, const void *data, size_t data_len)
-{	
+{
 	UINT32 total_count = data_len;
 	UINT32 data_count = 0;
 	UINT32 addr_offset = 0;
@@ -543,7 +552,10 @@ static int spi_flash_xfer_write(UINT8 *cmd, size_t cmd_len, const void *data, si
 		spi_reg->spi_buf_addr = DATA64_READ_ADDR(0) | DATA64_WRITE_ADDR(0);
 
 		if (cmd_len > 1) {
-			addr_temp = (cmd[1] << 16) | (cmd[2] << 8) | cmd[3];
+			if (cmd_len == 5)
+				addr_temp = (cmd[1] << 24) | (cmd[2] << 16) | (cmd[3] << 8) | cmd[4];
+			else
+				addr_temp = (cmd[1] << 16) | (cmd[2] << 8) | cmd[3];
 			spi_reg->spi_page_addr = addr_temp;
 			ctrl = ctrl | ADDR_3B;
 			pr_debug("addr 0x%x\n", spi_reg->spi_page_addr);
@@ -574,7 +586,10 @@ static int spi_flash_xfer_write(UINT8 *cmd, size_t cmd_len, const void *data, si
 		spi_reg->spi_cfg0 = (spi_reg->spi_cfg0 & CLEAR_DATA64_LEN) | data_count | DATA64_EN;
 		spi_reg->spi_buf_addr = DATA64_READ_ADDR(0) | DATA64_WRITE_ADDR(0);
 		if (cmd_len > 1) {
-			addr_temp = (cmd[1] << 16) | (cmd[2] << 8) | cmd[3];
+			if (cmd_len == 5)
+				addr_temp = (cmd[1] << 24) | (cmd[2] << 16) | (cmd[3] << 8) | cmd[4];
+			else
+				addr_temp = (cmd[1] << 16) | (cmd[2] << 8) | cmd[3];
 			addr_temp = addr_temp + addr_offset * SPI_DATA64_MAX_LEN;
 			spi_reg->spi_page_addr = addr_temp;
 			ctrl = ctrl | ADDR_3B;
@@ -807,8 +822,8 @@ static int sp_spi_nor_xfer(struct udevice *dev, unsigned int bitlen,
 			memset(cmd_buf, 0, CMD_BUF_LEN);
 			memcpy(cmd_buf, dout, len);
 			pr_debug("cmd 0x%x\n", cmd_buf[0]);
-			pr_debug("addr 0x%x\n", cmd_buf[1] << 16 | cmd_buf[2] << 8 | cmd_buf[3]);
-			pr_debug("cmd len %d, flags %lx addr4 0x%x\n", len, flags, cmd_buf[4]);
+			pr_debug("cmd_buf[1~4] 0x%x 0x%x 0x%x 0x%x\n", cmd_buf[1], cmd_buf[2], cmd_buf[3], cmd_buf[4]);
+			pr_debug("cmd len %d, flags %lx\n", len, flags);
 		}
 
 		if (!(flags & SPI_XFER_END))
@@ -833,8 +848,8 @@ static int sp_spi_nor_xfer(struct udevice *dev, unsigned int bitlen,
 		pr_debug("===write===>\n");
 #if (SP_SPINOR_DMA)
 		if (cmd_buf[0] == 0x06)
-			goto out;	
-		
+			goto out;
+
 		if (flc == 1) // read nor register
 			spi_flash_xfer_DMAwrite(priv, cmd_buf, cmd_len, NULL, 0);
 		else
