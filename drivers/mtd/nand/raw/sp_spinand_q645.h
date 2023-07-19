@@ -16,9 +16,19 @@
 #endif
 #define SPI_NAND_DIRECT_MAP         0xf4000000
 
-#define SPINAND_CLKSRC_REG          ((volatile u32 *)(0xf8000000 + (4*32 + 13)*4))
-#define SPINAND_SET_CLKSRC(a)       (*SPINAND_CLKSRC_REG = (0x001e0000+(((a)&0x0f)<<1)))
-#define SPINAND_GET_CLKSRC()        (((*SPINAND_CLKSRC_REG)>>1)&0x0f)
+#ifdef CONFIG_TARGET_PENTAGRAM_Q645
+#define SPINAND_CLKSRC_REG          ((volatile u32 *)(0xf8000000 + (2*32 + 3)*4))
+#define SPINAND_SET_CLKSRC(a)       (*SPINAND_CLKSRC_REG = (0x04000000+(((a)&0x01)<<10)))
+#define SPINAND_GET_CLKSRC()        (((*SPINAND_CLKSRC_REG)>>10)&0x01)
+#define SPINAND_CLKSRC_MAX          1
+#define SPINAND_CLKSRC_MIN          0
+#else
+#define SPINAND_CLKSRC_REG          ((volatile u32 *)(0xf8800000 + (3*32 + 25)*4))
+#define SPINAND_SET_CLKSRC(a)       (*SPINAND_CLKSRC_REG = (0x00700000+(((a)&0x07)<<4)))
+#define SPINAND_GET_CLKSRC()        (((*SPINAND_CLKSRC_REG)>>4)&0x07)
+#define SPINAND_CLKSRC_MAX          7
+#define SPINAND_CLKSRC_MIN          0
+#endif
 
 /*
  *  spi nand functional related configs

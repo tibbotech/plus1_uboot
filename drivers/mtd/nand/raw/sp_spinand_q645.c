@@ -2346,15 +2346,24 @@ static int read_mod_write(u32 *addr, u32 mask, u32 val)
 	return 0;
 }
 
+#ifdef CONFIG_TARGET_PENTAGRAM_Q645
+#define PAD_CTL2_REG		0xF8003300	// G102
+#define SOFTPAD_REG_START	0
+#define SOFTPAD_REG_END		2
+#else
+#define PAD_CTL2_REG		0xF8803300	// G102
+#define SOFTPAD_REG_START	24
+#define SOFTPAD_REG_END		25
+#endif
 static int sp_spinand_test_softpad(int argc, char * const argv[])
 {
-	u32 *pad_ctl2_reg = (u32 *)0xF8003300;
+	u32 *pad_ctl2_reg = (u32 *)PAD_CTL2_REG;
 	u32 i, val, *addr;
 	u32 ret = 0;
 
 	if (argc == 3) {
 		/* Show all SPI-NAND Softpad Control registers' value. */
-		for (i = 0; i < 3; i++) {
+		for (i = SOFTPAD_REG_START; i <= SOFTPAD_REG_END; i++) {
 			addr = &pad_ctl2_reg[i]; 
 			val = pad_ctl2_reg[i];
 			printk("SC #%d, addr: 0x%p, val: 0x%08x\n", i, addr, val);
@@ -2369,6 +2378,7 @@ static int sp_spinand_test_softpad(int argc, char * const argv[])
 		{
 			case 1:
 				printk("Softpad setting: Case 1\n");
+#ifdef CONFIG_TARGET_PENTAGRAM_Q645
 				val   = (0<<20); 	// G102.0[20] - EMMC PAD test mode enable
 				val  |= (0<<0);		// G102.0[0]  - Select EMMC Clock output polarity
 				mask  = (1<<20)|(1<<0);
@@ -2381,10 +2391,27 @@ static int sp_spinand_test_softpad(int argc, char * const argv[])
 					   (1<<20);		// G102.1[20] - DI
 				mask = (1<<29)|(1<<24)|(1<<23)|(1<<22)|(1<<20);
 				read_mod_write(&pad_ctl2_reg[1], mask, val);
+#else
+				val  = (1<<31)| 	// G102.25[31] - SPI GPIO bypass
+					   (0<<21)|	 	// G102.25[21] - SPI CLK output
+					   (0<<20)| 	// G102.25[20] - SPI D3 output
+					   (0<<19)| 	// G102.25[19] - SPI D2 output
+					   (0<<18)| 	// G102.25[18] - SPI D1 output
+					   (0<<17)| 	// G102.25[17] - SPI D0 output
+					   (0<<5)|	 	// G102.25[5]  - SPI D3 input
+					   (0<<4)|	 	// G102.25[4]  - SPI D2 input
+					   (0<<3)|	 	// G102.25[3]  - SPI D1 input
+					   (0<<2)|	 	// G102.25[2]  - SPI D0 input
+					   (0<<0);	 	// G102.25[0]  - SPI CLK input
+				mask = (1<<31)|(1<<21)|(1<<20)|(1<<19)|(1<<18)|(1<<17)|
+					   (1<<5)|(1<<4)|(1<<3)|(1<<2)|(1<<0);
+				read_mod_write(&pad_ctl2_reg[25], mask, val);
+#endif
 				break;
 
 			case 2:
 				printk("Softpad setting: Case 2\n");
+#ifdef CONFIG_TARGET_PENTAGRAM_Q645
 				val   = (0<<20); 	// G102.0[20] - EMMC PAD test mode enable
 				val  |= (0<<0);		// G102.0[0]  - Select EMMC Clock output polarity
 				mask  = (1<<20)|(1<<0);
@@ -2397,10 +2424,27 @@ static int sp_spinand_test_softpad(int argc, char * const argv[])
 					   (1<<20);		// G102.1[20] - DI
 				mask = (1<<29)|(1<<24)|(1<<23)|(1<<22)|(1<<20);
 				read_mod_write(&pad_ctl2_reg[1], mask, val);
+#else
+				val  = (0<<31)| 	// G102.25[31] - SPI GPIO bypass
+					   (0<<21)| 	// G102.25[21] - SPI CLK output
+					   (1<<20)| 	// G102.25[20] - SPI D3 output
+					   (1<<19)| 	// G102.25[19] - SPI D2 output
+					   (1<<18)| 	// G102.25[18] - SPI D1 output
+					   (1<<17)| 	// G102.25[17] - SPI D0 output
+					   (0<<5)|		// G102.25[5]  - SPI D3 input
+					   (0<<4)|		// G102.25[4]  - SPI D2 input
+					   (0<<3)|		// G102.25[3]  - SPI D1 input
+					   (0<<2)|		// G102.25[2]  - SPI D0 input
+					   (0<<0);		// G102.25[0]  - SPI CLK input
+				mask = (1<<31)|(1<<21)|(1<<20)|(1<<19)|(1<<18)|(1<<17)|
+					   (1<<5)|(1<<4)|(1<<3)|(1<<2)|(1<<0);
+				read_mod_write(&pad_ctl2_reg[25], mask, val);
+#endif
 				break;
 
 			case 3:
 				printk("Softpad setting: Case 3\n");
+#ifdef CONFIG_TARGET_PENTAGRAM_Q645
 				val   = (1<<20); 	// G102.0[20] - EMMC PAD test mode enable
 				val  |= (0<<0);		// G102.0[0]  - Select EMMC Clock output polarity
 				mask  = (1<<20)|(1<<0);
@@ -2413,10 +2457,27 @@ static int sp_spinand_test_softpad(int argc, char * const argv[])
 					   (1<<20);		// G102.1[20] - DI
 				mask = (1<<29)|(1<<24)|(1<<23)|(1<<22)|(1<<20);
 				read_mod_write(&pad_ctl2_reg[1], mask, val);
+#else
+				val  = (1<<31)| 	// G102.25[31] - SPI GPIO bypass
+					   (1<<21)| 	// G102.25[21] - SPI CLK output
+					   (0<<20)| 	// G102.25[20] - SPI D3 output
+					   (0<<19)| 	// G102.25[19] - SPI D2 output
+					   (0<<18)| 	// G102.25[18] - SPI D1 output
+					   (0<<17)| 	// G102.25[17] - SPI D0 output
+					   (0<<5)|		// G102.25[5]  - SPI D3 input
+					   (0<<4)|		// G102.25[4]  - SPI D2 input
+					   (0<<3)|		// G102.25[3]  - SPI D1 input
+					   (0<<2)|		// G102.25[2]  - SPI D0 input
+					   (0<<0);		// G102.25[0]  - SPI CLK input
+				mask = (1<<31)|(1<<21)|(1<<20)|(1<<19)|(1<<18)|(1<<17)|
+					   (1<<5)|(1<<4)|(1<<3)|(1<<2)|(1<<0);
+				read_mod_write(&pad_ctl2_reg[25], mask, val);
+#endif
 				break;
 
 			case 4:
 				printk("Softpad setting: Case 4\n");
+#ifdef CONFIG_TARGET_PENTAGRAM_Q645
 				val   = (1<<20); 	// G102.0[20] - EMMC PAD test mode enable
 				val  |= (0<<0);		// G102.0[0]  - Select EMMC Clock output polarity
 				mask  = (1<<20)|(1<<0);
@@ -2429,10 +2490,27 @@ static int sp_spinand_test_softpad(int argc, char * const argv[])
 					   (1<<20);		// G102.1[20] - DI
 				mask = (1<<29)|(1<<24)|(1<<23)|(1<<22)|(1<<20);
 				read_mod_write(&pad_ctl2_reg[1], mask, val);
+#else
+				val  = (0<<31)| 	// G102.25[31] - SPI GPIO bypass
+					   (1<<21)| 	// G102.25[21] - SPI CLK output
+					   (1<<20)| 	// G102.25[20] - SPI D3 output
+					   (1<<19)| 	// G102.25[19] - SPI D2 output
+					   (1<<18)| 	// G102.25[18] - SPI D1 output
+					   (1<<17)| 	// G102.25[17] - SPI D0 output
+					   (0<<5)|		// G102.25[5]  - SPI D3 input
+					   (0<<4)|		// G102.25[4]  - SPI D2 input
+					   (0<<3)|		// G102.25[3]  - SPI D1 input
+					   (0<<2)|		// G102.25[2]  - SPI D0 input
+					   (0<<0);		// G102.25[0]  - SPI CLK input
+				mask = (1<<31)|(1<<21)|(1<<20)|(1<<19)|(1<<18)|(1<<17)|
+					   (1<<5)|(1<<4)|(1<<3)|(1<<2)|(1<<0);
+				read_mod_write(&pad_ctl2_reg[25], mask, val);
+#endif
 				break;
 
 			case 5:
 				printk("Softpad setting: Case 5\n");
+#ifdef CONFIG_TARGET_PENTAGRAM_Q645
 				val   = (0<<20); 	// G102.0[20] - EMMC PAD test mode enable
 				val  |= (0<<0);		// G102.0[0]  - Select EMMC Clock output polarity
 				mask  = (1<<20)|(1<<0);
@@ -2445,11 +2523,27 @@ static int sp_spinand_test_softpad(int argc, char * const argv[])
 					   (1<<20);		// G102.1[20] - DI
 				mask = (1<<29)|(1<<24)|(1<<23)|(1<<22)|(1<<20);
 				read_mod_write(&pad_ctl2_reg[1], mask, val);
-
+#else
+				val  = (1<<31)| 	// G102.25[31] - SPI GPIO bypass
+					   (0<<21)| 	// G102.25[21] - SPI CLK output
+					   (0<<20)| 	// G102.25[20] - SPI D3 output
+					   (0<<19)| 	// G102.25[19] - SPI D2 output
+					   (0<<18)| 	// G102.25[18] - SPI D1 output
+					   (0<<17)| 	// G102.25[17] - SPI D0 output
+					   (1<<5)|		// G102.25[5]  - SPI D3 input
+					   (1<<4)|		// G102.25[4]  - SPI D2 input
+					   (1<<3)|		// G102.25[3]  - SPI D1 input
+					   (1<<2)|		// G102.25[2]  - SPI D0 input
+					   (1<<0);		// G102.25[0]  - SPI CLK input
+				mask = (1<<31)|(1<<21)|(1<<20)|(1<<19)|(1<<18)|(1<<17)|
+					   (1<<5)|(1<<4)|(1<<3)|(1<<2)|(1<<0);
+				read_mod_write(&pad_ctl2_reg[25], mask, val);
+#endif
 				break;
 
 			case 6:
 				printk("Softpad setting: Case 6\n");
+#ifdef CONFIG_TARGET_PENTAGRAM_Q645
 				val   = (0<<20); 	// G102.0[20] - EMMC PAD test mode enable
 				val  |= (0<<0);		// G102.0[0]  - Select EMMC Clock output polarity
 				mask  = (1<<20)|(1<<0);
@@ -2462,6 +2556,22 @@ static int sp_spinand_test_softpad(int argc, char * const argv[])
 					   (0<<20);		// G102.1[20] - DI
 				mask = (1<<29)|(1<<24)|(1<<23)|(1<<22)|(1<<20);
 				read_mod_write(&pad_ctl2_reg[1], mask, val);
+#else
+				val  = (1<<31)| 	// G102.25[31] - SPI GPIO bypass
+					   (0<<21)| 	// G102.25[21] - SPI CLK output
+					   (0<<20)| 	// G102.25[20] - SPI D3 output
+					   (0<<19)| 	// G102.25[19] - SPI D2 output
+					   (0<<18)| 	// G102.25[18] - SPI D1 output
+					   (0<<17)| 	// G102.25[17] - SPI D0 output
+					   (0<<5)|		// G102.25[5]  - SPI D3 input
+					   (0<<4)|		// G102.25[4]  - SPI D2 input
+					   (0<<3)|		// G102.25[3]  - SPI D1 input
+					   (0<<2)|		// G102.25[2]  - SPI D0 input
+					   (0<<0);		// G102.25[0]  - SPI CLK input
+				mask = (1<<31)|(1<<21)|(1<<20)|(1<<19)|(1<<18)|(1<<17)|
+					   (1<<5)|(1<<4)|(1<<3)|(1<<2)|(1<<0);
+				read_mod_write(&pad_ctl2_reg[25], mask, val);
+#endif
 				break;
 
 			default:
@@ -2504,9 +2614,16 @@ static void set_pad_driving_strength(u32 *base, u32 pin, u32 strength)
 		base[12+reg_off] &= ~bit_mask;
 }
 
+#ifdef CONFIG_TARGET_PENTAGRAM_Q645
+#define PAD_CTL_REG		0xF8003280	// G101
+#define START_PIN_NUM	16			// SPI-NAND(X1) use 6 pins, G_MX16~21
+#else
+#define PAD_CTL_REG		0xF8803280	// G101
+#define START_PIN_NUM	30			// SPI-NAND(X1) use 6 pins, G_MX30~35
+#endif
 static int sp_spinand_test_driving(int argc, char * const argv[])
 {
-	u32 *pad_ctl1_reg = (u32 *)0xF8003280;
+	u32 *pad_ctl1_reg = (u32 *)PAD_CTL_REG;
 	u32 i, val, *addr;
 	u32 ret = 0;
 
@@ -2537,9 +2654,11 @@ static int sp_spinand_test_driving(int argc, char * const argv[])
 
 		printk("reg base: 0x%p, val: %d\n", addr, val);
 
-		/* SPI-NAND use 6 pins, G_MX16~21. */
+		/* For Q645, SPI-NAND(X1) use 6 pins, G_MX16~21.
+		 * For Q654, SPI-NAND(X1) use 6 pins, G_MX30~35.
+		 */
 		for (i = 0; i < 6; i++) {
-			set_pad_driving_strength(addr, i+16, val);
+			set_pad_driving_strength(addr, START_PIN_NUM+i, val);
 		}
 	} else {
 		ret = CMD_RET_USAGE;
@@ -2745,7 +2864,7 @@ static int sp_spinand_test(struct cmd_tbl *cmdtp, int flag, int argc, char * con
 	} else if (strncmp(cmd, "clksel", 6) == 0) {
 		if (argc >= 3) {
 			u32 clksel = simple_strtoul(argv[2], NULL, 10);
-			if (clksel < 4 && clksel>14) {
+			if (clksel < SPINAND_CLKSRC_MIN && clksel > SPINAND_CLKSRC_MAX) {
 				printk("invalid value!\n");
 				ret = CMD_RET_USAGE;
 			} else {
@@ -2818,7 +2937,11 @@ U_BOOT_CMD(ssnand, CONFIG_SYS_MAXARGS, 1, sp_spinand_test,
 	"ssnand rawtrsmode [value] - set/show raw_trs_mode, 0~2 are allowed.\n"
 	"ssnand wio [value] - set/show write_bitmode, 0/2 are allowed.\n"
 	"ssnand rio [value] - set/show read_bitmode, 0/1/2 are allowed.\n"
-	"ssnand clksel [value] - set/show spi_clk_sel, 4~15 are allowed.\n"
+#ifdef CONFIG_TARGET_PENTAGRAM_Q645
+	"ssnand clksel [value] - set/show spi_clk_sel, 0~1 are allowed.\n"
+#else
+	"ssnand clksel [value] - set/show spi_clk_sel, 0~7 are allowed.\n"
+#endif
 	"ssnand clkdiv [value] - set/show spi_clk_div, 1~7 are allowed.\n"
 	"ssnand rts [value] - set/show rts(read timing select). 0~7 are allowed.\n"
 #ifdef CONFIG_SPINAND_MEASURE_TIMIMNG
