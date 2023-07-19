@@ -225,7 +225,7 @@
 	"echo Stop; " \
 "fi"
 
-#define TMPADDR_KERNEL		0x5FFFFC0
+#define TMPADDR_KERNEL		0xFFFFFC0
 #define TMPADDR_HEADER		0x600000
 #define DSTADDR_KERNEL		0x1FFFFC0 /* if stext is on 0x2000000 */
 #define DSTADDR_DTB		0x1F7FFC0
