@@ -17,43 +17,12 @@
 
 #include <linux/dma-mapping.h>
 #include <linux/mtd/bbm.h>
+#include <linux/bitops.h>
 
 #include "sp_paranand.h"
-/**************************************************************************
- *                             M A C R O S                                *
- **************************************************************************/
 
-/**************************************************************************
- *                         D A T A   T Y P E S                            *
- **************************************************************************/
-
-/**************************************************************************
- *                        G L O B A L   D A T A                           *
- **************************************************************************/
 static struct sp_pnand_info *our_paranfc = NULL;
-
-/**************************************************************************
- *                 E X T E R N A L   R E F E R E N C E S                  *
- **************************************************************************/
 extern const struct nand_flash_dev sp_pnand_ids[];
-
-/**************************************************************************/
-
-
-static struct sp_pnand_attr nand_attr[] = {
-	/*
-	 * Manufacturer ID, spare size, ECC bits, ECC base shift,
-	 * ECC for spare, Block Boundary, Protect Spare, legacy flash
-	 * */
-	{"Samsung K9F4G08U0A",
-		64, 2, 9, 4, 64, 1, LEGACY_FLASH},	/* 2K SLC */
-	{"GigaDevice 9AU4G8F3AMGI",
-		64, 2, 9, 4, 64, 1, LEGACY_FLASH},	/* 2K SLC */
-	{"GigaDevice 9FU4G8F4BMGI",
-		256, 2, 9, 4, 64, 1, LEGACY_FLASH},	/* 4K SLC */
-	{"Samsung K9GBG08U0B",
-		1024, 2, 9, 4, 128, 1, LEGACY_FLASH},	/* 8K MLC */
-};
 
 /* Note: The unit of tWPST/tRPST/tWPRE/tRPRE field of sp_pnand_chip_timing is ns.
  *
@@ -63,268 +32,32 @@ static struct sp_pnand_attr nand_attr[] = {
  * tRPRE, tWPST, tRPST, tWPSTH, tRPSTH, tDQSHZ, tDQSCK, tCAD, tDSL
  * tDSH, tDQSL, tDQSH, tDQSD, tCKWR, tWRCK, tCK, tCALS2, tDQSRE, tWPRE2, tRPRE2, tCEH
  */
-#if defined (CONFIG_PNANDC_MICRON_29F16G08MAA)
-static struct sp_pnand_chip_timing chip_timing = {
-	7, 5, 5, 5, 0, 10, 10, 0, 0, 0,
-	20, 12, 100, 0, 60, 0, 100, 20, 10, 0,
-	70, 100, 70, 15, 0, 10, 10, 10, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-#elif defined (CONFIG_PNANDC_TOSHIBA_TC58NVG4T2ETA00)
-static struct sp_pnand_chip_timing chip_timing = {
-	10, 5, 5, 5, 0, 12, 10, 10, 0, 0,
-	20, 12, 100, 0, 200, 0, 30, 20, 10, 0,
-	0, 60, 0, 8, 0, 30, 10, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-#elif defined (CONFIG_PNANDC_SAMSUNG_K9F2G08U0A)
-static struct sp_pnand_chip_timing chip_timing = {
+static struct sp_pnand_chip_timing chip_timing[] = {
+	{ //SAMSUNG_K9F2G08U0A_ZEBU
 	10, 5, 5, 5, 0, 12, 10, 0, 0, 0,
 	20, 12, 100, 0, 60, 0, 100, 20, 10, 0,
 	70, 100, 0, 20, 0, 12, 10, 12, 0, 0, 0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-#elif defined (CONFIG_PNANDC_GIGADEVICE_9AU4G8F3AMGI)
-static struct sp_pnand_chip_timing chip_timing = {
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+	{ //GIGADEVICE_9AU4G8F3AMGI
 	7, 5, 5, 5, 0, 12, 7, 0, 0, 0,
 	18, 10, 100, 0, 80, 0, 100, 20, 10, 20,
 	100, 100, 0, 15, 0, 12, 10, 10, 0, 0, 0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-#elif defined (CONFIG_PNANDC_GIGADEVICE_9FU4G8F4BMGI)
-static struct sp_pnand_chip_timing chip_timing = {
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+	{ //GIGADEVICE_9FU4G8F4BMGI
 	10, 5, 5, 5, 0, 12, 10, 0, 0, 0,
 	20, 12, 100, 0, 60, 0, 100, 20, 10, 0,
-	70, 100, 0, 20, 0, 12, 10, 12, 0, 0, 0, 0, 0, 0, 0,
+	150, 100, 0, 15, 0, 10, 10, 10, 0, 0, 0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-#elif defined (CONFIG_PNANDC_SAMSUNG_K9GBG08U0B)
-static struct sp_pnand_chip_timing chip_timing = {
-	10, 5, 5, 5, 0, 12, 10, 0, 0, 0,
-	20, 12, 100, 0, 60, 0, 100, 20, 10, 0,
-	70, 100, 0, 20, 0, 12, 10, 12, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+	{ //SAMSUNG_K9GBG08U0B
+	11, 5, 5, 5, 0, 11, 11, 0, 0, 0,
+	20, 11, 100, 0, 120, 300, 100, 20, 10, 25,
+	300, 100, 0, 20, 0, 12, 10, 12, 0, 0, 0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-#elif defined (CONFIG_PNANDC_TOSHIBA_TH58NVG5D2ETA20)
-static struct sp_pnand_chip_timing chip_timing = {
-	10, 5, 5, 5, 0, 12, 10, 10, 0, 0,
-	20, 12, 100, 0, 180, 0, 30, 20, 10, 0,
-	0, 60, 0, 8, 0, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-#elif defined (CONFIG_PNANDC_TOSHIBA_TH58NVG7D2GTA20)
-static struct sp_pnand_chip_timing chip_timing = {
-	10, 5, 5, 5, 0, 12, 10, 10, 0, 0,
-	20, 12, 100, 0, 200, 0, 30, 20, 10, 0,
-	0, 60, 0, 8, 0, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-#elif defined (CONFIG_PNANDC_SAMSUNG_K9HDGD8X5M)
-static struct sp_pnand_chip_timing chip_timing = {
-	11, 5, 0, 0, 5, 11, 7, 10, 0, 0,
-	0, 7, 100, 0, 120, 300, 0, 20, 10, 0,
-	300, 0, 0, 20, 0, 0, 10, 0, 15, 0, 0, 100, 0, 300, 15,
-	15, 7, 33, 5, 5, 0, 0, 0, 0,
-	0, 7, 7, 0, 0, 0, 0, 0, 25, 0, 0, 0};
-#elif defined (CONFIG_PNANDC_MICRON_29F32G08CBABB)
-static struct sp_pnand_chip_timing chip_timing = {
-	10, 5, 5, 5, 0, 15, 10, 0, 0, 0,
-	20, 15, 100, 0, 60, 0, 100, 20, 10, 0,
-	100, 100, 200, 25, 0, 10, 10, 10, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }};
 
-static struct sp_pnand_chip_timing sync_timing = {
-	0, 5, 0, 0, 5, 0, 0, 0, 0, 0,
-	0, 0, 100, 0, 60, 0, 100, 20, 0, 0,
-	100, 0, 200, 25, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 20, 20, 25, 0,
-	0, 0, 0, 20, 0, 20, 0, 0, 0, 0, 0, 0};
-#elif defined (CONFIG_PNANDC_MICRON_29F128G08CBECB)
-// Asyn. Mode 3, I/F Clock ~=33MHz.
-static struct sp_pnand_chip_timing chip_timing = {
-	10, 5, 5, 5, 0, 15, 10, 0, 0, 0,
-	20, 15, 100, 0, 60, 0, 100, 20, 10, 0,
-	100, 100, 0, 25, 0, 10, 10, 10, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 20
-};
-
-// NV-DDR Mode 1, I/F Clock ~=33MHz
-static struct sp_pnand_chip_timing sync_timing = {
-	0, 5, 0, 0, 5, 0, 0, 0, 0, 0,
-	0, 0, 100, 0, 80, 0, 100, 20, 0, 0,
-	100, 0, 0, 25, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 20, 20, 25, 0,
-	0, 0, 0, 18, 0, 20, 0, 0, 0, 0, 0, 20
-};
-
-// NV-DDR2 Mode 0, I/F Clock ~=33MHz
-static struct sp_pnand_chip_timing ddr2_timing = {
-	11, 5, 0, 0, 5, 11, 0, 10, 0, 0,
-	0, 0, 100, 0, 80, 0, 100, 20, 10, 0,
-	100, 0, 300, 20, 30, 0, 10, 0, 15, 0, 0, 30, 0, 0, 15,
-	15, 7, 0, 15, 15, 0, 0, 0, 0,
-	0, 0, 0, 18, 0, 0, 0, 25, 25, 25, 25, 20
-};
-#elif defined (CONFIG_PNANDC_SAMSUNG_K9LBG08U0M)
-static struct sp_pnand_chip_timing chip_timing = {
-	10, 5, 5, 5, 0, 12, 10, 20, 0, 0,
-	20, 12, 100, 0, 60, 0, 100, 20, 10, 0,
-	100, 100, 0, 20, 0, 12, 10, 12, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-#elif defined (CONFIG_PNANDC_TOSHIBA_TC58NVG6DCJTA00)
-static struct sp_pnand_chip_timing chip_timing = {
-	11, 5, 5, 5, 0, 11, 7, 10, 0, 0,
-	20, 10, 100, 0, 180, 300, 30, 20, 10, 0,
-	300, 60, 0, 15, 0, 10, 10, 10, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-#elif defined (CONFIG_PNANDC_SAMSUNG_K9GCGY8S0A)
-static struct sp_pnand_chip_timing chip_timing = {
-	11, 5, 0, 0, 5, 11, 0, 10, 0, 0,
-	0, 0, 100, 0, 120, 300, 0, 20, 10, 0,
-	300, 0, 0, 25, 0, 0, 10, 0, 15, 0, 10, 100, 0, 300, 15,
-	15, 7, 0, 25, 25, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 25, 0, 0, 0};
-#elif defined (CONFIG_PNANDC_SAMSUNG_K9ABGD8U0B)
-static struct sp_pnand_chip_timing chip_timing = {
-	11, 5, 0, 0, 5, 11, 7, 0, 0, 0,
-	0, 0, 100, 0, 0, 0, 0, 20, 10, 0,
-	300, 0, 0, 0, 0, 0, 0, 0, 15, 0, 100, 0, 0, 300, 15,
-	15, 7, 0, 0, 25, 0, 0, 0, 0,
-	0, 7, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0
-	};
-#elif defined (CONFIG_PNANDC_TOSHIBA_TH58TEG7DCJBA4C)
-/* Note: The unit of tWPST/tRPST/tWPRE/tRPRE field of sp_pnand_chip_timing is ns.
- *
- * tWH, tCH, tCLH, tALH, tCALH, tWP, tREH, tCR, tRSTO, tREAID,
- * tREA, tRP, tWB, tRB, tWHR, tWHR2, tRHW, tRR, tAR, tRC
- * tADL, tRHZ, tCCS, tCS, tCS2, tCLS, tCLR, tALS, tCALS, tCAL2, tCRES, tCDQSS, tDBS, tCWAW, tWPRE,
- * tRPRE, tWPST, tRPST, tWPSTH, tRPSTH, tDQSHZ, tDQSCK, tCAD, tDSL
- * tDSH, tDQSL, tDQSH, tDQSD, tCKWR, tWRCK, tCK, tCALS2, tDQSRE, tWPRE2, tRPRE2, tCEH
- */
-static struct sp_pnand_chip_timing chip_timing = {
-	11, 5, 0, 0, 5, 11, 0, 10, 0, 0,
-	0, 0, 100, 0, 120, 300, 0, 20, 10, 0,
-	300, 0, 0, 20, 30, 0, 10, 0, 15, 0, 10, 100, 0, 300, 15,
-	15, 7, 0, 25, 25, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 25, 25, 25, 25, 0};
-#elif defined (CONFIG_PNANDC_TOSHIBA_TH58TFT0DDLBA8H)
-static struct sp_pnand_chip_timing chip_timing = {
-	11, 5, 0, 0, 5, 11, 0, 10, 0, 0,
-	0, 0, 100, 0, 120, 300, 0, 5, 10, 0,
-	300, 0, 0, 20, 30, 0, 10, 0, 15, 0, 10, 100, 0, 300, 15,
-	15, 7, 0, 25, 25, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 25, 25, 25, 25, 0};
-#elif defined (CONFIG_PNANDC_WINBOND_W29N01GV)
- static struct sp_pnand_chip_timing chip_timing = {
-	10, 5, 5, 5, 0, 12, 10, 0, 0, 0,
-	0, 12, 100, 0, 60, 0, 100, 20, 10, 25,
-	70, 100, 0, 15, 0, 10, 10, 10, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-#else
-static struct sp_pnand_chip_timing chip_timing = {
-	10, 5, 5, 5, 0, 12, 10, 20, 0, 0,
-	20, 12, 100, 0, 60, 0, 100, 20, 10, 0,
-	100, 100, 0, 20, 0, 12, 10, 12, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-#endif
-
-#if 0
-#if defined (CONFIG_PNANDC_MICRON_29F16G08MAA) ||\
-	defined (CONFIG_PNANDC_SAMSUNG_K9HDGD8X5M) ||\
-	defined (CONFIG_PNANDC_MICRON_29F32G08CBABB) ||\
-	defined (CONFIG_PNANDC_SAMSUNG_K9LBG08U0M) ||\
-	defined (CONFIG_PNANDC_TOSHIBA_TH58NVG7D2GTA20)
-static struct mtd_partition sp_pnand_partition_info[] = {
-	{
-	 .name = "DiskOnChip",
-	 .offset = 128 * 1024 * 1024,
-	 .size = 1536 * 1024 * 1024},
-	{
-	 .name = "Partition 1",
-	 .offset = MTDPART_OFS_APPEND,
-	 .size = 1536 * 1024 * 1024},
-};
-#elif defined (CONFIG_PNANDC_TOSHIBA_TC58NVG6DCJTA00) ||\
-	defined (CONFIG_PNANDC_SAMSUNG_K9GCGY8S0A) ||\
-	defined (CONFIG_PNANDC_TOSHIBA_TH58TEG7DCJBA4C) ||\
-	defined (CONFIG_PNANDC_TOSHIBA_TH58TFT0DDLBA8H) ||\
-	defined (CONFIG_PNANDC_MICRON_29F128G08CBECB)
-static struct mtd_partition sp_pnand_partition_info[] = {
-	{
-	 .name = "Partition 1",
-	 .offset = 128 * 1024 * 1024,
-	 .size =  (uint64_t)((uint64_t)3584 * (uint64_t)1024 * (uint64_t)1024)},
-	{
-	 .name = "Partition 2",
-	 .offset = MTDPART_OFS_APPEND,
-	 .size =  (uint64_t)((uint64_t)3584 * (uint64_t)1024 * (uint64_t)1024)},
-};
-#elif defined (CONFIG_PNANDC_SAMSUNG_K9ABGD8U0B)
-static struct mtd_partition sp_pnand_partition_info[] = {
-	{
-	 .name = "Partition 0",
-	 .offset = 3 * 1024 * 1024,
-	 .size = (long long)((long long)4089 *(long long)1024 * (long long)1024)},
-};
-#elif defined (CONFIG_PNANDC_TOSHIBA_TC58NVG4T2ETA00)
-static struct mtd_partition sp_pnand_partition_info[] = {
-	{
-	 .name = "Partition 0",
-	 .offset = 3 * 1024 * 1024,
-	 .size = 2040 * 1024 * 1024},
-};
-#elif defined (CONFIG_PNANDC_TOSHIBA_TH58NVG5D2ETA20)
-static struct mtd_partition sp_pnand_partition_info[] = {
-	{
-	 .name = "DiskOnChip",
-	 .offset = 16 * 1024 * 1024,
-	 .size = 896 * 1024 * 1024},
-	{
-	 .name = "Partition 1",
-	 .offset = MTDPART_OFS_APPEND,
-	 .size = 896 * 1024 * 1024},
-};
-#elif defined (CONFIG_PNANDC_HYNIX_HY27US08561A)
-static struct mtd_partition sp_pnand_partition_info[] = {
-	{
-	 .name = "DiskOnChip",
-	 .offset = 0,
-	 .size = 16 * 1024 * 1024},
-	{
-	 .name = "Partition 1",
-	 .offset = MTDPART_OFS_APPEND,
-	 .size = 16 * 1024 * 1024},
-};
-#elif defined (CONFIG_PNANDC_SAMSUNG_K9F4G08U0A)
-static struct mtd_partition sp_pnand_partition_info[] = {
-	{
-	 .name = "DiskOnChip",
-	 .offset = 16 * 1024 * 1024,
-	 .size = 192 * 1024 * 1024},
-	{
-	 .name = "Partition 1",
-	 .offset = MTDPART_OFS_APPEND,
-	 .size = 192 * 1024 * 1024},
-};
-#else
-static struct mtd_partition sp_pnand_partition_info[] = {
-	{
-	 .name = "DiskOnChip",
-	 .offset = 16 * 1024 * 1024,
-	 .size = 64 * 1024 * 1024},
-	{
-	 .name = "Partition 1",
-	 .offset = MTDPART_OFS_APPEND,
-	 .size = 32 * 1024 * 1024},
-};
-#endif
-#endif
 struct sp_pnand_info *get_pnand_info(void)
 {
 	return our_paranfc;
@@ -406,6 +139,22 @@ static void sp_pnand_set_warmup_cycle(struct nand_chip *nand,
 	writel(val, info->io_base + MEM_ATTR_SET2);
 }
 
+static struct sp_pnand_chip_timing *sp_pnand_scan_timing(struct nand_chip *nand)
+{
+	struct mtd_info *mtd = nand_to_mtd(nand);
+
+	if(strcmp(mtd->name, "K9F2G08XXX 256MiB ZEBU 8-bit") == 0)
+		return &chip_timing[0];
+	else if(strcmp(mtd->name, "GD9AU4G8F3AMGI 512MiB 3.3V 8-bit") == 0)
+		return &chip_timing[1];
+	else if(strcmp(mtd->name, "GD9FU4G8F4BMGI 512MiB 3.3V 8-bit") == 0)
+		return &chip_timing[2];
+	else if(strcmp(mtd->name, "K9GBG08U0B 4G 3.3V 8-bit") == 0)
+		return &chip_timing[3];
+	else
+		return NULL;
+}
+
 /* The unit of Hclk is MHz, and the unit of Time is ns.
  * We desire to calculate N to satisfy N*(1/Hclk) > Time given Hclk and Time
  * ==> N > Time * Hclk
@@ -430,18 +179,11 @@ static void sp_pnand_calc_timing(struct nand_chip *nand)
 	tRLAT = tBSY = t1 = 0;
 	tBUF4 = tBUF3 = tBUF2 = tBUF1 = 0;
 	tPRE = tPST = tPSTH = tWRCK = 0;
-#if defined (CONFIG_PNANDC_MICRON_29F32G08CBABB)
-	if (info->flash_type == ONFI2)
-		p = &sync_timing;
-	else
-#elif defined (CONFIG_PNANDC_MICRON_29F128G08CBECB)
-	if (info->flash_type == ONFI3)
-		p = &ddr2_timing;
-	else if (info->flash_type == ONFI2)
-		p = &sync_timing;
-	else
-#endif
-		p = &chip_timing;
+
+	p = sp_pnand_scan_timing(nand);
+	if(!p)
+		DBGLEVEL1(sp_pnand_dbg("Failed to get AC timing!\n"));
+	//p = &chip_timing;
 
 	if(info->flash_type == LEGACY_FLASH) {
 		// tWH = max(tWH, tCH, tCLH, tALH)
@@ -1166,7 +908,6 @@ static int sp_pnand_available_oob(struct mtd_info *mtd)
 	int ret = 0;
 	int consume_byte, eccbyte, eccbyte_spare;
 	int available_spare;
-	int sector_num = (mtd->writesize >> info->eccbasft);
 
 	if (info->useecc < 0)
 		goto out;
@@ -1179,7 +920,7 @@ static int sp_pnand_available_oob(struct mtd_info *mtd)
 	if (((info->useecc * 14) % 8) != 0)
 		eccbyte++;
 
-	consume_byte = (eccbyte * sector_num);
+	consume_byte = (eccbyte * info->sector_per_page);
 	if (info->protect_spare == 1) {
 
 		eccbyte_spare = (info->useecc_spare * 14) / 8;
@@ -1191,8 +932,7 @@ static int sp_pnand_available_oob(struct mtd_info *mtd)
 	available_spare = info->spare - consume_byte;
 
 	DBGLEVEL2(sp_pnand_dbg(
-		"mtd->erasesize:%d, mtd->writesize:%d, info->block_boundary:%d\n",
-		mtd->erasesize, mtd->writesize, info->block_boundary));
+		"mtd->erasesize:%d, mtd->writesize:%d\n", mtd->erasesize, mtd->writesize));
 	DBGLEVEL2(sp_pnand_dbg(
 		"page num:%d, info->eccbasft:%d, protect_spare:%d, spare:%d Byte\n",
 		mtd->erasesize/mtd->writesize,info->eccbasft, info->protect_spare,
@@ -1338,14 +1078,7 @@ static void sp_pnand_cmdfunc(struct mtd_info *mtd, unsigned command,
 
 		break;
 	case NAND_CMD_ERASE1:
-		#if defined(CONFIG_PNANDC_TOSHIBA_TC58NVG4T2ETA00) ||\
-			defined(CONFIG_PNANDC_SAMSUNG_K9ABGD8U0B)
-		real_blk_nm = info->page_addr / (mtd->erasesize/mtd->writesize);
-		real_off = info->page_addr % (mtd->erasesize/mtd->writesize);
-		real_pg = (real_blk_nm * info->block_boundary) + real_off;
-		#else
 		real_pg = info->page_addr;
-		#endif
 		DBGLEVEL2(sp_pnand_dbg(
 			"Erase Page: 0x%x, Real:0x%x\n", info->page_addr, real_pg));
 
@@ -1401,154 +1134,10 @@ void sp_pnand_select_chip(struct mtd_info *mtd, int cs)
 	//DBGLEVEL2(sp_pnand_dbg("==>chan = %d, ce = %d\n", info->cur_chan, info->sel_chip));
 }
 
-u32 temp_oobsize = 0;
-void sp_pnand_set_ecc_for_bblk(struct sp_pnand_info *temp_info, int restore)
+static void sp_nand_set_ecc(void)
 {
-	uint32_t val;
-	struct sp_pnand_info *info = get_pnand_info();
-	struct mtd_info * mtd = nand_to_mtd(&info->nand);
-
-	//writel((1 << info->cur_chan), info->io_base + NANDC_SW_RESET);
-	// Wait for the NANDC024 software reset is complete
-	//while(readl(info->io_base + NANDC_SW_RESET) & (1 << info->cur_chan)) ;
-	if (!restore) {
-		temp_info->useecc = info->useecc;
-		temp_info->useecc_spare = info->useecc_spare;
-		temp_info->eccbasft = info->eccbasft;
-		temp_info->sector_per_page = info->sector_per_page;
-		temp_oobsize = mtd->oobsize;
-		mtd->oobsize = info->spare;// used to compose nand_header
-		info->useecc = 60;
-		info->useecc_spare = 4;
-		info->eccbasft = 10;//(1 << 10) = 1024 byte
-		if (mtd->writesize == 2048)
-			info->sector_per_page = 1;
-		else if (mtd->writesize == 4096)
-			info->sector_per_page = 3;
-		else if (mtd->writesize == 8192)
-			info->sector_per_page = 7;
-		else
-			info->sector_per_page = 1;
-	} else {
-		info->useecc = temp_info->useecc;
-		info->useecc_spare = temp_info->useecc_spare;
-		info->eccbasft = temp_info->eccbasft;
-		info->sector_per_page = temp_info->sector_per_page;
-		mtd->oobsize = temp_oobsize;
-	}
-
-	DBGLEVEL2(sp_pnand_dbg("ECC correction bits: %d\n", info->useecc));
-	DBGLEVEL2(sp_pnand_dbg("ECC step size: %d\n", 1 << info->eccbasft));
-	DBGLEVEL2(sp_pnand_dbg("ECC sector per page: %d\n", info->sector_per_page));
-	DBGLEVEL2(sp_pnand_dbg("oobsize: %d\n", mtd->oobsize));
-
-	val = (info->useecc - 1) | ((info->useecc - 1) << 8) |
-		((info->useecc - 1) << 16) | ((info->useecc - 1) << 24);
-	writel(val, info->io_base + ECC_CORRECT_BITREG1);
-	writel(val, info->io_base + ECC_CORRECT_BITREG2);
-
-	val = readl(info->io_base + ECC_CONTROL);
-	val &= ~ECC_BASE;
-	if (info->eccbasft > 9)
-		val |= ECC_BASE;
-	val |= (ECC_EN(0xFF) | ECC_ERR_MASK(0xFF));
-	writel(val, info->io_base + ECC_CONTROL);
-	writel(ECC_INTR_THRES_HIT | ECC_INTR_CORRECT_FAIL, info->io_base + ECC_INTR_EN);
-#if 1
-	// Setting the ecc capability & threshold for spare
-	writel(0x01010101, info->io_base + ECC_THRES_BIT_FOR_SPARE_REG1);
-	writel(0x01010101, info->io_base + ECC_THRES_BIT_FOR_SPARE_REG2);
-	val = (info->useecc_spare - 1) | ((info->useecc_spare - 1) << 8) |
-		((info->useecc_spare - 1) << 16) | ((info->useecc_spare - 1) << 24);
-	writel(val, info->io_base + ECC_CORRECT_BIT_FOR_SPARE_REG1);
-	writel(val, info->io_base + ECC_CORRECT_BIT_FOR_SPARE_REG2);
-#endif
-}
-static int sp_pnand_attach_chip(struct nand_chip *nand)
-{
-	struct mtd_info *mtd = nand_to_mtd(nand);
-	struct sp_pnand_info *info = nand_get_controller_data(nand);
-
 	u32 val;
-	int i;
-
-	nand->bbt_td = &sp_pnand_bbt_main_descr;
-	nand->bbt_md = &sp_pnand_bbt_mirror_descr;
-	nand->badblock_pattern = &sp_pnand_largepage_flashbased;
-
-	//TODO:refine e.x. 1k60bit?
-	info->sector_per_page = mtd->writesize >> info->eccbasft;
-
-	//usually, spare size is 1/32 page size
-	if (info->spare < (mtd->writesize >> 5))
-		info->spare = (mtd->writesize >> 5);
-
-	val = readl(info->io_base + MEM_ATTR_SET);
-	val &= ~(0x7 << 16);
-	switch (mtd->writesize) {
-	case 512:
-		val |= PG_SZ_512;
-		info->large_page = 0;
-		break;
-	case 2048:
-		val |= PG_SZ_2K;
-		info->large_page = 1;
-		break;
-	case 4096:
-		val |= PG_SZ_4K;
-		info->large_page = 1;
-		break;
-	case 8192:
-		val |= PG_SZ_8K;
-		info->large_page = 1;
-		break;
-	case 16384:
-		val |= PG_SZ_16K;
-		info->large_page = 1;
-		break;
-	}
-	val &= ~(0x3FF << 2);
-	val |= ((info->block_boundary - 1) << 2);
-//lichun@add, For BI_byte test
-	val &= ~BI_BYTE_MASK;
-	val |= (CONFIG_BI_BYTE << 19);
-//~lichun
-	writel(val, info->io_base + MEM_ATTR_SET);
-
-	val = readl(info->io_base + MEM_ATTR_SET2);
-	val &= ~(0x3FF << 16);
-	val |=  VALID_PAGE((mtd->erasesize / mtd->writesize - 1));
-	writel(val, info->io_base + MEM_ATTR_SET2);
-
-	i = sp_pnand_available_oob(mtd);
-	if (likely(i >= 4)) {
-		if (i > info->max_spare)
-			mtd->oobsize = info->max_spare;
-		else
-			mtd->oobsize = i;
-	} else
-		return -ENXIO;
-
-	DBGLEVEL1(sp_pnand_dbg("total oobsize: %d\n", mtd->oobsize));
-
-	switch(mtd->oobsize){
-	case 4:
-	case 8:
-	case 16:
-	case 32:
-	case 64:
-	case 128:
-		info->spare = mtd->oobsize;
-		DBGLEVEL1(sp_pnand_dbg("oobsize(page mode): %02d\n", mtd->oobsize));
-		break;
-	default:
-		mtd->oobsize = 4;
-		info->spare = mtd->oobsize;
-		DBGLEVEL1(
-			sp_pnand_dbg("Warning: Unknown spare setting %d, use default oobsize(page mode): 4\n"
-			, mtd->oobsize));
-		break;
-	}
+	struct sp_pnand_info *info = get_pnand_info();
 
 	if (info->useecc > 0) {
 		DBGLEVEL1(sp_pnand_dbg("ECC correction bits: %d\n", info->useecc));
@@ -1593,6 +1182,111 @@ static int sp_pnand_attach_chip(struct nand_chip *nand)
 		((info->useecc_spare-1) << 16) | ((info->useecc_spare-1) << 24);
 	writel(val, info->io_base + ECC_CORRECT_BIT_FOR_SPARE_REG1);
 	writel(val, info->io_base + ECC_CORRECT_BIT_FOR_SPARE_REG2);
+}
+
+u32 temp_oobsize = 0;
+void sp_pnand_set_ecc_for_bblk(struct sp_pnand_info *temp_info, int restore)
+{
+	struct sp_pnand_info *info = get_pnand_info();
+	struct mtd_info * mtd = nand_to_mtd(&info->nand);
+
+	//writel((1 << info->cur_chan), info->io_base + NANDC_SW_RESET);
+	// Wait for the NANDC024 software reset is complete
+	//while(readl(info->io_base + NANDC_SW_RESET) & (1 << info->cur_chan)) ;
+	if (!restore) {
+		temp_info->useecc = info->useecc;
+		temp_info->useecc_spare = info->useecc_spare;
+		temp_info->eccbasft = info->eccbasft;
+		temp_info->sector_per_page = info->sector_per_page;
+		temp_oobsize = mtd->oobsize;
+		mtd->oobsize = info->spare;// used to compose nand_header
+		info->useecc = 60;
+		info->useecc_spare = 4;
+		info->eccbasft = 10;//(1 << 10) = 1024 byte
+		if (mtd->writesize == 2048)
+			info->sector_per_page = 1;
+		else if (mtd->writesize == 4096)
+			info->sector_per_page = 3;
+		else if (mtd->writesize == 8192)
+			info->sector_per_page = 7;
+		else
+			info->sector_per_page = 1;
+	} else {
+		info->useecc = temp_info->useecc;
+		info->useecc_spare = temp_info->useecc_spare;
+		info->eccbasft = temp_info->eccbasft;
+		info->sector_per_page = temp_info->sector_per_page;
+		mtd->oobsize = temp_oobsize;
+	}
+
+	DBGLEVEL2(sp_pnand_dbg("ECC correction bits: %d\n", info->useecc));
+	DBGLEVEL2(sp_pnand_dbg("ECC step size: %d\n", 1 << info->eccbasft));
+	DBGLEVEL2(sp_pnand_dbg("ECC sector per page: %d\n", info->sector_per_page));
+	DBGLEVEL2(sp_pnand_dbg("oobsize: %d\n", mtd->oobsize));
+
+	sp_nand_set_ecc();
+}
+static int sp_pnand_attach_chip(struct nand_chip *nand)
+{
+	struct mtd_info *mtd = nand_to_mtd(nand);
+	struct sp_pnand_info *info = nand_get_controller_data(nand);
+
+	u32 val;
+	int i;
+
+	nand->bbt_td = &sp_pnand_bbt_main_descr;
+	nand->bbt_md = &sp_pnand_bbt_mirror_descr;
+	nand->badblock_pattern = &sp_pnand_largepage_flashbased;
+
+#if 1//def CONFIG_PNANDC_SAMSUNG_K9GBG08U0B
+	info->eccbasft = fls(nand->ecc_step_ds) - 1;
+	info->useecc = nand->ecc_strength_ds;
+	info->protect_spare = 1;
+	info->useecc_spare = 4;
+	info->flash_type = LEGACY_FLASH;
+	info->spare = mtd->oobsize;
+	info->sector_per_page = mtd->writesize >> info->eccbasft;
+#endif
+	val = readl(info->io_base + MEM_ATTR_SET);
+	val &= ~(0x7 << 16);
+
+	if(mtd->writesize > 512) {
+		info->large_page = 1;
+		/* e.x. fls(0x10) = 2 */
+		val |= ((fls(mtd->writesize) - 11) << 16); //bit[18:16] 1/2/3/4 -> PageSize=2k/4k/8k/16k
+	} else {
+		info->large_page = 0;
+		val |= PG_SZ_512;
+	}
+
+	val &= ~(0x3FF << 2);
+	val |= ((mtd->erasesize / mtd->writesize - 1) << 2);
+//lichun@add, For BI_byte test
+	val &= ~BI_BYTE_MASK;
+	val |= (CONFIG_BI_BYTE << 19);
+//~lichun
+	writel(val, info->io_base + MEM_ATTR_SET);
+
+	val = readl(info->io_base + MEM_ATTR_SET2);
+	val &= ~(0x3FF << 16);
+	val |=  VALID_PAGE((mtd->erasesize / mtd->writesize - 1));
+	writel(val, info->io_base + MEM_ATTR_SET2);
+
+	i = sp_pnand_available_oob(mtd);
+	if (likely(i >= 4)) {
+		if (i > info->max_spare)
+			mtd->oobsize = info->max_spare;
+		else
+			mtd->oobsize = i;
+		info->spare = mtd->oobsize;
+	} else
+		return -ENXIO;
+
+	DBGLEVEL1(sp_pnand_dbg("total oobsize: %d\n", mtd->oobsize));
+
+	//TODO:refine e.x. 1k60bit?
+
+	sp_nand_set_ecc();
 
 	nand->ecc.mode = NAND_ECC_HW;
 	nand->ecc.size = mtd->writesize;
@@ -1619,6 +1313,14 @@ static int sp_pnand_attach_chip(struct nand_chip *nand)
 	mtd_set_ooblayout(mtd, &sp_pnand_ooblayout_ops);
 
 	printk("Transfer: PIO\n");
+	sp_pnand_dbg("Use nand flash %s\n", mtd->name);
+	sp_pnand_dbg("info->eccbasft: %d\n", info->eccbasft);
+	sp_pnand_dbg("info->useecc: %d\n", info->useecc);
+	sp_pnand_dbg("info->protect_spare: %d\n", info->protect_spare);
+	sp_pnand_dbg("info->useecc_spare: %d\n", info->useecc_spare);
+	sp_pnand_dbg("info->spare: %d\n", info->spare);
+	sp_pnand_dbg("info->flash_type: %d\n", info->flash_type);
+	sp_pnand_dbg("info->sector_per_page: %d\n", info->sector_per_page);
 
 	return 0;
 }
@@ -1626,61 +1328,35 @@ static int sp_pnand_attach_chip(struct nand_chip *nand)
 int sp_pnand_hw_init(struct sp_pnand_info *info)
 {
 	u32 val;
+	int i;
 
-	// Reset the HW
-	// Note: We can't use the function of sp_pnand_soft_reset to reset the hw
-	//       because the private data field of sp_pnand_info is null.
+	info->inverse = 0;		/* disable */
+	info->scramble = 0;		/* disable */
+	info->seed_val = 0;
+	info->max_spare = 128;
+	info->spare_ch_offset = 7;	/* shift 7 means 0x80*/
+
+	/* Reset the HW */
 	writel(1, info->io_base + GLOBAL_RESET);
 	while (readl(info->io_base + GLOBAL_RESET)) ;
 
-#if defined(CONFIG_PNANDC_SAMSUNG_K9F2G08U0A) ||\
-	defined(CONFIG_PNANDC_GIGADEVICE_9AU4G8F3AMGI) ||\
-	defined(CONFIG_PNANDC_GIGADEVICE_9FU4G8F4BMGI) ||\
-	defined(CONFIG_PNANDC_SAMSUNG_K9GBG08U0B)
-	/* We disable scramble function on SLC because SLC
-	 * usually needs fewer ecc correction capability.
-	 * The fewer ecc correction capability, the more
-	 * probability of ecc misjudgement especially for
-	 * paged pattern(0xff)
-	 */
-	// which is randomized by scrambler.
-	#ifdef CONFIG_PNANDC_USE_DATA_INVERSE
-	writel(BUSY_RDY_LOC(6) | CMD_STS_LOC(0) | CE_NUM(2) | DATA_INVERSE, info->io_base + GENERAL_SETTING);
-	#else
-	writel(BUSY_RDY_LOC(6) | CMD_STS_LOC(0) | CE_NUM(2), info->io_base + GENERAL_SETTING);
-	#endif
-#else
-	#ifdef CONFIG_PNANDC_USE_DATA_INVERSE
-	writel(BUSY_RDY_LOC(6) | CMD_STS_LOC(0) | CE_NUM(2) | DATA_INVERSE | DATA_SCRAMBLER, info->io_base + GENERAL_SETTING);
-	#else
-	writel(BUSY_RDY_LOC(6) | CMD_STS_LOC(0) | CE_NUM(2) | DATA_SCRAMBLER, info->io_base + GENERAL_SETTING);
-	#endif
-#endif
+	val = BUSY_RDY_LOC(6) | CMD_STS_LOC(0) | CE_NUM(2);
+	if (info->inverse)
+		val |= DATA_INVERSE;
+	if (info->scramble)
+		val |= DATA_SCRAMBLER;
 
-	//lichun@add, for PNANDC v2.4
-	info->max_spare = 32;
-	info->spare_ch_offset = 5; //shift 5 means 0x20
-	info->seed_val = 0;
-#if 1 //enable at next version (v2.5)
-	if (readl(info->io_base + REVISION_NUM) >= 0x020400) {
-		printk(KERN_INFO "PNANDC >= v2.4\n");
+	writel(val, info->io_base + GENERAL_SETTING);
 
-		//Check if the PNANDC support up to 128 bytes spare number
-		val = readl(info->io_base + FEATURE_1);
-		if (val & MAX_SPARE_DATA_128BYTE) {
-			info->max_spare = 128;
-			info->spare_ch_offset = 7; //shift 7 means 0x80
-		}
-
-		//Support FW to program scramble seed
-/*		val = readl(info->io_base + NANDC_EXT_CTRL);
+	if (info->scramble) {
+		/* Support FW to program scramble seed */
+		val = readl(info->io_base + NANDC_EXT_CTRL);
 		for(i = 0; i < MAX_CHANNEL; i++)
 			val |= SEED_SEL(i);
 		writel(val, info->io_base + NANDC_EXT_CTRL);
-		info->seed_val = 0x2fa5; //random set, b[13:0]
-*/
+		/* random set, b[13:0] */
+		info->seed_val = 0x2fa5;
 	}
-#endif
 
 	val = readl(info->io_base + AHB_SLAVEPORT_SIZE);
 	val &= ~0xFFF0FF;
@@ -1693,104 +1369,11 @@ int sp_pnand_hw_init(struct sp_pnand_info *info)
 	return 0;
 }
 
-//TODO:remove the function, most parameter settings are the same as sp_pnand_ids.
-int sp_pnand_flash_param_set(struct sp_pnand_info *info)
+void sp_pnand_set_actiming(struct nand_chip *nand)
 {
-	int sel;
-
-#if defined (CONFIG_PNANDC_SAMSUNG_K9F2G08U0A)
-	sel = 0;
-#elif defined (CONFIG_PNANDC_GIGADEVICE_9AU4G8F3AMGI)
-	sel = 1;
-#elif defined (CONFIG_PNANDC_GIGADEVICE_9FU4G8F4BMGI)
-	sel = 2;
-#elif defined (CONFIG_PNANDC_SAMSUNG_K9GBG08U0B)
-	sel = 3;
-#else
-	sel = -1;
-#endif
-
-	if (sel != -1) {
-		printk(KERN_INFO "Use %s NAND chip...\n", nand_attr[sel].name);
-		info->spare = nand_attr[sel].sparesize;
-		info->useecc = nand_attr[sel].ecc;
-		info->useecc_spare = nand_attr[sel].ecc_spare;
-		info->eccbasft = nand_attr[sel].eccbaseshift;
-		info->protect_spare = nand_attr[sel].crc;
-		info->flash_type = nand_attr[sel].flash_type;
-		info->block_boundary = nand_attr[sel].block_boundary;
-	} else {
-		printk(KERN_INFO "Use Unknown type NAND chip...\n");
-	}
-
-	return 0;
-}
-
-int sp_pnand_init(struct sp_pnand_info *info)
-{
-	struct nand_chip *nand = &info->nand;
-	struct mtd_info *mtd;
-	flashtype type;
-	int ret;
-
-	/* hw reset, genernal config*/
-	sp_pnand_hw_init(info);
-
-	sp_pnand_flash_param_set(info);
-
-	nand_set_controller_data(nand, info);
-	mtd = nand_to_mtd(nand);
-
-	nand->IO_ADDR_R = nand->IO_ADDR_W = info->sram_base;
-	nand->select_chip = sp_pnand_select_chip;
-	nand->cmdfunc = sp_pnand_cmdfunc;
-	nand->read_byte = sp_pnand_read_byte;
-	nand->waitfunc = sp_pnand_wait;
-	nand->chip_delay = 0;
-	nand->options = NAND_NO_SUBPAGE_WRITE;// | NAND_OWN_BUFFERS;
-	nand->options |= NAND_BBT_SCAN2NDPAGE;
-	//nand->bbt_options = NAND_BBT_USE_FLASH;////////////////////xtdebug:close scan bbt
-
-	// Set the default AC timing/Warmup cyc for sp_pnand.
-	// The register of AC timing/Warmup  keeps the value
-	// set before although the Global Reset is set.
-	sp_pnand_set_default_timing(nand);
-	sp_pnand_set_warmup_cycle(nand, 0, 0);//disable
-
-	// Read the raw id to calibrate the DQS delay for Sync. latching(DDR)
-	sp_pnand_read_raw_id(nand);
-	if(info->flash_type == TOGGLE1 || info->flash_type == TOGGLE2) {
-		sp_pnand_calc_timing(nand);
-		sp_pnand_calibrate_dqs_delay(nand);
-	}
-
-	/*--------------------------------------------------------
-	 * ONFI flash must work in Asynch mode for READ ID command.
-	 * Switch it back to Legacy.
-	 */
-	if (info->flash_type == ONFI2 || info->flash_type == ONFI3) {
-		type = info->flash_type;
-		info->flash_type = LEGACY_FLASH;
-	}
-
-	// Reset the flash delay set before.
-	if(info->flash_type == TOGGLE2)
-		sp_pnand_t2_sync(nand, 0, 0);
-///////////////////////////////////////////////////////////////////////
-	ret = nand_scan_ident(mtd, MAX_CE, (struct nand_flash_dev *)sp_pnand_ids);
-	if (ret)
-		return ret;
-
-	ret = sp_pnand_attach_chip(nand);
-	if (ret)
-		return ret;
-
-	ret = nand_scan_tail(mtd);
-	if (ret)
-		return ret;
-
-	// Disable the scan-state for sp_pnand_select_chip
-	info->scan_state = 0;
+	/* TODO: calibrate the DQS delay for Sync */
+	flashtype type = LEGACY_FLASH;
+	struct sp_pnand_info *info = nand_get_controller_data(nand);
 
 	/*----------------------------------------------------------
 	 * ONFI synch mode means High Speed. If fails to change to
@@ -1822,6 +1405,69 @@ int sp_pnand_init(struct sp_pnand_info *info)
 		sp_pnand_t2_sync(nand, 3, 3);
 #endif
 	}
+}
+
+int sp_pnand_init(struct sp_pnand_info *info)
+{
+	struct nand_chip *nand = &info->nand;
+	struct mtd_info *mtd = nand_to_mtd(nand);
+	int ret;
+
+	nand_set_controller_data(nand, info);
+	/* hw reset, genernal config*/
+	sp_pnand_hw_init(info);
+
+	nand->IO_ADDR_R = nand->IO_ADDR_W = info->sram_base;
+	nand->select_chip = sp_pnand_select_chip;
+	nand->cmdfunc = sp_pnand_cmdfunc;
+	nand->read_byte = sp_pnand_read_byte;
+	nand->waitfunc = sp_pnand_wait;
+	nand->chip_delay = 0;
+	nand->options = NAND_NO_SUBPAGE_WRITE;// | NAND_OWN_BUFFERS;
+	nand->options |= NAND_BBT_SCAN2NDPAGE;
+	//nand->bbt_options = NAND_BBT_USE_FLASH;////////////////////xtdebug:close scan bbt
+
+	// Set the default AC timing/Warmup cyc for sp_pnand.
+	// The register of AC timing/Warmup  keeps the value
+	// set before although the Global Reset is set.
+	sp_pnand_set_default_timing(nand);
+	sp_pnand_set_warmup_cycle(nand, 0, 0);//disable
+#if 0
+	// Read the raw id to calibrate the DQS delay for Sync. latching(DDR)
+	sp_pnand_read_raw_id(nand);
+	if(info->flash_type == TOGGLE1 || info->flash_type == TOGGLE2) {
+		sp_pnand_calc_timing(nand);
+		sp_pnand_calibrate_dqs_delay(nand);
+	}
+
+	/*--------------------------------------------------------
+	 * ONFI flash must work in Asynch mode for READ ID command.
+	 * Switch it back to Legacy.
+	 */
+	if (info->flash_type == ONFI2 || info->flash_type == ONFI3) {
+		type = info->flash_type;
+		info->flash_type = LEGACY_FLASH;
+	}
+
+	// Reset the flash delay set before.
+	if(info->flash_type == TOGGLE2)
+		sp_pnand_t2_sync(nand, 0, 0);
+#endif
+	/* read id need flash_type. TODO: how to remove it */
+	//info->flash_type = LEGACY_FLASH;
+	ret = nand_scan_ident(mtd, MAX_CE, (struct nand_flash_dev *)sp_pnand_ids);
+	if (ret)
+		return ret;
+
+	ret = sp_pnand_attach_chip(nand);
+	if (ret)
+		return ret;
+
+	ret = nand_scan_tail(mtd);
+	if (ret)
+		return ret;
+
+	sp_pnand_set_actiming(nand);
 #if 0
 	if (num_partitions <= 0) {
 		partitions = sp_pnand_partition_info;
@@ -1831,7 +1477,9 @@ int sp_pnand_init(struct sp_pnand_info *info)
 	if (!ret)
 		return ret;
 #endif
-	nand_register(0, mtd);
+	ret = nand_register(0, mtd);
+	if (!ret)
+		return ret;
 
 	return 0;
 }
@@ -1888,5 +1536,5 @@ void board_paranand_init(void)
 					  &dev);
 
 	if (ret && ret != -ENODEV)
-		printk(KERN_INFO TAG "Failed to initialize %s. (error %d)\n", dev->name, ret);
+		DBGLEVEL1(sp_pnand_dbg("Failed to initialize %s. (error %d)\n", dev->name, ret));
 }

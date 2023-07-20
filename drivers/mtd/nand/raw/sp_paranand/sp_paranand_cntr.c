@@ -732,15 +732,7 @@ int sp_pnand_read_page_lp(struct nand_chip *nand, uint8_t *buf)
 	u32 *lbuf;
 	u32 data_size;
 
-	#if defined(CONFIG_PNANDC_TOSHIBA_TC58NVG4T2ETA00) ||\
-		defined(CONFIG_PNANDC_SAMSUNG_K9ABGD8U0B)
-	int real_blk_nm, real_off;
-	real_blk_nm = info->page_addr / (mtd->erasesize/mtd->writesize);
-	real_off = info->page_addr % (mtd->erasesize/mtd->writesize);
-	real_pg = (real_blk_nm * info->block_boundary) + real_off;
-	#else
 	real_pg = info->page_addr;
-	#endif
 #if 0
 	DBGLEVEL2(sp_pnand_dbg
 		("r: ch = %d, ce = %d, page = 0x%x, real = 0x%x, size = %d, info->column = %d\n",
@@ -877,15 +869,7 @@ int sp_pnand_write_page_lp(struct nand_chip *nand, const uint8_t *buf)
 	int i, status = 0;
 	u32 data_size;
 
-	#if defined(CONFIG_PNANDC_TOSHIBA_TC58NVG4T2ETA00) ||\
-		defined(CONFIG_PNANDC_SAMSUNG_K9ABGD8U0B)
-	int real_blk_nm, real_off;
-	real_blk_nm = info->page_addr / (mtd->erasesize/mtd->writesize);
-	real_off = info->page_addr % (mtd->erasesize/mtd->writesize);
-	real_pg = (real_blk_nm * info->block_boundary) + real_off;
-	#else
 	real_pg = info->page_addr;
-	#endif
 
 	DBGLEVEL2(sp_pnand_dbg (
 		"w: ch = %d, ce = %d, page = 0x%x, real page:0x%x size = %d, info->column = %d\n",
@@ -946,15 +930,7 @@ int sp_pnand_read_oob_lp(struct nand_chip *nand, u8 *buf)
 	int status = 0, i, ecc_original_setting, generic_original_setting, val;
 	int real_pg, empty;
 
-	#if defined(CONFIG_PNANDC_TOSHIBA_TC58NVG4T2ETA00) ||\
-		defined(CONFIG_PNANDC_SAMSUNG_K9ABGD8U0B)
-	int real_blk_nm, real_off;
-	real_blk_nm = info->page_addr / (mtd->erasesize/mtd->writesize);
-	real_off = info->page_addr % (mtd->erasesize/mtd->writesize);
-	real_pg = (real_blk_nm * info->block_boundary) + real_off;
-	#else
 	real_pg = info->page_addr;
-	#endif
 
 	DBGLEVEL2(sp_pnand_dbg(
 		"read_oob: ch = %d, ce = %d, page = 0x%x, real: 0x%x, size = %d\n",
@@ -1012,15 +988,7 @@ int sp_pnand_write_oob_lp(struct nand_chip *nand, u8 *buf, int len)
 	struct cmd_feature cmd_f;
 	int status = 0, real_pg, i;
 
-	#if defined(CONFIG_PNANDC_TOSHIBA_TC58NVG4T2ETA00) ||\
-		defined(CONFIG_PNANDC_SAMSUNG_K9ABGD8U0B)
-	int real_blk_nm, real_off;
-	real_blk_nm = info->page_addr / (mtd->erasesize/mtd->writesize);
-	real_off = info->page_addr % (mtd->erasesize/mtd->writesize);
-	real_pg = (real_blk_nm * info->block_boundary) + real_off;
-	#else
 	real_pg = info->page_addr;
-	#endif
 
 	DBGLEVEL2(sp_pnand_dbg(
 		"write_oob: ch = %d, ce = %d, page = 0x%x, real page:0x%x, sz = %d, oobsz = %d\n",

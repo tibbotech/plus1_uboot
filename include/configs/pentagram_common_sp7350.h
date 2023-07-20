@@ -112,7 +112,7 @@
 #undef MTDPARTS_DEFAULT
 #define CONFIG_SYS_NAND_BASE            0xf8120000
 #define MTDIDS_DEFAULT                  "nand0=sp_paranand.0"
-#define MTDPARTS_DEFAULT                "sp_paranand.0:128k(nand_header),384k(xboot1),1536k(uboot1),2048k(uboot2),2m(fip),512k(env),512k(env_redund),256k(dtb),25m(kernel),229120k(rootfs)"
+#define MTDPARTS_DEFAULT                "sp_paranand.0:128k(nand_header),384k(xboot1),1536k(uboot1),2048k(uboot2),2m(fip),512k(env),512k(env_redund),256k(dtb),25m(kernel),-(rootfs)"
 #endif
 #endif
 
