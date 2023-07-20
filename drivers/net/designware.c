@@ -279,10 +279,12 @@ static int dw_adjust_link(struct dw_eth_dev *priv, struct eth_mac_regs *mac_p,
 #ifdef CONFIG_CLK
 	if (clk_for_link_now) {
 		clk_rate = clk_get_rate(priv->clocks);
-		printf("GMAC clock current = %d \n",clk_rate);
-		clk_set_rate(priv->clocks, clk_for_link_now);
-		clk_rate = clk_get_rate(priv->clocks);
-		printf("GMAC clock switch to %d \n",clk_rate);
+		//printf("GMAC clock current = %d \n",clk_rate);
+		if ((clk_for_link_now) && (clk_for_link_now != clk_rate)) {
+			clk_set_rate(priv->clocks, clk_for_link_now);
+			//clk_rate = clk_get_rate(priv->clocks);
+			//printf("GMAC clock switch to %d \n",clk_rate);
+		}
 	}
 #endif
 
