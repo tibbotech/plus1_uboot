@@ -39,24 +39,37 @@ static struct sp_pnand_chip_timing chip_timing[] = {
 	70, 100, 0, 20, 0, 12, 10, 12, 0, 0, 0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-	{ //GIGADEVICE_9AU4G8F3AMGI
+	{ //GD9FS2G8F2A 256MiB 1.8V 8-bit
+	10, 5, 5, 5, 0, 12, 10, 0, 0, 0,
+	20, 12, 100, 0, 60, 0, 100, 20, 10, 25,
+	300, 100, 0, 15, 0, 12, 10, 10, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+	{ //GD9AU4G8F3A 512MiB 3.3V 8-bit
 	7, 5, 5, 5, 0, 12, 7, 0, 0, 0,
 	18, 10, 100, 0, 80, 0, 100, 20, 10, 20,
 	100, 100, 0, 15, 0, 12, 10, 10, 0, 0, 0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-	{ //GIGADEVICE_9FU4G8F4BMGI
+	{ //GD9FU4G8F4B 512MiB 3.3V 8-bit
 	10, 5, 5, 5, 0, 12, 10, 0, 0, 0,
 	20, 12, 100, 0, 60, 0, 100, 20, 10, 0,
 	150, 100, 0, 15, 0, 10, 10, 10, 0, 0, 0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-	{ //SAMSUNG_K9GBG08U0B
+	{ //W29N08GZSIBA 1GMiB 1.8V 8-bit
+	10, 5, 5, 5, 0, 12, 10, 0, 0, 0,
+	25, 12, 100, 0, 80, 0, 100, 20, 10, 0,
+	150, 100, 0, 15, 0, 10, 10, 10, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+	{ //K9GBG08U0B 4GiB 3.3V 8-bit
 	11, 5, 5, 5, 0, 11, 11, 0, 0, 0,
 	20, 11, 100, 0, 120, 300, 100, 20, 10, 25,
-	300, 100, 0, 20, 0, 12, 10, 12, 0, 0, 0, 0, 0, 0, 0,
+	70, 100, 0, 20, 0, 10, 10, 10, 0, 0, 0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }};
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
+};
 
 struct sp_pnand_info *get_pnand_info(void)
 {
@@ -143,14 +156,19 @@ static struct sp_pnand_chip_timing *sp_pnand_scan_timing(struct nand_chip *nand)
 {
 	struct mtd_info *mtd = nand_to_mtd(nand);
 
+	sp_pnand_dbg("mtd->name %s\n", mtd->name);
 	if(strcmp(mtd->name, "K9F2G08XXX 256MiB ZEBU 8-bit") == 0)
 		return &chip_timing[0];
-	else if(strcmp(mtd->name, "GD9AU4G8F3AMGI 512MiB 3.3V 8-bit") == 0)
+	else if(strcmp(mtd->name, "GD9FS2G8F2A 256MiB 1.8V 8-bit") == 0)
 		return &chip_timing[1];
-	else if(strcmp(mtd->name, "GD9FU4G8F4BMGI 512MiB 3.3V 8-bit") == 0)
+	else if(strcmp(mtd->name, "GD9AU4G8F3A 512MiB 3.3V 8-bit") == 0)
 		return &chip_timing[2];
-	else if(strcmp(mtd->name, "K9GBG08U0B 4G 3.3V 8-bit") == 0)
+	else if(strcmp(mtd->name, "GD9FU4G8F4B 512MiB 3.3V 8-bit") == 0)
 		return &chip_timing[3];
+	else if(strcmp(mtd->name, "W29N08GZSIBA 1GiB 1.8V 8-bit") == 0)
+		return &chip_timing[4];
+	else if(strcmp(mtd->name, "K9GBG08U0B 4GiB 3.3V 8-bit") == 0)
+		return &chip_timing[5];
 	else
 		return NULL;
 }
@@ -1283,8 +1301,6 @@ static int sp_pnand_attach_chip(struct nand_chip *nand)
 		return -ENXIO;
 
 	DBGLEVEL1(sp_pnand_dbg("total oobsize: %d\n", mtd->oobsize));
-
-	//TODO:refine e.x. 1k60bit?
 
 	sp_nand_set_ecc();
 
