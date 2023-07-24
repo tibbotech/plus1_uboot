@@ -1657,7 +1657,7 @@ static const struct udevice_id sunplus_mmc_ids[] = {
 		.data		= (ulong)&sp_dev_info[2],
 	},
 	{
-		.compatible	= "sunplus,sp7350-card",
+		.compatible	= "sunplus,sp7350-sd",
 		.data		= (ulong)&sp_dev_info[2],
 	},
 	{
