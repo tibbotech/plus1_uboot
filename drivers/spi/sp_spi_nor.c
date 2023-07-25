@@ -8,6 +8,7 @@
 
 #include <common.h>
 #include <malloc.h>
+#include <clk.h>
 #include <spi.h>
 #include <dm.h>
 #include <errno.h>
@@ -160,7 +161,7 @@ static int spi_flash_xfer_DMAread(struct sp_spi_nor_priv *priv,UINT8 *cmd, size_
 	//pr_debug("DMA read: data length 0x%lx, cmd[0] 0x%x\n", data_len, cmd[0]);
 	while ((spi_reg->spi_auto_cfg & DMA_TRIGGER) || (spi_reg->spi_ctrl & SPI_CTRL_BUSY)) {
 		time++;
-		if (time > 0x30000) {
+		if (time > 0x300000) {
 			 pr_err("##busy check time out: spi_auto_cfg 0x%x spi_ctrl 0x%x\n", spi_reg->spi_auto_cfg, spi_reg->spi_ctrl);
 			 break;
 		}
@@ -212,7 +213,7 @@ static int spi_flash_xfer_DMAread(struct sp_spi_nor_priv *priv,UINT8 *cmd, size_
 		time = 0;
 		while ((spi_reg->spi_intr_sts & 0x2) == 0x0) {
 			time++;
-			if (time > 0x90000) {
+			if (time > 0x900000) {
 				pr_err("#####spi_reg->spi_intr_sts time out: 0x%x spi_auto_cfg 0x%x spi_ctrl 0x%x\n", spi_reg->spi_intr_sts, spi_reg->spi_auto_cfg, spi_reg->spi_ctrl);
 				data_len = 0;
 				break;
@@ -224,7 +225,7 @@ static int spi_flash_xfer_DMAread(struct sp_spi_nor_priv *priv,UINT8 *cmd, size_
 		time = 0;
 		while ((spi_reg->spi_ctrl & SPI_CTRL_BUSY)!=0) {
 			time++;
-			if (time > 0x20000) {
+			if (time > 0x200000) {
 				pr_err("#####busy check time out: spi_auto_cfg 0x%x spi_ctrl 0x%x\n", spi_reg->spi_auto_cfg, spi_reg->spi_ctrl);
 				data_len = 0;
 				break;
@@ -259,7 +260,7 @@ static int spi_flash_xfer_DMAwrite(struct sp_spi_nor_priv *priv, UINT8 *cmd, siz
 
 	while ((spi_reg->spi_auto_cfg & DMA_TRIGGER) || (spi_reg->spi_ctrl & SPI_CTRL_BUSY)) {
 		time++;
-		if (time > 0x30000) {
+		if (time > 0x300000) {
 			 pr_err("#####busy check time out: spi_auto_cfg 0x%x spi_ctrl 0x%x\n", spi_reg->spi_auto_cfg, spi_reg->spi_ctrl);
 			 break;
 		}
@@ -322,7 +323,7 @@ static int spi_flash_xfer_DMAwrite(struct sp_spi_nor_priv *priv, UINT8 *cmd, siz
 		//printf("spi_reg->spi_cfg2 0x%x\n", spi_reg->spi_cfg2);
 		while ((spi_reg->spi_intr_sts & 0x2) == 0x0) {
 			time++;
-			if (time > 0x90000) {
+			if (time > 0x900000) {
 				pr_err("#####spi_reg->spi_intr_sts 0x%x time out: spi_auto_cfg 0x%x spi_ctrl 0x%x\n", spi_reg->spi_intr_sts, spi_reg->spi_auto_cfg, spi_reg->spi_ctrl);
 				data_len = 0;
 				break;
@@ -334,7 +335,7 @@ static int spi_flash_xfer_DMAwrite(struct sp_spi_nor_priv *priv, UINT8 *cmd, siz
 		time = 0;
 		while ((spi_reg->spi_ctrl & SPI_CTRL_BUSY) != 0) {
 			time++;
-			if (time > 0x30000) {
+			if (time > 0x300000) {
 				pr_err("#####busy check time out: spi_auto_cfg 0x%x spi_ctrl 0x%x\n", spi_reg->spi_auto_cfg, spi_reg->spi_ctrl);
 				data_len = 0;
 				break;
@@ -672,6 +673,7 @@ static int sp_spi_nor_ofdata_to_platdata(struct udevice *bus)
 	struct sp_spi_nor_platdata *plat = dev_get_plat(bus);;
 	const void *blob = gd->fdt_blob;
 	int node = dev_of_offset(bus);
+	int ret;
 
 	pr_debug("%s\n", __FUNCTION__);
 	plat->regs = (struct sp_spi_nor_regs *)fdtdec_get_addr(blob, node, "reg");
@@ -679,6 +681,11 @@ static int sp_spi_nor_ofdata_to_platdata(struct udevice *bus)
 	plat->chipsel = fdtdec_get_int(blob, node, "spi-chip-selection", 0);
 	plat->rwTimingSel = fdtdec_get_int(blob, node, "write-timing-selection", 0);
 	plat->rwTimingSel |= (fdtdec_get_int(blob, node, "read-timing-selection", 0) << 1);
+	ret = clk_get_by_index(bus, 0, &plat->ctrl_clk);
+	if (ret) {
+		pr_err("get clk error\n");
+		return -EINVAL;
+	}
 
 	return 0;
 }
@@ -702,6 +709,9 @@ static int sp_spi_nor_probe(struct udevice *bus)
 	spi_reg = (sp_spi_nor_regs *)priv->regs;
 	cmd_buf = malloc(CMD_BUF_LEN * sizeof(UINT8));
 
+	clk_enable(&plat->ctrl_clk);
+	plat->source_clk = clk_get_rate(&plat->ctrl_clk);
+	pr_debug("source_clk = %ld\n", plat->source_clk);
 #if (SP_SPINOR_DMA)
 	pr_debug("buffsddr 0x%px\n", cmd_buf);
 	pr_debug("wdesc 0x%px rdesc 0x%px\n", wdesc, rdesc);
@@ -744,19 +754,34 @@ static int sp_spi_nor_claim_bus(struct udevice *dev)
 		value = B_CHIP;
 
 #if defined (CONFIG_TARGET_PENTAGRAM_Q645) || defined (CONFIG_TARGET_PENTAGRAM_SP7350)
-	// SPI-NOR source clock = 360.0 MHz
-	if (plat->clock >= 90000000)
-		value |= SPI_CLK_D_4;
-	else if (plat->clock >= 60000000)
+	if (plat->clock >= 100000000) {
+		if (plat->source_clk != 614285714)
+			clk_set_rate(&plat->ctrl_clk, 614285714);
+		plat->source_clk = clk_get_rate(&plat->ctrl_clk);
+		if (plat->source_clk != 614285714)
+			pr_err("Set rate 614285714 failed, result = %ld\n", plat->source_clk);
+
 		value |= SPI_CLK_D_6;
-	else if (plat->clock >= 45000000)
-		value |= SPI_CLK_D_8;
-	else if (plat->clock >= 22000000)
-		value |= SPI_CLK_D_16;
-	else if (plat->clock >= 15000000)
-		value |= SPI_CLK_D_24;
-	else
-		value |= SPI_CLK_D_32;
+	} else {
+		if (plat->source_clk != 358333333)
+			clk_set_rate(&plat->ctrl_clk, 358333333);
+		plat->source_clk = clk_get_rate(&plat->ctrl_clk);
+		if (plat->source_clk != 358333333)
+			pr_err("Set rate 358333333 failed, result = %ld\n", plat->source_clk);
+
+		if (plat->clock >= 90000000)
+			value |= SPI_CLK_D_4;
+		else if (plat->clock >= 60000000)
+			value |= SPI_CLK_D_6;
+		else if (plat->clock >= 45000000)
+			value |= SPI_CLK_D_8;
+		else if (plat->clock >= 22000000)
+			value |= SPI_CLK_D_16;
+		else if (plat->clock >= 15000000)
+			value |= SPI_CLK_D_24;
+		else
+			value |= SPI_CLK_D_32;
+	}
 #else
 	// SPI-NOR source clock = 202.3 MHz
 	if (plat->clock >= 100000000)
@@ -777,8 +802,16 @@ static int sp_spi_nor_claim_bus(struct udevice *dev)
 
         spi_reg->spi_ctrl = value;
 #if (SP_SPINOR_DMA)
+#if defined (CONFIG_TARGET_PENTAGRAM_Q645) || defined (CONFIG_TARGET_PENTAGRAM_SP7350)
 	//value = spi_reg->spi_timing;
 	spi_reg->spi_timing = ((0x2 << 22) | (0x16 << 16) | plat->rwTimingSel); //2 = 200(MHz) * 10 / 1000 (minium val = 3), 0x16 = 105 * 200(MHz) / 1000. detail in reg spec.
+	//if (plat->source_clk == 358333333)
+	//	spi_reg->spi_timing = ((0x4 << 22) | (0x26 << 16) | plat->rwTimingSel); //4 = 360(MHz) * 10 / 1000 (minium val = 3), 0x26 = 105 * 360(MHz) / 1000. detail in reg spec.
+	//else
+	//	spi_reg->spi_timing = ((0x6 << 22) | (0x3F << 16) | plat->rwTimingSel); //6 = 614(MHz) * 10 / 1000 (minium val = 3), 0x40 = 105 * 614(MHz) / 1000. detail in reg spec.
+#else
+	spi_reg->spi_timing = ((0x2 << 22) | (0x16 << 16) | plat->rwTimingSel); //2 = 200(MHz) * 10 / 1000 (minium val = 3), 0x16 = 105 * 200(MHz) / 1000. detail in reg spec.
+#endif
 #else
 	spi_reg->spi_timing = (spi_reg->spi_timing & (~0x3)) | plat->rwTimingSel;
 #endif

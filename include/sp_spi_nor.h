@@ -9,6 +9,8 @@
 #ifndef __SP_SPI_NOR_H
 #define __SP_SPI_NOR_H
 
+#include <clk.h>
+
 typedef unsigned long long UINT64;
 typedef unsigned int UINT32;
 typedef unsigned short UINT16;
@@ -232,6 +234,8 @@ typedef struct {
 
 struct sp_spi_nor_platdata {
 	struct sp_spi_nor_regs *regs;
+	struct clk ctrl_clk;
+	ulong source_clk;
 	unsigned int clock;
 	unsigned int mode;
 	unsigned int chipsel;
