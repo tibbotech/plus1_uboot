@@ -69,6 +69,7 @@
 #define CLOCK_182M      182250000
 #define CLOCK_189M      189000000
 #define CLOCK_195M      195750000
+#define CLOCK_200M      200000000
 #define CLOCK_202M      202500000
 #define CLOCK_209M      209250000
 #define CLOCK_216M      216000000
@@ -81,6 +82,7 @@
 #define CLOCK_263M      263250000
 #define CLOCK_270M      270000000
 #define CLOCK_360M      360000000
+#define CLOCK_800M      800000000
 #endif
 
 typedef struct sp_mmc_dev_info {

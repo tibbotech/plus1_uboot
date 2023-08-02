@@ -15,10 +15,15 @@
 #include "sp_mmc.h"
 #include <asm/cache.h>
 
+//#define HS200
 #define MAX_SDDEVICES   2
 
 #if defined(CONFIG_TARGET_PENTAGRAM_Q645) || defined(CONFIG_TARGET_PENTAGRAM_SP7350)
+#ifdef HS200
+#define SPMMC_CLK_SRC CLOCK_800M    /* Host controller's clk source */
+#else
 #define SPMMC_CLK_SRC CLOCK_360M    /* Host controller's clk source */
+#endif
 #elif defined(CONFIG_ARCH_PENTAGRAM) && !defined(CONFIG_TARGET_PENTAGRAM_I143_C)
 #define SPMMC_CLK_SRC CLOCK_202M    /* Host controller's clk source */
 #elif defined(CONFIG_TARGET_PENTAGRAM_I143_P) || defined(CONFIG_TARGET_PENTAGRAM_I143_C)
@@ -27,7 +32,11 @@
 
 
 #define SPMMC_MAX_CLK CLOCK_25M     /* Max supported SD Card frequency */
+#ifdef HS200
+#define SPEMMC_MAX_CLK CLOCK_200M     /* Max supported emmc Card frequency */
+#else
 #define SPEMMC_MAX_CLK CLOCK_45M     /* Max supported emmc Card frequency */
+#endif
 #define MAX_DLY_CLK  7
 
 /*
@@ -566,6 +575,24 @@ static int sp_mmc_getcd(struct mmc *mmc)
 		return 1; /* fix me  */
 	}
 }
+#ifdef HS200
+#ifdef CONFIG_DM_MMC
+static int sp_mmc_execute_tuning(struct udevice *dev)
+{
+	sp_sd_trace();
+	struct mmc *mmc = mmc_get_mmc_dev(dev);
+	DPRINTK("0005\n");
+#else
+static int sp_mmc_execute_tuning(struct mmc *mmc)
+{
+	sp_sd_trace();
+	DPRINTK("0006\n");
+#endif
+	struct sp_mmc_host *priv_data = mmc->priv;
+
+	return 0;
+}
+#endif
 
 
 #ifdef CONFIG_DM_MMC
@@ -573,6 +600,11 @@ const struct dm_mmc_ops sp_mmc_ops = {
 	.send_cmd	= sp_mmc_send_cmd,
 	.set_ios	= sp_mmc_set_ios,
 	.get_cd		= sp_mmc_getcd,
+#ifdef HS200
+#ifdef MMC_SUPPORTS_TUNING
+	.execute_tuning = sp_mmc_execute_tuning,
+#endif
+#endif
 };
 #else
 
@@ -1420,7 +1452,7 @@ static int sp_mmc_probe(struct udevice *dev)
 	host->dev_info = *((sp_mmc_dev_info *)dev_get_driver_data(dev));
 	IFPRINTK("dev_info.id = %d\n", host->dev_info.id);
 	IFPRINTK("host type: %s\n", (host->dev_info.type == SPMMC_DEVICE_TYPE_EMMC) ? "EMMC":"SD");
-	IFPRINTK("version type: %s\n", (host->dev_info.version == SP_MMC_VER_Q628) ? "Q628" : "Q610");
+	IFPRINTK("version type: %s\n", (host->dev_info.version == SP_MMC_VER_Q628) ? "Q628" : "Q654");
 
 	if (host->dev_info.set_clock) {
 		if (host->dev_info.set_clock(&host->dev_info)) {
@@ -1429,6 +1461,7 @@ static int sp_mmc_probe(struct udevice *dev)
 	}
 
 	if(SPMMC_DEVICE_TYPE_EMMC == host->dev_info.type) {
+
 		cfg->host_caps	=  MMC_MODE_8BIT | MMC_MODE_4BIT | MMC_MODE_HS_52MHz | MMC_MODE_HS;
 		cfg->voltages	= MMC_VDD_32_33 | MMC_VDD_33_34;
 		cfg->f_min		= SPEMMC_MIN_CLK;
@@ -1437,7 +1470,10 @@ static int sp_mmc_probe(struct udevice *dev)
 		cfg->b_max		= CONFIG_SYS_MMC_MAX_BLK_COUNT;
 		cfg->name		= "emmc";
 		ops = &emmc_hw_ops;
-		/* cfg->host_caps |= MMC_MODE_DDR_52MHz; */
+		/*cfg->host_caps |= MMC_MODE_DDR_52MHz;*/
+		#ifdef HS200
+		cfg->host_caps |= MMC_MODE_HS200;
+		#endif
 		host->dmapio_mode = SP_MMC_DMA_MODE;
 	}
 	else {
