@@ -36,11 +36,11 @@ static void spi_nor_io_CUST_config(UINT8 cmd_b, UINT8 addr_b, UINT8 data_b, SPI_
 
 	if (enhance.enhance_en == 1) {
 		config = spi_reg->spi_cfg0  & CLEAR_ENHANCE_DATA;
-		if (enhance.enhance_bit == 4) {
+		if (enhance.enhance_bit == 4)
 			config &= ~(1<<18);
-		} else if (enhance.enhance_bit == 8) {
+		else if (enhance.enhance_bit == 8)
 			config |= (1<<18);
-		}
+
 		spi_reg->spi_cfg0 = config | ENHANCE_DATA(enhance.enhance_data);
 	}
 
@@ -146,7 +146,7 @@ static void spi_readcmd_set(UINT8 cmd)
 	}
 }
 
-static int spi_flash_xfer_DMAread(struct sp_spi_nor_priv *priv,UINT8 *cmd, size_t cmd_len, void *data, size_t data_len)
+static int spi_flash_xfer_DMAread(struct sp_spi_nor_priv *priv, UINT8 *cmd, size_t cmd_len, void *data, size_t data_len)
 {
 	UINT32 addr_temp = 0;
 	UINT8  *data_in = data;
@@ -239,7 +239,7 @@ static int spi_flash_xfer_DMAread(struct sp_spi_nor_priv *priv,UINT8 *cmd, size_
 		data_in   += temp_len;
 	} while (data_len != 0);
 
-	spi_reg->spi_cfg0 &= (DATA64_DIS & (~ (1<<19)));
+	spi_reg->spi_cfg0 &= (DATA64_DIS & (~(1<<19)));
 	spi_reg->spi_auto_cfg  &= ~autocfg;
 	spi_readcmd_set(0);
 	return 0;
@@ -376,7 +376,7 @@ static void spi_fast_read_disable(void)
 		pr_debug("wait spi_reg->spi_ctrl 0x%x\n", spi_reg->spi_ctrl);
 
 	spi_reg->spi_ctrl = A_CHIP | SPI_CLK_D_32;
-	spi_nor_io_CUST_config(CMD_1,ADDR_1,DATA_1,enhance,DUMMY_CYCLE(0));
+	spi_nor_io_CUST_config(CMD_1, ADDR_1, DATA_1, enhance, DUMMY_CYCLE(0));
 }
 
 static UINT8 spi_nor_read_status1(void)
@@ -670,7 +670,7 @@ static int spi_flash_xfer_write(UINT8 *cmd, size_t cmd_len, const void *data, si
 
 static int sp_spi_nor_ofdata_to_platdata(struct udevice *bus)
 {
-	struct sp_spi_nor_platdata *plat = dev_get_plat(bus);;
+	struct sp_spi_nor_platdata *plat = dev_get_plat(bus);
 	const void *blob = gd->fdt_blob;
 	int node = dev_of_offset(bus);
 	int ret;
@@ -743,7 +743,7 @@ static int sp_spi_nor_remove(struct udevice *dev)
 static int sp_spi_nor_claim_bus(struct udevice *dev)
 {
 	struct udevice *bus = dev->parent;
-	struct sp_spi_nor_platdata *plat =  dev_get_plat(bus);;
+	struct sp_spi_nor_platdata *plat = dev_get_plat(bus);
 	int value = 0;
 
 	pr_debug("%s\n", __FUNCTION__);
@@ -901,7 +901,7 @@ out:
 
 static int sp_spi_nor_set_speed(struct udevice *bus, uint speed)
 {
-	struct sp_spi_nor_platdata *plat = dev_get_plat(bus);;
+	struct sp_spi_nor_platdata *plat = dev_get_plat(bus);
 	struct sp_spi_nor_priv *priv = dev_get_priv(bus);
 
 	if (speed > plat->clock)
@@ -947,7 +947,7 @@ U_BOOT_DRIVER(sp_spi_nor) = {
 	.id             = UCLASS_SPI,
 	.of_match       = sp_spi_nor_ids,
 	.ops            = &sp_spi_nor_ops,
-	.of_to_plat = sp_spi_nor_ofdata_to_platdata,
+	.of_to_plat 	= sp_spi_nor_ofdata_to_platdata,
 	.probe          = sp_spi_nor_probe,
 	.remove         = sp_spi_nor_remove,
 	.plat_auto      = sizeof(struct sp_spi_nor_platdata),
