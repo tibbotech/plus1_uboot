@@ -34,6 +34,8 @@
 #define SPMMC_MAX_CLK CLOCK_25M     /* Max supported SD Card frequency */
 #ifdef HS200
 #define SPEMMC_MAX_CLK CLOCK_200M     /* Max supported emmc Card frequency */
+//#define SPEMMC_MAX_CLK CLOCK_100M     /* Max supported emmc Card frequency */
+//#define SPEMMC_MAX_CLK CLOCK_80M     /* Max supported emmc Card frequency */
 #else
 #define SPEMMC_MAX_CLK CLOCK_45M     /* Max supported emmc Card frequency */
 #endif
@@ -581,6 +583,7 @@ static int sp_mmc_execute_tuning(struct udevice *dev)
 {
 	sp_sd_trace();
 	struct mmc *mmc = mmc_get_mmc_dev(dev);
+	struct sp_mmc_host *host = mmc->priv;
 	DPRINTK("0005\n");
 #else
 static int sp_mmc_execute_tuning(struct mmc *mmc)
@@ -589,6 +592,9 @@ static int sp_mmc_execute_tuning(struct mmc *mmc)
 	DPRINTK("0006\n");
 #endif
 	struct sp_mmc_host *priv_data = mmc->priv;
+	host->ebase->sd_rd_rsp_dly_sel=1;
+	host->ebase->sd_rd_dat_dly_sel=1;
+	host->ebase->sd_rd_crc_dly_sel=1;
 
 	return 0;
 }
@@ -1473,6 +1479,7 @@ static int sp_mmc_probe(struct udevice *dev)
 		/*cfg->host_caps |= MMC_MODE_DDR_52MHz;*/
 		#ifdef HS200
 		cfg->host_caps |= MMC_MODE_HS200;
+		cfg->voltages  |= MMC_VDD_165_195;
 		#endif
 		host->dmapio_mode = SP_MMC_DMA_MODE;
 	}
