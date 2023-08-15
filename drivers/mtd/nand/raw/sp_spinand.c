@@ -359,7 +359,7 @@ static void spi_nand_readid(struct sp_spinand_info *info, u32 addr, u8 *data)
 	struct sp_spinand_regs *regs = info->regs;
 	u32 value = 0;
 
-	/*read 3 byte cycle same to 8388 */
+	/*read 3 byte cycle */
 	value = SPINAND_SEL_CHIP_A
 		| SPINAND_SCK_DIV(info->spi_clk_div)
 		| SPINAND_USR_CMD(SPINAND_CMD_READID)
