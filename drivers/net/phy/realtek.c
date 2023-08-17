@@ -241,10 +241,10 @@ static int rtl8211f_config(struct phy_device *phydev)
 	phy_write(phydev, MDIO_DEVAD_NONE,
 		  MIIM_RTL8211F_PAGE_SELECT, 0x0);
 
-	/* Set green LED for Link, yellow LED for Active */
+	/* Set LED2 for 1000M, LED1 for 100M, LED0 for 10M*/
 	phy_write(phydev, MDIO_DEVAD_NONE,
 		  MIIM_RTL8211F_PAGE_SELECT, 0xd04);
-	phy_write(phydev, MDIO_DEVAD_NONE, 0x10, 0x617f);
+	phy_write(phydev, MDIO_DEVAD_NONE, 0x10, 0x6251);
 	phy_write(phydev, MDIO_DEVAD_NONE,
 		  MIIM_RTL8211F_PAGE_SELECT, 0x0);
 
