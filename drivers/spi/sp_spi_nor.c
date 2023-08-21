@@ -753,7 +753,7 @@ static int sp_spi_nor_claim_bus(struct udevice *dev)
 	else
 		value = B_CHIP;
 
-#if defined (CONFIG_TARGET_PENTAGRAM_Q645) || defined (CONFIG_TARGET_PENTAGRAM_SP7350)
+#if defined (CONFIG_TARGET_PENTAGRAM_SP7350)
 	if (plat->clock >= 100000000) {
 		if (plat->source_clk != 614285714)
 			clk_set_rate(&plat->ctrl_clk, 614285714);
@@ -782,6 +782,20 @@ static int sp_spi_nor_claim_bus(struct udevice *dev)
 		else
 			value |= SPI_CLK_D_32;
 	}
+#elif defined (CONFIG_TARGET_PENTAGRAM_Q645)
+	// SPI-NOR source clock = 360 MHz
+	if (plat->clock >= 90000000)
+		value |= SPI_CLK_D_4;
+	else if (plat->clock >= 60000000)
+		value |= SPI_CLK_D_6;
+	else if (plat->clock >= 45000000)
+		value |= SPI_CLK_D_8;
+	else if (plat->clock >= 22000000)
+		value |= SPI_CLK_D_16;
+	else if (plat->clock >= 15000000)
+		value |= SPI_CLK_D_24;
+	else
+		value |= SPI_CLK_D_32;
 #else
 	// SPI-NOR source clock = 202.3 MHz
 	if (plat->clock >= 100000000)
@@ -800,7 +814,7 @@ static int sp_spi_nor_claim_bus(struct udevice *dev)
 		value |= SPI_CLK_D_32;
 #endif
 
-        spi_reg->spi_ctrl = value;
+	spi_reg->spi_ctrl = value;
 #if (SP_SPINOR_DMA)
 #if defined (CONFIG_TARGET_PENTAGRAM_Q645) || defined (CONFIG_TARGET_PENTAGRAM_SP7350)
 	//value = spi_reg->spi_timing;
