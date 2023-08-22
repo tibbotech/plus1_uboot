@@ -15,7 +15,7 @@
  **************************************************************************/
 void DRV_VPP_Init(int width, int height)
 {
-	printf("DRV_VPP_Init w %d h %d\n", width, height);
+	//printf("DRV_VPP_Init w %d h %d\n", width, height);
 
 	//G185_IMGREAD_REG->sft_cfg[1] = 0x80000f28; //turn on vpp
 

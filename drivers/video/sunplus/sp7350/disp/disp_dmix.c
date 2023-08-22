@@ -14,23 +14,12 @@
 char * const LayerNameStr[] = {"BG", "L1", "L2", "L3", "L4", "L5", "L6"};
 char * const LayerModeStr[] = {"AlphaBlend", "Transparent", "Opacity"};
 char * const SelStr[] = {"VPP0", "VPP1", "VPP2", "OSD0", "OSD1", "OSD2", "OSD3", "PTG"};
-
 /**************************************************************************
  *             F U N C T I O N    I M P L E M E N T A T I O N S           *
  **************************************************************************/
 void DRV_DMIX_Init(void)
 {
-	printf("DRV_DMIX_Init\n");
-	G198_DMIX_REG->sft_cfg[0] = 0x34561070; //default setting
-	//G198_DMIX_REG->sft_cfg[1] = 0x00000000;
-	//G198_DMIX_REG->sft_cfg[1] = 0x00000556;
-	//G198_DMIX_REG->sft_cfg[1] = 0x00000954;
-	//G198_DMIX_REG->sft_cfg[1] = 0x00000155;
-	G198_DMIX_REG->sft_cfg[1] = 0x00000955;
-	G198_DMIX_REG->sft_cfg[9] = 0x00002001;
-	//G198_DMIX_REG->sft_cfg[10] = 0x000000ff; //Htype=0xf, Vtype=0xf
-	//G198_DMIX_REG->sft_cfg[11] = 0x0029f06e; //blue for BackGround layer
-	G198_DMIX_REG->sft_cfg[11] = 0x00108080; //black for BackGround layer (default setting)
+	G198_DMIX_REG->sft_cfg[1] = 0x00000000;
 	G198_DMIX_REG->sft_cfg[20] = 0x00000002;
 }
 

@@ -21,10 +21,10 @@
  */
 static const u32 lt8912_input_timing[11][10] = {
 	/* (w   h)   HSA   HFP   HBP   HACT  VSA  VFP  VBP   VACT */
-	{ 720,  480, 0x80, 0x28, 0x58,  720, 0x4, 0x1, 0x17,  480}, /* 480P */
+	{ 720,  480, 0x10, 0x6a, 0x10,  720, 0x6, 0x9, 0x1E,  480}, /* 480P */
 	{ 720,  576, 0x80, 0x28, 0x58,  720, 0x4, 0x1, 0x17,  576}, /* 576P */
-	{1280,  720, 0x28, 0x6e, 0xdc, 1280, 0x5, 0x5, 0x14,  720}, /* 720P */
-	{1920, 1080, 0x2c, 0x58, 0x94, 1920, 0x5, 0x4, 0x24, 1080}, /* 1080P */
+	{1280,  720, 0x2c, 0x141, 0x05, 1280, 0x5, 0x5, 0x14,  720}, /* 720P */
+	{1920, 1080, 0x10, 0x104, 0x04, 1920, 0x5, 0x4, 0x24, 1080}, /* 1080P */
 	{  64,   64, 0x14, 0x28, 0x58,   64, 0x5, 0x5, 0x24,   64}, /* 64x64 */
 	{ 128,  128, 0x14, 0x28, 0x58,  128, 0x5, 0x5, 0x24,  128}, /* 128x128 */
 	{  64, 2880, 0x14, 0x28, 0x58,   64, 0x5, 0x5, 0x24, 2880}, /* 64x2880 */
@@ -36,7 +36,7 @@ static const u32 lt8912_input_timing[11][10] = {
 
 void lt8912_write_init_config(struct udevice *p1)
 {
-        printf("lt8912_write_init_config\n");
+    //printf("lt8912_write_init_config\n");
 	/* Digital clock en*/
 	dm_i2c_reg_write(p1, 0x08, 0xff);
 	dm_i2c_reg_write(p1, 0x09, 0xff);
@@ -69,7 +69,7 @@ void lt8912_write_init_config(struct udevice *p1)
 }
 void lt8912_write_mipi_basic_config(struct udevice *p2)
 {
-        printf("lt8912_write_mipi_basic_config\n");
+    //printf("lt8912_write_mipi_basic_config\n");
 	dm_i2c_reg_write(p2, 0x12, 0x04);
 	dm_i2c_reg_write(p2, 0x14, 0x00);
 	dm_i2c_reg_write(p2, 0x15, 0x00);
@@ -84,7 +84,7 @@ void lt8912_write_param_by_resolution(struct udevice *p2, int w, int h)
 	u8 settle = 0x08;
 	int i;
 
-        printf("lt8912_write_param_by_resolution\n");
+    //printf("lt8912_write_param_by_resolution\n");
 
 	for (i = 0; i < 11; i++) {
 		if ((lt8912_input_timing[i][0] == w) &&
@@ -93,7 +93,7 @@ void lt8912_write_param_by_resolution(struct udevice *p2, int w, int h)
 				break;
 		}
 	}
-	printf("Disp: i %d\n", i);
+	//printf("Disp: i %d\n", i);
 
 	if (i >= 11) i = 0;
 
@@ -143,7 +143,7 @@ void lt8912_write_param_by_resolution(struct udevice *p2, int w, int h)
 }
 void lt8912_write_dds_config(struct udevice *p2)
 {
-        printf("lt8912_write_dds_config\n");
+    //printf("lt8912_write_dds_config\n");
 
 	dm_i2c_reg_write(p2, 0x4e, 0xff);
 	dm_i2c_reg_write(p2, 0x4f, 0x56);
@@ -194,7 +194,7 @@ void lt8912_write_dds_config(struct udevice *p2)
 }
 void lt8912_write_rxlogicres_config(struct udevice *p1)
 {
-        printf("lt8912_write_rxlogicres_config\n");
+    //printf("lt8912_write_rxlogicres_config\n");
 
 	dm_i2c_reg_write(p1, 0x03, 0x7f);
 	udelay(10000); //delay 10ms ~ 20ms
@@ -203,7 +203,7 @@ void lt8912_write_rxlogicres_config(struct udevice *p1)
 }
 void lt8912_write_lvds_config(struct udevice *p2)
 {
-        printf("lt8912_write_lvds_config\n");
+    //printf("lt8912_write_lvds_config\n");
 
 	dm_i2c_reg_write(p2, 0x44, 0x30);
 	dm_i2c_reg_write(p2, 0x51, 0x05);

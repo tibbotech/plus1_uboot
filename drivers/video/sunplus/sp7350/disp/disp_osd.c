@@ -42,7 +42,7 @@ void DRV_OSD_Init(int width, int height)
 {
 	//u32 value;
 
-	printf("DRV_OSD_Init w %d h %d\n", width, height);
+	//printf("DRV_OSD_Init w %d h %d\n", width, height);
 	#if 0
 	G189_OSD0_REG->osd_ctrl = 0x000000a7;
 	G189_OSD0_REG->osd_en = 0x00000001;
@@ -87,12 +87,12 @@ int API_OSD_UI_Init(int w, int h, u32 fb_addr, int input_fmt)
 	//flush_cache((u32)osd0_header, 128+1024); //Update osd0_header
 	flush_cache((uintptr_t)osd0_header, 128+1024); //Update osd0_header
 
-	printf("*** [S] dump osd0_header info *** \n");
-	printf("0x%08x 0x%08x 0x%08x 0x%08x \n", SWAP32(osd0_header[0]),SWAP32(osd0_header[1]),SWAP32(osd0_header[2]),SWAP32(osd0_header[3]));
-	printf("0x%08x 0x%08x 0x%08x 0x%08x \n", SWAP32(osd0_header[4]),SWAP32(osd0_header[5]),SWAP32(osd0_header[6]),SWAP32(osd0_header[7]));
-	printf("0x%08x 0x%08x 0x%08x 0x%08x \n", SWAP32(osd0_header[56]),SWAP32(osd0_header[57]),SWAP32(osd0_header[58]),SWAP32(osd0_header[59]));
-	printf("0x%08x 0x%08x 0x%08x 0x%08x \n", SWAP32(osd0_header[60]),SWAP32(osd0_header[61]),SWAP32(osd0_header[62]),SWAP32(osd0_header[63]));
-	printf("*** [E] dump osd0_header info *** \n");
+	//printf("*** [S] dump osd0_header info *** \n");
+	//printf("0x%08x 0x%08x 0x%08x 0x%08x \n", SWAP32(osd0_header[0]),SWAP32(osd0_header[1]),SWAP32(osd0_header[2]),SWAP32(osd0_header[3]));
+	//printf("0x%08x 0x%08x 0x%08x 0x%08x \n", SWAP32(osd0_header[4]),SWAP32(osd0_header[5]),SWAP32(osd0_header[6]),SWAP32(osd0_header[7]));
+	//printf("0x%08x 0x%08x 0x%08x 0x%08x \n", SWAP32(osd0_header[56]),SWAP32(osd0_header[57]),SWAP32(osd0_header[58]),SWAP32(osd0_header[59]));
+	//printf("0x%08x 0x%08x 0x%08x 0x%08x \n", SWAP32(osd0_header[60]),SWAP32(osd0_header[61]),SWAP32(osd0_header[62]),SWAP32(osd0_header[63]));
+	//printf("*** [E] dump osd0_header info *** \n");
 
 	G189_OSD0_REG->osd_base_addr = (u32)(uintptr_t)&osd0_header;
 
@@ -110,9 +110,11 @@ int API_OSD_UI_Init(int w, int h, u32 fb_addr, int input_fmt)
 
 	//G189_OSD0_REG->osd_data_fetch_ctrl = 0x0af8;
 	G189_OSD0_REG->osd_bist_ctrl = 0x0;
+	//G189_OSD0_REG->osd_bist_ctrl = 0x00000080; //G189.21 , color bar en , color bar
+	//G189_OSD0_REG->osd_bist_ctrl = 0x000000C0; //G189.21 , color bar en , border
 	G189_OSD0_REG->osd_3d_h_offset = 0x0;
 	G189_OSD0_REG->osd_src_decimation_sel = 0x0;
-	
+
 	G189_OSD0_REG->osd_en = 1;
 
 	//GPOST bypass

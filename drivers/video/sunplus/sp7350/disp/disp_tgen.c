@@ -14,24 +14,46 @@
  **************************************************************************/
 void DRV_TGEN_Init(int width, int height)
 {
-	printf("DRV_TGEN_Init w %d h %d\n", width, height);
+	//printf("DRV_TGEN_Init w %d h %d\n", width, height);
 
 	G197_TGEN_REG->sft_cfg[0] = 0x00000000;
 	G197_TGEN_REG->sft_cfg[2] = 0x0000000a;
 	G197_TGEN_REG->sft_cfg[3] = 0x0000000a;
 
-	if ( (width == 64) && (height == 64) ) {
-		G197_TGEN_REG->sft_cfg[4] = 0x00000600;
-	} else if ( (width == 128) && (height == 128) ) {
+	if ( (width == 720) && (height == 480) ) {
+		G197_TGEN_REG->sft_cfg[4] = 0x00000000;
+	} else if ( (width == 800) && (height == 480) ) {
 		G197_TGEN_REG->sft_cfg[4] = 0x00000001; //user mode
 
-		G197_TGEN_REG->sft_cfg[8] = 0x00000168; //total pixel
-		G197_TGEN_REG->sft_cfg[9] = 0x00000080; //line start
-		G197_TGEN_REG->sft_cfg[10] = 0x00000096; //total line
-		G197_TGEN_REG->sft_cfg[11] = 0x00000094; //end line
-		G197_TGEN_REG->sft_cfg[12] = 0x00000013; //start line
-	} else if ( (width == 720) && (height == 480) ) {
-		G197_TGEN_REG->sft_cfg[4] = 0x00000000;
+		G197_TGEN_REG->sft_cfg[8] = 0x000003A0;
+		G197_TGEN_REG->sft_cfg[9] = 0x00000320;
+		G197_TGEN_REG->sft_cfg[10] = 0x0000020d;
+		G197_TGEN_REG->sft_cfg[11] = 0x00000205;
+		G197_TGEN_REG->sft_cfg[12] = 0x00000024;
+	} else if ( (width == 1024) && (height == 600) ) {
+		G197_TGEN_REG->sft_cfg[4] = 0x00000001; //user mode
+
+		G197_TGEN_REG->sft_cfg[8] = 0x00000540;
+		G197_TGEN_REG->sft_cfg[9] = 0x00000400;
+		G197_TGEN_REG->sft_cfg[10] = 0x0000027b;
+		G197_TGEN_REG->sft_cfg[11] = 0x00000271;
+		G197_TGEN_REG->sft_cfg[12] = 0x00000018;
+	} else if ( (width == 480) && (height == 1280) ) {
+		G197_TGEN_REG->sft_cfg[4] = 0x00000001; //user mode
+
+		G197_TGEN_REG->sft_cfg[8] = 0x0000026c;
+		G197_TGEN_REG->sft_cfg[9] = 0x000001e0;
+		G197_TGEN_REG->sft_cfg[10] = 0x00000522;
+		G197_TGEN_REG->sft_cfg[11] = 0x00000512;
+		G197_TGEN_REG->sft_cfg[12] = 0x00000011;
+	} else if ( (width == 1280) && (height == 480) ) {
+		G197_TGEN_REG->sft_cfg[4] = 0x00000001; //user mode
+
+		G197_TGEN_REG->sft_cfg[8] = 0x00000612;
+		G197_TGEN_REG->sft_cfg[9] = 0x00000500;
+		G197_TGEN_REG->sft_cfg[10] = 0x0000020d;
+		G197_TGEN_REG->sft_cfg[11] = 0x00000205;
+		G197_TGEN_REG->sft_cfg[12] = 0x00000024;
 	} else if ( (width == 1280) && (height == 720) ) {
 		G197_TGEN_REG->sft_cfg[4] = 0x00000200;
 	} else if ( (width == 1920) && (height == 1080) ) {
@@ -43,7 +65,7 @@ void DRV_TGEN_Init(int width, int height)
 		G197_TGEN_REG->sft_cfg[9] = 0x00000F00;
 		G197_TGEN_REG->sft_cfg[10] = 0x00000c80;
 		G197_TGEN_REG->sft_cfg[11] = 0x00000b68;
-		G197_TGEN_REG->sft_cfg[12] = 0x00000029;
+		G197_TGEN_REG->sft_cfg[12] = 0x00000027;
 	} else {
 		printf("DRV_TGEN_Init TBD\n");
 	}

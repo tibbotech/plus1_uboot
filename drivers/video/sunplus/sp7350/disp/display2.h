@@ -47,5 +47,19 @@ typedef char                SINT8;
 					| (((UINT32)(x)) & 0xff000000) >> 24)
 #define SWAP16(x)	(((x) & 0x00ff) << 8 | ((x) >> 8))
 
+#include <asm/gpio.h>
+
+struct sp7350_disp_priv {
+	#if CONFIG_IS_ENABLED(DM_I2C) && defined(CONFIG_SP7350_LT8912B_BRIDGE)
+	struct udevice *chip1;
+	struct udevice *chip2;
+	#endif
+	void __iomem *regs;
+	//struct display_timing timing;
+	struct gpio_desc reset;
+};
+
+extern struct sp7350_disp_priv *sp_gpio;
+
 #endif	//__DISPLAY_H__
 
