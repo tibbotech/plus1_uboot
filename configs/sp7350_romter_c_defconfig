@@ -73,6 +73,8 @@ CONFIG_CMD_SF=y
 # CONFIG_TFABOOT is not set
 # CONFIG_SYS_ZMEM_SKIP_RELOC is not set
 
+CONFIG_CMD_DM=n
+CONFIG_BOARD_LATE_INIT=n
 #
 # Display
 #
