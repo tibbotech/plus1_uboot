@@ -68,7 +68,28 @@ static struct sp_pnand_chip_timing chip_timing[] = {
 	20, 11, 100, 0, 120, 300, 100, 20, 10, 25,
 	70, 100, 0, 20, 0, 10, 10, 10, 0, 0, 0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+	{ //MT29F32G08ABAAA 4GiB 3.3V 8-bit
+	30, 20, 20, 20, 0, 50, 30, 0, 0, 0,
+	40, 50, 200, 0, 120, 0, 200, 40, 25, 100,
+	200, 200, 0, 70, 0, 20, 50, 20, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
+};
+
+static struct sp_pnand_chip_timing sync_timing[] = {
+	{ //MT29F32G08ABAAA 4GiB 3.3V 8-bit mode 0 20MHz
+	0, 10, 0, 0, 10, 0, 0, 0, 0, 0,
+	0, 0, 100, 0, 80, 0, 100, 20, 0, 0,
+	100, 0, 200, 35, 0, 0, 0, 0, 10, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 20, 20, 25, 0,
+	0, 0, 0, 18, 0, 20, 0, 0, 0, 0, 0, 0},
+	{ //MT29F32G08ABAAA 4GiB 3.3V 8-bit mode 1 33MHz
+	0, 5, 0, 0, 5, 0, 0, 0, 0, 0,
+	0, 0, 100, 0, 80, 0, 100, 20, 0, 0,
+	100, 0, 200, 25, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 20, 20, 25, 0,
+	0, 0, 0, 18, 0, 20, 0, 0, 0, 0, 0, 0}
 };
 
 struct sp_pnand_info *get_pnand_info(void)
@@ -155,22 +176,34 @@ static void sp_pnand_set_warmup_cycle(struct nand_chip *nand,
 static struct sp_pnand_chip_timing *sp_pnand_scan_timing(struct nand_chip *nand)
 {
 	struct mtd_info *mtd = nand_to_mtd(nand);
+	struct sp_pnand_info *info = nand_get_controller_data(nand);
 
 	sp_pnand_dbg("mtd->name %s\n", mtd->name);
-	if(strcmp(mtd->name, "K9F2G08XXX 256MiB ZEBU 8-bit") == 0)
+	if(strcmp(mtd->name, "K9F2G08XXX 256MiB ZEBU 8-bit") == 0) {
 		return &chip_timing[0];
-	else if(strcmp(mtd->name, "GD9FS2G8F2A 256MiB 1.8V 8-bit") == 0)
+	} else if(strcmp(mtd->name, "GD9FS2G8F2A 256MiB 1.8V 8-bit") == 0) {
 		return &chip_timing[1];
-	else if(strcmp(mtd->name, "GD9AU4G8F3A 512MiB 3.3V 8-bit") == 0)
+	} else if(strcmp(mtd->name, "GD9AU4G8F3A 512MiB 3.3V 8-bit") == 0) {
 		return &chip_timing[2];
-	else if(strcmp(mtd->name, "GD9FU4G8F4B 512MiB 3.3V 8-bit") == 0)
+	} else if(strcmp(mtd->name, "GD9FU4G8F4B 512MiB 3.3V 8-bit") == 0) {
 		return &chip_timing[3];
-	else if(strcmp(mtd->name, "W29N08GZSIBA 1GiB 1.8V 8-bit") == 0)
+	} else if(strcmp(mtd->name, "W29N08GZSIBA 1GiB 1.8V 8-bit") == 0) {
 		return &chip_timing[4];
-	else if(strcmp(mtd->name, "K9GBG08U0B 4GiB 3.3V 8-bit") == 0)
+	} else if(strcmp(mtd->name, "K9GBG08U0B 4GiB 3.3V 8-bit") == 0) {
 		return &chip_timing[5];
-	else
+#if 1
+	} else if(strcmp(mtd->name, "MT29F32G08ABAAA 4GiB 3.3V 8-bit") == 0) {
+		return &chip_timing[6];
+#else /* DDR MODE */
+	} else if(strcmp(mtd->name, "MT29F32G08ABAAA 4GiB 3.3V 8-bit") == 0) {
+		if (info->flash_type == ONFI2)
+			return &sync_timing[0];
+		else
+			return &chip_timing[6];
+#endif
+	} else {
 		return NULL;
+	}
 }
 
 /* The unit of Hclk is MHz, and the unit of Time is ns.
@@ -181,14 +214,14 @@ static struct sp_pnand_chip_timing *sp_pnand_scan_timing(struct nand_chip *nand)
  * ==> N > Time * Hclk / 1000
  * ==> N = (Time * Hclk + 999) / 1000
  */
-static void sp_pnand_calc_timing(struct nand_chip *nand)
+static void sp_pnand_calc_timing(struct nand_chip *nand, struct sp_pnand_chip_timing *p)
 {
 	struct sp_pnand_info *info = nand_get_controller_data(nand);
 	int tWH, tWP, tREH, tRES, tBSY, tBUF1;
 	int tBUF2, tBUF3, tBUF4, tPRE, tRLAT, t1;
 	int tPST, tPSTH, tWRCK;
 	int i, toggle_offset = 0;
-	struct sp_pnand_chip_timing *p;
+	//struct sp_pnand_chip_timing *p;
 	u32 CLK, FtCK, timing[4];
 
 	CLK = FREQ_SETTING / 1000000;
@@ -198,10 +231,9 @@ static void sp_pnand_calc_timing(struct nand_chip *nand)
 	tBUF4 = tBUF3 = tBUF2 = tBUF1 = 0;
 	tPRE = tPST = tPSTH = tWRCK = 0;
 
-	p = sp_pnand_scan_timing(nand);
-	if(!p)
-		DBGLEVEL1(sp_pnand_dbg("Failed to get AC timing!\n"));
-	//p = &chip_timing;
+	//p = sp_pnand_scan_timing(nand);
+	//if(!p)
+		//DBGLEVEL1(sp_pnand_dbg("Failed to get AC timing!\n"));
 
 	if(info->flash_type == LEGACY_FLASH) {
 		// tWH = max(tWH, tCH, tCLH, tALH)
@@ -534,6 +566,7 @@ static int sp_pnand_onfi_sync(struct nand_chip *nand)
 {
 	struct sp_pnand_info *info = nand_get_controller_data(nand);
 	struct mtd_info *mtd = nand_to_mtd(nand);
+	struct sp_pnand_chip_timing *p;
 	u32 val;
 	int ret = -1;
 
@@ -547,11 +580,11 @@ static int sp_pnand_onfi_sync(struct nand_chip *nand)
 		goto out;
 
 	if (info->flash_type == ONFI2) {
-		sp_pnand_onfi_set_feature(nand, 0x11);
+		sp_pnand_onfi_set_feature(nand, 0x10);//mode1:0x11
 
 		val = sp_pnand_onfi_get_feature(nand, ONFI2);
 		printk("NV-DDR feature for Ch %d, CE %d: 0x%x\n", info->cur_chan, info->sel_chip, val);
-		if (val != 0x1111) {
+		if (val != 0x1010) {
 			goto out;
 		}
 	}
@@ -1310,22 +1343,13 @@ static int sp_pnand_attach_chip(struct nand_chip *nand)
 	if (((info->useecc * 14) % 8) != 0)
 		nand->ecc.bytes++;
 	nand->ecc.strength = 2;
-	nand->ecc.read_page = sp_pnand_read_page;
-	nand->ecc.write_page = sp_pnand_write_page_lowlevel;
-	nand->ecc.read_oob = sp_pnand_read_oob_std;
-	nand->ecc.write_oob = sp_pnand_write_oob_std;
-	nand->ecc.read_page_raw = sp_pnand_read_page;
-	if (info->large_page) {
-		info->read_page = sp_pnand_read_page_lp;
-		info->write_page = sp_pnand_write_page_lp;
-		info->read_oob = sp_pnand_read_oob_lp;
-		info->write_oob = sp_pnand_write_oob_lp;
-	} else {
-		info->read_page = sp_pnand_read_page_sp;
-		info->write_page = sp_pnand_write_page_sp;
-		info->read_oob = sp_pnand_read_oob_sp;
-		info->write_oob = sp_pnand_write_oob_sp;
-	}
+
+	nand->ecc.read_page = sp_pnand_read_page_lp;
+	nand->ecc.write_page = sp_pnand_write_page_lp;
+	nand->ecc.read_oob = sp_pnand_read_oob_lp;
+	nand->ecc.write_oob = sp_pnand_write_oob_lp;
+	nand->ecc.read_page_raw = sp_pnand_read_page_lp;
+	
 	mtd_set_ooblayout(mtd, &sp_pnand_ooblayout_ops);
 
 	printk("Transfer: PIO\n");
@@ -1387,22 +1411,30 @@ int sp_pnand_hw_init(struct sp_pnand_info *info)
 
 void sp_pnand_set_actiming(struct nand_chip *nand)
 {
-	/* TODO: calibrate the DQS delay for Sync */
-	flashtype type = LEGACY_FLASH;
+	struct mtd_info *mtd = nand_to_mtd(nand);
 	struct sp_pnand_info *info = nand_get_controller_data(nand);
-
+	struct sp_pnand_chip_timing *p;
+#if 0 //DDR MODE in trouble
+	if(strcmp(mtd->name, "MT29F32G08ABAAA 4GiB 3.3V 8-bit") == 0)
+		info->flash_type = ONFI2;
+#endif
+	/* TODO: calibrate the DQS delay for Sync */
 	/*----------------------------------------------------------
 	 * ONFI synch mode means High Speed. If fails to change to
 	 * Synch mode, then use flash as Async mode(Normal speed) and
 	 * use LEGACY_LARGE fix flow.
 	 */
-	if (type == ONFI2 || type == ONFI3) {
-		info->flash_type = type;
+	if (info->flash_type == ONFI2 || info->flash_type == ONFI3) {
 		if (sp_pnand_onfi_sync(nand) == 0) {
-			sp_pnand_calc_timing(nand);
+			DBGLEVEL1(sp_pnand_dbg("Set DDR mode 0!\n"));
+
+			p = sp_pnand_scan_timing(nand);
+			if(!p)
+				DBGLEVEL1(sp_pnand_dbg("Failed to get AC timing!\n"));
+			sp_pnand_calc_timing(nand, p);
 			sp_pnand_calibrate_dqs_delay(nand);
-		}
-		else{
+		} else {
+			DBGLEVEL1(sp_pnand_dbg("Failed to set DDR mode! Use SDR\n"));
 			info->flash_type = LEGACY_FLASH;
 		}
 	}
@@ -1410,7 +1442,10 @@ void sp_pnand_set_actiming(struct nand_chip *nand)
 	// Toggle & ONFI flash has set the proper timing before READ ID.
 	// We don't do that twice.
 	if(info->flash_type == LEGACY_FLASH) {
-		sp_pnand_calc_timing(nand);
+		p = sp_pnand_scan_timing(nand);
+		if(!p)
+			DBGLEVEL1(sp_pnand_dbg("Failed to get AC timing!\n"));
+		sp_pnand_calc_timing(nand, p);
 		sp_pnand_calibrate_rlat(nand);
 	}
 	else if(info->flash_type == TOGGLE2) {
@@ -1448,6 +1483,9 @@ int sp_pnand_init(struct sp_pnand_info *info)
 	// set before although the Global Reset is set.
 	sp_pnand_set_default_timing(nand);
 	sp_pnand_set_warmup_cycle(nand, 0, 0);//disable
+
+	// Read the raw id to calibrate the DQS delay for Sync. latching(DDR)
+	sp_pnand_read_raw_id(nand);
 #if 0
 	// Read the raw id to calibrate the DQS delay for Sync. latching(DDR)
 	sp_pnand_read_raw_id(nand);
@@ -1469,8 +1507,6 @@ int sp_pnand_init(struct sp_pnand_info *info)
 	if(info->flash_type == TOGGLE2)
 		sp_pnand_t2_sync(nand, 0, 0);
 #endif
-	/* read id need flash_type. TODO: how to remove it */
-	//info->flash_type = LEGACY_FLASH;
 	ret = nand_scan_ident(mtd, MAX_CE, (struct nand_flash_dev *)sp_pnand_ids);
 	if (ret)
 		return ret;
@@ -1507,10 +1543,34 @@ static int sp_pnand_probe(struct udevice *dev)
 {
 	struct sp_pnand_info *info = our_paranfc = dev_get_priv(dev);
 	int ret;
+	//struct clk *clk;
 
 	info->io_base = (void __iomem*)devfdt_get_addr_index(dev, 0);
 	info->sram_base = (void __iomem*)devfdt_get_addr_index(dev, 1);
+#if 0
+	clk = devm_clk_get(dev, NULL);
+	if (!IS_ERR(clk)) {
+		ret = clk_prepare_enable(clk);
+		if (ret)
+			return ret;
+	} else {
+		clk = NULL;
+	}
 
+	//FIXME
+	if (of_property_read_u32(pdev->dev.of_node, "clock-frequency", &data->clkfreq))
+		data->clkfreq = CONFIG_SP_CLK_100M;
+
+	//DBGLEVEL1(sp_pnand_dbg("data->clkfreq %d\n", data->clkfreq));
+	ret = clk_set_rate(clk, data->clkfreq);
+	if (ret) {
+		dev_err(dev, "Failed to set clk rate\n");
+		return ret;
+	}
+
+	data->clkfreq = clk_get_rate(clk);
+	DBGLEVEL2(sp_pnand_dbg("data->clkfreq %d\n", data->clkfreq));
+#endif
 	DBGLEVEL2(sp_pnand_dbg("info->io_base:0x%08lx", (unsigned long)info->io_base));
 	DBGLEVEL2(sp_pnand_dbg("info->sram_base:0x%08lx", (unsigned long)info->sram_base));
 
@@ -1545,7 +1605,7 @@ void board_paranand_init(void)
 	DBGLEVEL2(sp_pnand_dbg("board_paranand_init() entry\n"));
 
 	volatile unsigned int *clk_reg = (volatile unsigned int *)map_sysmem(PNAND_CORE_CLK_REG, 0);
-	*clk_reg = CORE_CLK_400M;
+	*clk_reg = CORE_CLK_200M;
 
 	ret = uclass_get_device_by_driver(UCLASS_MTD,
 					  DM_DRIVER_GET(sunplus_para_nand),

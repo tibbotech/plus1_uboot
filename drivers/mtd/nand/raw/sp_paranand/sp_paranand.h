@@ -2,7 +2,7 @@
 *	Platform(user) specific
 **********************************************************/
 /* Frequency Setting (unit: HZ) */
-#define CONFIG_PNANDC_HCLK		400000000
+#define CONFIG_PNANDC_MEM_CLK		200000000
 
 /* Reserved BI byte (bad block information) from spare location, BI_byte = 1~6 */
 #define CONFIG_BI_BYTE			0
@@ -183,7 +183,7 @@
 //#define CONFIG_SECTOR_MODE
 
 /* Frequency Setting (unit: HZ) */
-#define FREQ_SETTING			CONFIG_PNANDC_HCLK
+#define FREQ_SETTING			CONFIG_PNANDC_MEM_CLK
 
 #if CONFIG_PNANDC_DEBUG > 0
 	#define TAG "[PARA-NAND] "
@@ -324,6 +324,7 @@ struct sp_pnand_info {
 	int sector_per_page; //used for cmdreg[3], e.x.2KB page: 1K60bit-> 1 sector; 512/2bit -> 4sector;
 	int inverse;
 	int scramble;
+	int clkfreq;
 
 	int (*write_oob) (struct nand_chip *nand, u8 *buf, int len);
 	int (*read_oob) (struct nand_chip *nand, u8 *buf);
@@ -349,14 +350,15 @@ extern int sp_pnand_read_oob_std(struct mtd_info *,
 				 struct nand_chip *, int);
 extern int sp_pnand_write_oob_std(struct mtd_info *,
 				  struct nand_chip *, int);
-extern int sp_pnand_read_page_lp(struct nand_chip *, uint8_t *);
-extern int sp_pnand_write_page_lp(struct nand_chip *, const uint8_t *);
-extern int sp_pnand_read_oob_lp(struct nand_chip *, u8 *);
-extern int sp_pnand_write_oob_lp(struct nand_chip *, u8 *, int);
-extern int sp_pnand_read_page_sp(struct nand_chip *, uint8_t *);
-extern int sp_pnand_write_page_sp(struct nand_chip *, const uint8_t *);
-extern int sp_pnand_read_oob_sp(struct nand_chip *, u8 *);
-extern int sp_pnand_write_oob_sp(struct nand_chip *, u8 *, int);
+
+int sp_pnand_read_oob_lp(struct mtd_info *mtd, struct nand_chip *nand, int page);
+int sp_pnand_read_page_lp(struct mtd_info *mtd, struct nand_chip *nand,
+				      uint8_t *buf, int oob_required, int page);
+int sp_pnand_write_oob_lp(struct mtd_info *mtd, struct nand_chip *nand, int page);
+int sp_pnand_write_page_lp(struct mtd_info *mtd,
+				       struct nand_chip *nand, const uint8_t *buf,
+				       int oob_required, int page);
+
 extern void sp_pnand_set_ecc_for_bblk(struct sp_pnand_info *temp_info, int restore);
 
 extern struct sp_pnand_info *sp_pnand_init_param(void);

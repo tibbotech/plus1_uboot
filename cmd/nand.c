@@ -665,8 +665,16 @@ static int do_nand(struct cmd_tbl *cmdtp, int flag, int argc,
 		 * When executing nand-read commmand, set it to isp_addr_nand_read_next.
 		 * When executing nand-write commmand, set it to isp_addr_nand_write_next.
 		 */
-		uint32_t noff;
-		noff = off + rwsize;
+		uint32_t noff = off + rwsize;
+		int badblocks = 0;
+
+		/* count badblocks in NAND from offset to offset + size */
+		for (; off < noff; off += mtd->erasesize) {
+			if (nand_block_isbad(mtd, off))
+				badblocks++;
+		}
+
+		noff += badblocks * mtd->erasesize;
 
 		if (read)
 		{

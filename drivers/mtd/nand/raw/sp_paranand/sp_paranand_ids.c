@@ -8,7 +8,7 @@
 
 /*
  * Chip ID list
- * name, device ID, page size, chip size in MiB, eraseblock size, options
+ * name, device ID, page size, chip size in MiB, eraseblock size, options, id len, spare, ECC
  */
 const struct nand_flash_dev sp_pnand_ids[] = {
 	{"K9F2G08XXX 256MiB ZEBU 8-bit",
@@ -29,6 +29,11 @@ const struct nand_flash_dev sp_pnand_ids[] = {
 	{"K9GBG08U0B 4GiB 3.3V 8-bit",
 		{ .id = {0xec, 0xd7, 0x94, 0x7e, 0x64} },
 		  SZ_8K, SZ_4K, SZ_1M, 0, 5, 1024, NAND_ECC_INFO(40, SZ_1K), },
-
+	{"MT29F32G08ABAAA 4GiB 3.3V 8-bit",
+		{ .id = {0x2c, 0x68, 0x00, 0x27, 0xa9} },
+		  SZ_8K, SZ_4K, SZ_1M, 0, 5, 448, NAND_ECC_INFO(8, SZ_512), },
+	{"MT29F64G08AFAAA 8GiB 3.3V 8-bit",
+		{ .id = {0x2c, 0x68, 0x00, 0x27, 0xa9} },
+		  SZ_8K, SZ_8K, SZ_1M, 0, 5, 448, NAND_ECC_INFO(8, SZ_512), },
 	{NULL}
 };
