@@ -20,14 +20,14 @@ menuconfig VIDEO_SP7350
 config SP7350_LT8912B_BRIDGE
 	bool "Enable SP7350 LT8912B_HDMI bridge"
 	depends on DM_VIDEO && VIDEO_SP7350
-	default n
+	default y
 	help
 		Enable this will init LT8912B_HDMI bridge via I2C6.
 
 config VIDEO_SP7350_MAX_XRES
 	int "Maximum horizontal resolution (for memory allocation purposes)"
 	depends on VIDEO_SP7350
-	default 720
+	default 1280
 	help
 	  The maximum horizontal resolution to support for the framebuffer.
 	  This configuration is used for reserving/allocating memory for the
@@ -36,7 +36,7 @@ config VIDEO_SP7350_MAX_XRES
 config VIDEO_SP7350_MAX_YRES
 	int "Maximum vertical resolution (for memory allocation purposes)"
 	depends on VIDEO_SP7350
-	default 480
+	default 720
 	help
 	  The maximum vertical resolution to support for the framebuffer.
 	  This configuration is used for reserving/allocating memory for the
