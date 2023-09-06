@@ -71,7 +71,7 @@ void DRV_mipitx_pllclk_set(int mode, int width, int height)
 	} else {
 		//printf("MIPITX CLK setting for Video Mode w %d h %d\n", width, height);
 		if ((width == 720) && (height == 480)) {
-		#if 0//fine tune PLLH clk to fit 27.08MHz
+		#if 1//fine tune PLLH clk to fit 27.08MHz
 			DISP_MOON3_REG->sft_cfg[14] = 0x00780050; //PLLH
 			DISP_MOON3_REG->sft_cfg[14] = (0x7f800000 | (0xe << 7)); //PLLH
 			DISP_MOON3_REG->sft_cfg[25] = 0x07800380; //PLLH MIPITX CLK = 27.08MHz (just test)
@@ -104,7 +104,7 @@ void DRV_mipitx_pllclk_set(int mode, int width, int height)
 			//G205_MIPITX_REG1->sft_cfg[11] = 0x00000c00; //TXPLL MIPITX CLK = 300MHz
 			//G205_MIPITX_REG1->sft_cfg[12] = 0x00000140; //TXPLL BNKSEL = 300MHz -- 640MHz
 		} else if ((width == 1280) && (height == 720)) {
-		#if 0 //fine tune PLLH clk to fit 74MHz
+		#if 1 //fine tune PLLH clk to fit 74MHz
 			DISP_MOON3_REG->sft_cfg[14] = 0x00780038; //PLLH
 			DISP_MOON3_REG->sft_cfg[14] = (0x7f800000 | (0x13 << 7)); //PLLH
 			DISP_MOON3_REG->sft_cfg[25] = 0x07800180; //PLLH MIPITX CLK = 74MHz (just test)
@@ -114,7 +114,7 @@ void DRV_mipitx_pllclk_set(int mode, int width, int height)
 		#endif
 			G205_MIPITX_REG1->sft_cfg[11] = 0x00012400; //TXPLL MIPITX CLK = 450MHz
 		} else if ((width == 1920) && (height == 1080)) {
-		#if 0 //fine tune PLLH clk to fit 148.5MHz
+		#if 1 //fine tune PLLH clk to fit 148.5MHz
 			DISP_MOON3_REG->sft_cfg[14] = 0x00780038; //PLLH
 			DISP_MOON3_REG->sft_cfg[14] = (0x7f800000 | (0x13 << 7)); //PLLH
 			DISP_MOON3_REG->sft_cfg[25] = 0x07800080; //PLLH MIPITX CLK = 148MHz (just test)
