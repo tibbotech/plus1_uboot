@@ -89,7 +89,7 @@ void DRV_TCON_Init(int width, int height)
 		//G199_TCON0_REG0->sft_cfg[28] = 0x00000b69;
 	} else if ((width == 1280) && (height == 720)) {
 		G199_TCON0_REG0->sft_cfg[12] = 0x0000066A;
-		G199_TCON0_REG0->sft_cfg[13] = 0x0000066A;
+		G199_TCON0_REG0->sft_cfg[13] = 0x0000066E;
 		G199_TCON0_REG0->sft_cfg[20] = 0x000002ED;
 		G199_TCON0_REG0->sft_cfg[21] = 0x00000000;
 
