@@ -171,7 +171,8 @@ void DRV_mipitx_Init(int is_mipi_dsi_tx, int width, int height)
 	// MIPITX  Video Mode Horizontal/Vertial Timing
 	G204_MIPITX_REG0->sft_cfg[2] |= height;
 	if ((width == 720) && (height == 480)) { // 720x480
-		G204_MIPITX_REG0->sft_cfg[0] = 0x04080005; //fix
+		//G204_MIPITX_REG0->sft_cfg[0] = 0x04080005; //fix
+		G204_MIPITX_REG0->sft_cfg[0] = 0x04080004; //fix
 		G204_MIPITX_REG0->sft_cfg[1] = 0x00010823; //VSA=0x01 VFP=0x08 VBP=0x23
 	} else if ((width == 800) && (height == 480)) { // 800x480
 		G204_MIPITX_REG0->sft_cfg[0] = 0x04080005; //fix
@@ -185,11 +186,13 @@ void DRV_mipitx_Init(int is_mipi_dsi_tx, int width, int height)
 		G204_MIPITX_REG0->sft_cfg[0] = 0x04080005; //fix
 		G204_MIPITX_REG0->sft_cfg[1] = 0x00010823; //VSA=0x01 VFP=0x08 VBP=0x23
 	} else if ((width == 1280) && (height == 720)) { // 1280x720
-		G204_MIPITX_REG0->sft_cfg[0] = 0x04080005; //fix
+		//G204_MIPITX_REG0->sft_cfg[0] = 0x04080005; //fix
+		G204_MIPITX_REG0->sft_cfg[0] = 0x04080004; //fix
 		G204_MIPITX_REG0->sft_cfg[1] = 0x00010418; //VSA=0x01 VFP=0x04 VBP=0x18
 	} else if ((width == 1920) && (height == 1080)) { // 1920x1080
 		#if 1
-		G204_MIPITX_REG0->sft_cfg[0] = 0x04080005; //fix
+		//G204_MIPITX_REG0->sft_cfg[0] = 0x04080005; //fix
+		G204_MIPITX_REG0->sft_cfg[0] = 0x04080004; //fix
 		G204_MIPITX_REG0->sft_cfg[1] = 0x00010328; //VSA=0x01 VFP=0x03 VBP=0x28
 		#else
 		G204_MIPITX_REG0->sft_cfg[0] = 0x04110004; //fix

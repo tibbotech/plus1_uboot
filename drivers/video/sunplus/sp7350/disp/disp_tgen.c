@@ -21,7 +21,15 @@ void DRV_TGEN_Init(int width, int height)
 	G197_TGEN_REG->sft_cfg[3] = 0x0000000a;
 
 	if ( (width == 720) && (height == 480) ) {
-		G197_TGEN_REG->sft_cfg[4] = 0x00000000;
+		//G197_TGEN_REG->sft_cfg[4] = 0x00000000;
+
+		G197_TGEN_REG->sft_cfg[4] = 0x00000001; //user mode
+
+		G197_TGEN_REG->sft_cfg[8] = 0x0000035a;
+		G197_TGEN_REG->sft_cfg[9] = 0x000002d0;
+		G197_TGEN_REG->sft_cfg[10] = 0x0000020d;
+		G197_TGEN_REG->sft_cfg[11] = 0x00000205;
+		G197_TGEN_REG->sft_cfg[12] = 0x00000024;
 	} else if ( (width == 800) && (height == 480) ) {
 		G197_TGEN_REG->sft_cfg[4] = 0x00000001; //user mode
 
@@ -66,7 +74,15 @@ void DRV_TGEN_Init(int width, int height)
 		G197_TGEN_REG->sft_cfg[12] = 0x00000019;
 
 	} else if ( (width == 1920) && (height == 1080) ) {
-		G197_TGEN_REG->sft_cfg[4] = 0x00000300;
+		//G197_TGEN_REG->sft_cfg[4] = 0x00000300;
+
+		G197_TGEN_REG->sft_cfg[4] = 0x00000001; //user mode
+
+		G197_TGEN_REG->sft_cfg[8] = 0x00000898;
+		G197_TGEN_REG->sft_cfg[9] = 0x00000780;
+		G197_TGEN_REG->sft_cfg[10] = 0x00000465;
+		G197_TGEN_REG->sft_cfg[11] = 0x00000462;
+		G197_TGEN_REG->sft_cfg[12] = 0x00000029;
 	} else if ( (width == 3840) && (height == 2880) ) {
 		G197_TGEN_REG->sft_cfg[4] = 0x00000001; //user mode
 
